@@ -1,25 +1,26 @@
-import logo from './logo.svg';
+import React from "react"
+import { Routes, Route } from 'react-router-dom';
 import './App.css';
+import Header from './components/header/header.js';
+import Home from './pages/Home.js';
+import Error from './pages/error.js';
+import UserManual from "./pages/user-manual.js";
+import NewSession from "./pages/new-session.js";
+import CurrentSession from "./pages/current-session.js";
 
-function App() {
+
+export default function App() {
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+      <div className='app'>
+        <Header/>
+        <Routes>
+          <Route path="/" element={<Home/>}/>
+          <Route path="/NewSession" element={<NewSession/>}/>
+          <Route path="/CurrentSession" element={<CurrentSession/>}/>
+          <Route path="/UserManual" element={<UserManual/>}/>
+          <Route path="/*" element={<Error/>}/>
+        </Routes>
+      </div>
   );
 }
-
-export default App;

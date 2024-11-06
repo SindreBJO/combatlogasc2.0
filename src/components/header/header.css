@@ -1,0 +1,27 @@
+header{
+    width: 100vw;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+}
+
+.nav{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+    width: auto;
+}
+
+.nav-list{
+    display: flex;
+    flex-direction: row;
+    width: auto;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+    gap: 20px;
+}
