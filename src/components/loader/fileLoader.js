@@ -4,7 +4,7 @@ import { DataContext } from '../../utils/contexts/dataContext';
 
 
 export default function FileLoader() {
-    const { readNewFile, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount } = useContext(DataContext);
+    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile } = useContext(DataContext);
 
     function handleDrop(event) {
         event.preventDefault();
@@ -20,7 +20,7 @@ export default function FileLoader() {
         const file = event.target.files[0];
         
         if (file && file.type === 'text/plain') {
-          readNewFile(file);
+            readNewFile(file);
         } else {
           alert('Please use a .txt file.');
         }
