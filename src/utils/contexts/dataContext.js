@@ -1,6 +1,6 @@
 import React, { createContext, useState } from 'react';
-import { validateString, stringToArray, stringDamageEventCheck, splitDate, timeStampMs, stringToObject,flagStringToFlagObject } from '../helpers/parseHelpers.js';
-import {BOSSNAMES} from '../helpers/constants.js';
+import { parseString, damageEventCheck } from '../helpers/parseHelpers.js';
+import { BOSSNAMES } from '../helpers/constants.js';
 
 // Create the context
 export const DataContext = createContext();
@@ -17,6 +17,7 @@ export const DataContextProvider = ({ children }) => {
     const [sessions , setSessions] = useState([]);
     const [sessionLines, setSessionLines] = useState([]);
     const [sessionCount, setSessionCount] = useState(0);
+    const [sessionType, setSessionType] = useState("Default");
     //Data of valid and invalid lines
 
     function readNewFile(file) {
@@ -35,14 +36,20 @@ export const DataContextProvider = ({ children }) => {
         let lineCounterSessionStart = 0;
 
         let previousTimeStamp = 0;
+        let previousDamageTimeStamp = 0;
+        let previousDamageWithin30Seconds = false;
+
         let sessionsCount = 0;
-        let allUnits = [];
-        let playerUnits = [];
-        let hostileUnits = [];
-        let friendlyUnits = [];
+        let unitNamesList = new Map();
+        let unitsDataList = [];
 
         let sourceFlagTest = [];
         let sourceFlagTestLines = [];
+
+        let testSchoolList = [];
+        let testEventList = [];
+        let testDataList = [];
+
 
         setData([]);
         setValidLinesCount(0);
@@ -55,6 +62,7 @@ export const DataContextProvider = ({ children }) => {
 
         //Read the file
         reader.onload = (event) => {
+
             //Split the file into lines
             const text = carryOver + event.target.result;
             const newLines = text.split('\n');
@@ -72,8 +80,6 @@ export const DataContextProvider = ({ children }) => {
             if (offset < file.size) {
                 readNextChunk();
             } else {
-                
-                
 
                 handleParse(carryOver);
                 //Finished reading the file and parse the data
@@ -81,74 +87,94 @@ export const DataContextProvider = ({ children }) => {
                 setProgressPercentage(100);
                 setSessions(sessionLines);
                 setData(dataTemp);
-                console.log(sessionData)
-                console.log(dataTemp)
-                let test = sourceFlagTest.join(".");
-                console.log(test);
-                console.log(sourceFlagTestLines);
-                }
+                sessionData.push({
+                    session: currentSessionBOSS,
+                    timeStart: currentSessionStart,
+                    timeEnd: previousTimeStamp,
+                    lines: lineCounter - lineCounterSessionStart,
+                    lineStart: lineCounterSessionStart,
+                    lineEnd: lineCounter,
+                    duration: (previousTimeStamp - currentSessionStart) / 1000,
+                });
+                console.log("Recorded events:")
+                console.log(testEventList);
+                console.log("Recorded data:")
+                console.log(testDataList);
+                console.log("Session data:")
+                console.log(sessionData);
             }
+                
+        }
 
-
+            const readNextChunk = () => {
+                const blob = file.slice(offset, offset + CHUNK_SIZE);
+                reader.readAsText(blob);
+            };
 
             //Handles the parsing of the line
         function handleParse(currentLine){
+
             let parsedLine;
 
             //Check if the line is valid and push it to the data array
-            if (validateString(currentLine)){
-                parsedLine = stringToObject(currentLine);
-                dataTemp.push([true, parsedLine]);
+            if (parseString(currentLine)){
+
+                parsedLine = parseString(currentLine);
+                dataTemp.push(parsedLine);
                 setValidLinesCount(prevCount => prevCount + 1);
+                checkIfNewSession();
+                testEventsToList(parsedLine.event);
+
             }else {
+
                 setInvalidLinesCount(prevCount => prevCount + 1);
-                dataTemp.push([false, parsedLine]);
+                dataTemp.push(parsedLine);
                 return false;
+
             }
 
-            const array = stringToArray(currentLine);
-            const date = array[0];
-            const timeStamp = timeStampMs(array[1]);
-            const sourceGuid = array[3];
-            const sourceName = array[4];
-            const sourceFlag = array[5];
-            const destName = array[7];
-            const destGuid = array[6];
-            const destFlag = array[8];  
+            function testEventsToList(event){
 
+                if (parsedLine?.event){
 
+                    if(!testEventList.includes(parsedLine.event.join("_"))){
+                        testEventList.push(parsedLine.event.join("_"));
+                        testDataList.push(parsedLine);
+                    }
 
-
-
-
-
-
-
-            
-            function checkIfNewSession(currentLine){
-               
-
-            if (!sourceFlagTest.includes(sourceFlag)){
-                sourceFlagTest.push(sourceFlag);
-            
-            if (!sourceFlagTest.includes(destFlag)){
-                sourceFlagTest.push(destFlag);
-            
-            if(stringDamageEventCheck(currentLine)){
-                if (BOSSNAMES.includes(sourceName) && !currentSessionBOSS){
-                    currentSessionBOSS = sourceName;
                 }
 
-                    if (previousTimeStamp === 0){
-                        previousTimeStamp = timeStamp;
-                        currentSessionStart = timeStamp;
-                        lineCounterSessionStart = lineCounter;
-                        dataTemp.push(stringToObject(currentLine));
-                    } else if (timeStamp === previousTimeStamp){
-                        dataTemp.push(stringToObject(currentLine));
-                    } else if (timeStamp > previousTimeStamp + 60000){
-                        console.log(flagStringToFlagObject(currentLine));
+            }
 
+            function handleNameAndGUID(){
+                if(null){
+
+                }
+                    
+            }
+
+            function checkIfNewSession(){
+                /* console.log("Checking if new session")
+                console.log(parsedLine.isDamage)
+                console.log(parsedLine.timeMs)
+                console.log(lineCounter) */
+                
+                if(parsedLine.isDamage){
+
+                    if (BOSSNAMES.includes(parsedLine.sourceName) && !currentSessionBOSS){
+                        currentSessionBOSS = parsedLine.sourceName;
+                    }
+
+                    if (previousTimeStamp === 0){
+                    
+                        previousTimeStamp = parsedLine.timeMs;
+                        currentSessionStart = parsedLine.timeMs;
+                        lineCounterSessionStart = lineCounter;
+                    
+                        dataTemp.push(parsedLine);
+                    
+                    } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isUnitDead)) {
+                    
                         sessionData.push({
                             session: currentSessionBOSS,
                             timeStart: currentSessionStart,
@@ -158,65 +184,30 @@ export const DataContextProvider = ({ children }) => {
                             lineEnd: lineCounter,
                             duration: (previousTimeStamp - currentSessionStart) / 1000,
                         });
-                        dataTemp.push(stringToObject(currentLine));
+                        
+                        dataTemp.push(parsedLine);
                         sessionsCount ++;
                         currentSessionBOSS = false;
-                        previousTimeStamp = timeStamp;
-                        currentSessionStart = timeStamp;
-                    } else{
-                        previousTimeStamp = timeStamp;
-                        dataTemp.push(stringToObject(currentLine));
+                        previousTimeStamp = 0;
+                        currentSessionStart = 0;
+                    
+                    } else {
+                    
+                        previousTimeStamp = parsedLine.timeMs;
+                        dataTemp.push(parsedLine);
+                    
                     }
-        }
-        lineCounter ++;
-        }
+                    
+                  
+                }
+                lineCounter ++;
+                
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                
 
         }
-
-        const readNextChunk = () => {
-            const blob = file.slice(offset, offset + CHUNK_SIZE);
-            reader.readAsText(blob);
-        };
-
-    
-
-    function handleNameAndGUID(currentLine){ //in progress
-        const array = stringToArray(currentLine);
-        const sourceGuid = array[3];
-        const sourceName = array[4];
-        const sourceFlag = array[5];
-        const destGuid = array[6];
-        const destName = array[7];
-        const destFlag = array[8];
-
-        playerUnits.forEach(entry => {
-            const name = entry[0]; // First element is the name
-            const ids = entry.slice(1); // Remaining elements are the IDs
-            console.log(`Name: ${name}, IDs: ${ids.join(", ")}`);
-          });
     }
+  
 
     function handleFlag(string){ //in progress
         let flagCurrent = Number(string.substring(2));
@@ -231,9 +222,10 @@ export const DataContextProvider = ({ children }) => {
     }
 
     return (
-        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount }}>
+        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, sessionType, setSessionType }}>
             {children}
         </DataContext.Provider>
     );
+
 
 }

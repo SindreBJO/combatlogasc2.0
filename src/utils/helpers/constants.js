@@ -129,6 +129,65 @@ export const failedTypes = [
 "Your target must be in melee range",
 ]
 
+export const ENERGYTYPES = new Map([
+  [-2, "health"],
+  [0, "mana"],
+  [1, "rage"],
+  [2, "focus"],
+  [3, "energy"],
+  [4, "pet happiness"],
+  [5, "runes"],
+  [6, "runic power"]
+]);
+
+export function getEnergyType(value) {
+  return ENERGYTYPES.get(parseInt(value, 10)) || false; 
+}
+
+export const SCHOOLS = new Map([
+//Single Schools
+[0, "Unknown"],
+[1, "Physical"],
+[0x2, "Holy"],
+[0x4, "Fire"],
+[0x8, "Nature"],
+[0x10, "Frost"],
+[0x20, "Shadow"],
+[0x40, "Arcane"],
+//Dual Schools
+[0x3, "Holystrike (Holy + Physical)"],
+[0x5, "Flamestrike (Fire + Physical)"],
+[0x6, "Holyfire (Holy + Fire)"],
+[0x9, "Stormstrike (Nature + Physical)"],
+[0xA, "Holystorm (Holy + Nature)"],
+[0xC, "Firestorm (Fire + Nature)"],
+[0x11, "Froststrike (Frost + Physical)"],
+[0x12, "Holyfrost (Holy + Frost)"],
+[0x14, "Frostfire (Fire + Frost)"],
+[0x18, "Froststorm (Nature + Frost)"],
+[0x21, "Shadowstrike (Shadow + Physical)"],
+[0x22, "ShadowLight (Holy + Shadow)"],
+[0x24, "Shadowflame (Fire + Shadow)"],
+[0x28, "Shadowstorm (Nature + Shadow)"],
+[0x30, "Shadowfrost (Frost + Shadow)"],
+[0x41, "Spellstrike (Arcane + Physical)"],
+[0x42, "Divine (Arcane + Holy)"],
+[0x44, "Spellfire (Arcane + Fire)"],
+[0x48, "Spellstorm (Arcane + Nature)"],
+[0x50, "Spellfrost (Arcane + Frost)"],
+[0x60, "Spellshadow (Arcane + Shadow)"],
+//Trio Schools
+[0x1C, "Elemental (Fire + Nature + Frost)"],
+[0x7C, "Chromatic (Fire + Nature + Frost + Arcane)"],
+//Penta Schools
+[0x7E, "Magic (Holy + Fire + Nature + Frost + Shadow)"],
+[0x7F, "Chaos (Holy + Fire + Nature + Frost + Shadow + Arcane)"],
+])
+
+export function getSchooltype(value) {
+  return SCHOOLS.get(parseInt(value, 16)) || false;
+}
+
 export const BOSSNAMES = [
   //Zul'Gurub
   "High Priest Venoxis",

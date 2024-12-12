@@ -1,214 +1,141 @@
-import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX } from "./constants.js";
+import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyType, getSchooltype } from "./constants.js";
 
-export function validateString(string) {
-  if (stringToArray(string)) {
-    return true;
-  } 
-  return false;
-}
+export function parseString(string) {
 
-export function flagStringToFlagObject(string){
-  // Define flag mappings (using powers of 2, representing each bit)
-const FLAG_MAP = {
-  // Affiliation flags (First 4 bits)
-  AFFILIATION_MINE: 0x01,    // 0x01 = 0001
-  AFFILIATION_PARTY: 0x02,   // 0x02 = 0010
-  AFFILIATION_RAID: 0x04,    // 0x04 = 0100
-  AFFILIATION_OUTSIDER: 0x08, // 0x08 = 1000
-  AFFILIATION_MASK: 0x0F,    // 0x0F = 1111 (All affiliation flags)
+  const array = tryStringToArray(string);
 
-  // Reaction flags (Next 4 bits)
-  REACTION_FRIENDLY: 0x10,    // 0x10 = 0001 0000
-  REACTION_NEUTRAL: 0x20,     // 0x20 = 0010 0000
-  REACTION_HOSTILE: 0x40,     // 0x40 = 0100 0000
-  REACTION_MASK: 0xF0,        // 0xF0 = 1111 0000 (All reaction flags)
+  if (array === false) {
 
-  // Control flags (Next 4 bits)
-  CONTROL_PLAYER: 0x100,    // 0x100 = 0001 0000 0000
-  CONTROL_NPC: 0x200,       // 0x200 = 0010 0000 0000
-  CONTROL_MASK: 0x300,      // 0x300 = 0011 0000 0000 (All control flags)
+    console.log("Invalid string: " + string);
+    return false;
 
-  // Type flags (Next 4 bits)
-  TYPE_PLAYER: 0x400,     // 0x400 = 0100 0000 0000
-  TYPE_NPC: 0x800,        // 0x800 = 1000 0000 0000
-  TYPE_PET: 0x1000,       // 0x1000 = 0001 0000 0000 0000
-  TYPE_GUARDIAN: 0x2000,  // 0x2000 = 0010 0000 0000 0000
-  TYPE_OBJECT: 0x4000,    // 0x4000 = 0100 0000 0000 0000
-  TYPE_MASK: 0xF000,      // 0xF000 = 1111 0000 0000 0000 (All type flags)
-
-  // Special Flags (Remaining 4 bits)
-  TARGET: 0x10000,    // 0x10000 = 0001 0000 0000 0000 0000
-  FOCUS: 0x20000,     // 0x20000 = 0010 0000 0000 0000 0000
-  MAINTANK: 0x40000,  // 0x40000 = 0100 0000 0000 0000 0000
-  MAINASSIST: 0x80000, // 0x80000 = 1000 0000 0000 0000 0000
-  NONE: 0x800000,     // 0x800000 = 1000 0000 0000 0000 0000 0000
-  SPECIAL_MASK: 0xFFFF0000, // Special Flags Mask
-};
-
-// Function to convert hex to binary and extract the flag information
-function parseCombatLogFlag(hexFlag) {
-  // Convert the hex flag to an integer and then to a binary string (16-bit padded)
-  let binaryFlag = parseInt(hexFlag, 16).toString(2).padStart(16, '0');
-  
-  // Extract each flag category from the binary string
-  let affiliation = parseInt(binaryFlag.slice(0, 4), 2); // First 4 bits for affiliation
-  let reaction = parseInt(binaryFlag.slice(4, 8), 2);    // Next 4 bits for reaction
-  let control = parseInt(binaryFlag.slice(8, 12), 2);     // Next 4 bits for control
-  let type = parseInt(binaryFlag.slice(12, 16), 2);       // Last 4 bits for type
-  
-  // Prepare the output with flag names
-  const flagDetails = {
-      affiliation: getFlagNames(affiliation, FLAG_MAP.AFFILIATION_MINE, FLAG_MAP.AFFILIATION_PARTY, FLAG_MAP.AFFILIATION_RAID, FLAG_MAP.AFFILIATION_OUTSIDER),
-      reaction: getFlagNames(reaction, FLAG_MAP.REACTION_FRIENDLY, FLAG_MAP.REACTION_NEUTRAL, FLAG_MAP.REACTION_HOSTILE),
-      control: getFlagNames(control, FLAG_MAP.CONTROL_PLAYER, FLAG_MAP.CONTROL_NPC),
-      type: getFlagNames(type, FLAG_MAP.TYPE_PLAYER, FLAG_MAP.TYPE_NPC, FLAG_MAP.TYPE_PET, FLAG_MAP.TYPE_GUARDIAN, FLAG_MAP.TYPE_OBJECT),
-      special: getSpecialFlags(binaryFlag.slice(16)) // For special flags
-  };
-
-  console.log(flagDetails);
-
-  return flagDetails;
-}
-
-// Helper function to get flag names from bit values
-function getFlagNames(bitValue, ...flagValues) {
-  let flagNames = [];
-  flagValues.forEach((flagValue, index) => {
-      if ((bitValue & (1 << index)) !== 0) {
-          flagNames.push(Object.keys(FLAG_MAP)[index]);
-      }
-  });
-  return flagNames;
-}
-
-// Helper function to extract special flags
-function getSpecialFlags(specialBinary) {
-  let specialFlags = [];
-  if (specialBinary[0] === '1') specialFlags.push('TARGET');
-  if (specialBinary[1] === '1') specialFlags.push('FOCUS');
-  if (specialBinary[2] === '1') specialFlags.push('MAINTANK');
-  if (specialBinary[3] === '1') specialFlags.push('MAINASSIST');
-  if (specialBinary[4] === '1') specialFlags.push('NONE');
-  return specialFlags;
-}
-
-}
-
-export function stringToObject(string) {
-
-const array = stringToArray(string);
-const event = findPrefixAndSuffix(array[2]);
-let prefix;
-let suffix;
-
-  if (event[0] && event[1]) {
-    array[2] = event[0] + event[1];
-    prefix = event[0];
-    suffix = event[1];
-  } else if (prefix) {
-    
-  } else {
-    return array;
   }
 
-let count = 8;
-
-const baseParameters = returnBaseParameters(array);
-let prefixParameters;
-let suffixParameters;
-
-if (event[0]) {
-  prefixParameters = returnPrefixParameters(array, prefix, count);
-  if (prefixParameters !== undefined){
-    count += Object.keys(prefixParameters).length;
-  }
-  if (event[1]) {
-    suffixParameters = returnSuffixParameters(array, suffix, count);
-  }
-} else {
-  return array;
-}
-
-return { ...baseParameters, ...prefixParameters, ...suffixParameters };
-}
-
-export function stringDamageEventCheck(string) {
-  const array = stringToArray(string);
   const event = findPrefixAndSuffix(array[2]);
-  const prefix = event[0];
-  const suffix = event[1];
-  if (VALIDDAMAGEPREFIX.includes(prefix) && suffix === "DAMAGE") {
-    return true;
-  } else {
-    return false;
-  }
-}
 
-export function rawParseToTimeMs(string){
-let array = stringToArray(string);
-return timeStampMs(array[1]);
-}
+  let prefix;
+  let suffix;
 
-export function rawParseToDate(string){
-  let array;
-  if (stringToArray(string)) {
-    array = stringToArray(string);
-  } else {
-    return false;
-  }
-  if (array[1]) {
-    return timeStampMs(array[1]);
-  } else {
-    return false;
-  }
-}
+    if(event[0] && event[1]) {
 
-export function checkFlag(flag){
+      array[2] = [event[0], event[1]];
+      prefix = event[0];
+      suffix = event[1];
+
+    } else if (event[0] === "specialEvent") {
+
+      prefix = event[1];
+      suffix = false;
+
+    } else {
+
+      console.log("Invalid event: " + array[2]);
+      return false;
+
+    }
   
+  let count = 8;
+  
+  const baseParameters = returnBaseParameters(array);
+
+  let prefixParameters;
+  let suffixParameters;
+  
+  if (event[0]) {
+
+    prefixParameters = returnPrefixParameters(array, prefix, count);
+    if (prefixParameters !== undefined){
+      count += Object.keys(prefixParameters).length;
+    }
+    if (event[1]) {
+      suffixParameters = returnSuffixParameters(array, suffix, count);
+    }
+  } else {
+
+    return false;
+
+  }
+
+  return { ...baseParameters, ...prefixParameters, ...suffixParameters, isValid: true };
+
+}
+
+export function parseCombatLogFlag(flagString) {
+  // Step 1: Convert the hex string (e.g., "0x512") to a decimal integer
+  const decimalFlag = parseInt(flagString, 16);
+
+  // Step 2: Convert the decimal value to a binary string and pad to 16 bits
+  const binaryString = decimalFlag.toString(2).padStart(16, '0');
+
+  // Step 3: Extract specific parts of the flag using bitwise AND
+  const affiliation = decimalFlag & 0xF;   // Last 4 bits
+  const reaction = decimalFlag & 0xF0;    // Next 4 bits
+  const control = decimalFlag & 0xF00;    // Third group of 4 bits
+  const special = decimalFlag & 0xF000;   // Fourth group of 4 bits (special cases)
+
+  // Step 4: Create an object to hold the parsed components
+  const result = {};
+
+  // Step 5: Map affiliation flags to descriptions
+  if (affiliation === 0x1) result.affiliation = 'MINE';
+  if (affiliation === 0x2) result.affiliation = 'PARTY';
+  if (affiliation === 0x4) result.affiliation = 'RAID';
+  if (affiliation === 0x8) result.affiliation = 'OUTSIDER';
+  if (affiliation === 0xF) result.affiliation = 'MASK';
+
+  // Step 6: Map reaction flags to descriptions
+  if (reaction === 0x10) result.reaction = 'FRIENDLY';
+  if (reaction === 0x20) result.reaction = 'NEUTRAL';
+  if (reaction === 0x40) result.reaction = 'HOSTILE';
+  if (reaction === 0xF0) result.reaction = 'MASK';
+
+  // Step 7: Map control flags to descriptions
+  if (control === 0x100) result.control = 'PLAYER';
+  if (control === 0x200) result.control = 'NPC';
+  if (control === 0x300) result.control = 'MASK';
+
+  // Step 8: Map special flags to descriptions
+  if (special & 0x1000) result.special = 'TARGET';
+  if (special & 0x2000) result.special = 'FOCUS';
+  if (special & 0x4000) result.special = 'MAINTANK';
+  if (special & 0x8000) result.special = 'MAINASSIST';
+
+  // Return the parsed result object
+  return result;
+}
+
+export function damageEventCheck(parsedEvent) {
+  const prefix = parsedEvent[0];
+  const suffix = parsedEvent[1];
+
+  if (VALIDDAMAGEPREFIX.includes(prefix) && ["DAMAGE", "MISS"].includes(suffix)) {
+    return true;
+  }
+  return false;
 }
 
 //SUPPORTIVE HELPER FUNCTIONS
 
-export function stringToArray(input) { // GOLDEN FUNCTION
-  if (typeof input === "string") {
-    const commaCount = (input.match(/,/g) || []).length;
-    const doubleSpaceCount = (input.match(/  /g) || []).length;
+export function tryStringToArray(string) {
+  if (typeof string === "string") {
+
+    const commaCount = (string.match(/,/g) || []).length;
+    const doubleSpaceCount = (string.match(/  /g) || []).length;
 
     if (commaCount > 4 && doubleSpaceCount === 1) {
-      let parts = input.split("  ");
+
+      let parts = string.split("  ");
       let part1 = parts[0].split(" ");
       let part2 = parts[1].split(",");
-
       return [...part1, ...part2].map(str => str.replace(/["\\\r]/g, ''));
+
     }
   }
   
   return false;
 }
 
-function validateFlag(string){
-  if (string === "0x") {
-    return true;
-  } else {
-    return false;
-  }
-}
 
-  function formatHexToBinary(hex) {
-    // Convert the hex value to an integer
-    const decimalValue = parseInt(hex, 16);
-
-    // Convert the integer to a binary string
-    let binaryString = decimalValue.toString(2);
-
-    // Pad the binary string to 16 bits (if necessary)
-    binaryString = binaryString.padStart(16, '0');
-
-    // Group the binary string into nibbles (groups of 4 bits)
-    const binaryArray = binaryString.match(/.{1,4}/g); // This groups the string into chunks of 4 bits
-
-    return binaryArray;
-}
 
 
 //+ Converts the time to milliseconds
@@ -234,63 +161,108 @@ export function splitDate(date) {
 //Finds the Prefix and Suffix of the event (Suffix is whats left over after the prefix)
 export function findPrefixAndSuffix(event) {
 
-  let check = event.split('_');
+  let check;
 
-  if (check.length > 1) {
+  if (typeof event === 'string') {
+    check = event.split('_');
   } else {
+    console.error('event is not a string:', event);
+}
+ 
+
+  if (check.length <= 1) {
     return false;
-  }
+  } 
+
   for (let i = 0; i < check.length; i++) {
+
     let prefix = check.slice(0, i).join('');
     let suffix = check.slice(i, 5).join('');
     let specialEvent = check.join('');
+
     if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)){
       return [prefix, suffix];
+
     } else if (SPECIALEVENTS.includes(specialEvent) && i === check.length - 1){
-      return specialEvent;
+      return ["specialEvent", specialEvent];
     }
   }
 
   // If no valid prefix/suffix found, return empty array or handle it as needed
   return false;
-}
-
-export function findDayTime(string){
-  const array = stringToArray(string);
-  const date = splitDate(array[0]);
-  const timeMs = timeStampMs(array[1]);
-  const newDayTime = [date, timeMs]; 
 
 }
-
-
-//-----------------OBJECT RETURNS-----------------//
-
-
-
 
 export function returnBaseParameters (array){
+
+  const buffStandard = array => {
+    return {isBuff: array.includes("BUFF"),
+            isDebuff: array.includes("DEBUFF"),
+    }
+  }
+
+  const eventstandard = event => {
+
+    return {isDamage: event.includes(["DAMAGE", "MISSED"]),
+            isSpell: event.includes(["SPELL", "SPELLPERIODIC", "SPELLBUILDING"]),
+            isMelee: event.includes("SWING"),
+            isRange: event.includes("RANGE"),
+            isDamage: event.includes("DAMAGE"),
+            Missed: event.includes("MISS"),
+            isHeal: event.includes("HEAL"),
+            isEnergize: event.includes("ENERGIZE"),
+            isDrain: event.includes("DRAIN"),
+            isLeech: event.includes("LEECH"),
+            isInterrupt: event.includes("INTERRUPT"),
+            isDispel: event.includes("DISPEL"),
+            isDispelFailed: event.includes("DISPELFAILED"),
+            isStolen: event.includes("STOLEN"),
+            isAuraAppliedDose: event.includes("AURAAPPLIEDDOSE"),
+            isAuraRemovedDose: event.includes("AURAREMOVEDDOSE"),
+            isAuraApplied: event.includes("AURAAPPLIED"),
+            isAuraRemoved: event.includes("AURAREMOVED"),
+            isAuraRefresh: event.includes("AURAREFRESH"),
+            isAuraBroken: event.includes("AURABROKEN"),
+            isAuraBrokenSpell: event.includes("AURABROKEN_SPELL"),
+            isCastStart: event.includes("CASTSTART"),
+            isCastSuccess: event.includes("CASTSUCCESS"),
+            isCastFailed: event.includes("CASTFAILED"),
+            isInstakill: event.includes("INSTAKILL"),
+            isSummon: event.includes("SUMMON"),
+            isCreate: event.includes("CREATE"),
+            isResurrect: event.includes("RESURRECT"),
+            idDamageShield: event.includes("DAMAGESHIELD"),
+            idDamageShieldMissed: event.includes("DAMAGESHIELDMISSED"),
+            isPartyKill: event.includes("PARTYKILL"),
+            isUnitDied: event.includes("UNITDIED"),
+            isUnitDestroyed: event.includes("UNITDESTROYED"),
+            }
+  }
+
   return {
     date: splitDate(array[0]),
     timeMs: timeStampMs(array[1]),
+    ...eventstandard(array[2]),
     event: array[2],
     sourceGUID: array[3],
-    sourceName: array[4],
-    sourceFlags: array[5],
+    sourceName: checkName(array[4]),
+    sourceFlags: parseCombatLogFlag(array[5]),
     destGUID: array[6],
-    destName: array[7],
-    destFlags: array[8],
+    destName: checkName(array[7]),
+    destFlags: parseCombatLogFlag(array[8]),
     };
 }
 
 export function returnPrefixParameters(array, prefix, count){
+
   if (prefix === "SWING") { { } }
-  if (prefix === "RANGE") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3] }}
-  if (prefix === "SPELL") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3] }}
-  if (prefix === "SPELLPERIODIC") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3] }}
-  if (prefix === "SPELLBUILDING") {  return { spellId: array[count+1], spellName: array[count+2], school: array[count+3] }}
-  if (prefix === "ENVIRONMENTAL") {  return { environmentalType: array[count+1] }}
+  if (prefix === "RANGE") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
+  if (prefix === "SPELL") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
+  if (prefix === "SPELLPERIODIC") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
+  if (prefix === "SPELLBUILDING") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
+  if (prefix === "ENVIRONMENTAL") { return { environmentalType: array[count+1] }}
   else { 
+
     const result = returnSpecialEventParameters(array, prefix, count);
     if (result) {
       return result;
@@ -301,19 +273,20 @@ export function returnPrefixParameters(array, prefix, count){
 }
 
 export function returnSuffixParameters(array, suffix, count){
-  if (suffix === "DAMAGE") { return { amount: array[count+1], overkill: array[count+2], school: array[count+3], resisted: array[count+4], blocked: array[count+5], absorbed: array[count+6], critical: array[count+7], glancing: array[count+8], crushing: array[count+9] }}
-  if (suffix === "MISSED") { return { missType: array[count+1], amountMissed: array[count+2] }}
-  if (suffix === "HEAL") { return { amount: array[count+1], overhealing: array[count+2], absorbed: array[count+3], critical: array[count+4] }}
-  if (suffix === "ENERGIZE") {  return { amount: array[count+1], powerType: array[count+2] }}
-  if (suffix === "DRAIN") { return { amount: array[count+1], powerType: array[count+2], extraAmount: array[count+3] }}
-  if (suffix === "LEECH") { return { amount: array[count+1], powerType: array[count+2], extraAmount: array[count+3] }}
-  if (suffix === "INTERRUPT") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: array[count+3] }}
-  if (suffix === "DISPELFAILED") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: array[count+3], auraType: array[count+4] }}
-  if (suffix === "DISPEL") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: array[count+3] }}
-  if (suffix === "STOLEN") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: array[count+3], auraType: array[count+4] }}
-  if (suffix === "EXTRAATTACKS") { return { amount: array[count+1] }}
-  if (suffix === "AURAAPPLIEDDOSE") { return { auraType: array[count+1], amount: array[count+2] }}
-  if (suffix === "AURAREMOVEDDOSE") { return { auraType: array[count+1], amount: array[count+2] }}
+
+  if (suffix === "DAMAGE") { return { amount: checkAmount(array[count+1]), overkill: checkAmount(array[count+2]), school: getSchooltype(array[count+3]), resisted: checkAmount(array[count+4]), blocked: checkAmount(array[count+5]), absorbed: checkAmount(array[count+6]), critical: checkCritGlancingCrushing(array[count+7]), glancing: checkCritGlancingCrushing(array[count+8]), crushing: checkCritGlancingCrushing(array[count+9]) }}
+  if (suffix === "MISSED") { return { missType: array[count+1], amountMissed: checkAmount(array[count+2]) }}
+  if (suffix === "HEAL") { return { amount: checkAmount(array[count+1]), overhealing: checkAmount(array[count+2]), absorbed: checkAmount(array[count+3]), critical: checkCritGlancingCrushing(array[count+4]) }}
+  if (suffix === "ENERGIZE") {  return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]) }}
+  if (suffix === "DRAIN") { return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]), extraAmount: checkAmount(array[count+3]) }}
+  if (suffix === "LEECH") { return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]), extraAmount: checkAmount(array[count+3]) }}
+  if (suffix === "INTERRUPT") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]) }}
+  if (suffix === "DISPELFAILED") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
+  if (suffix === "DISPEL") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]) }}
+  if (suffix === "STOLEN") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
+  if (suffix === "EXTRAATTACKS") { return { amount: checkAmount(array[count+1]) }}
+  if (suffix === "AURAAPPLIEDDOSE") { return { auraType: array[count+1], amount: checkAmount(array[count+2]) }}
+  if (suffix === "AURAREMOVEDDOSE") { return { auraType: array[count+1], amount: checkAmount(array[count+2]) }}
   if (suffix === "AURAAPPLIED") { return { auraType: array[count+1] }}
   if (suffix === "AURAREMOVED") { return { auraType: array[count+1] }}
   if (suffix === "AURAREFRESH") {  return { auraType: array[count+1] }}
@@ -332,13 +305,35 @@ export function returnSuffixParameters(array, suffix, count){
 }
 
 function returnSpecialEventParameters(array, specialEvent, count){
-  if (specialEvent === "DAMAGESHIELDMISSED") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], missType: array[count+4], amountMissed: array[count+5] }}
-  if (specialEvent === "DAMAGESHIELD") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: array[count+4], overkill: array[count+5], school: array[count+6], resisted: array[count+7], blocked: array[count+8], absorbed: array[count+9], critical: array[count+10], glancing: array[count+11], crushing: array[count+12] }}
-  if (specialEvent === "DAMAGESPLIT") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: array[count+4], overkill: array[count+5], school: array[count+6], resisted: array[count+7], blocked: array[count+8], absorbed: array[count+9], critical: array[count+10], glancing: array[count+11], crushing: array[count+12] }}
+
+  if (specialEvent === "DAMAGESHIELDMISSED") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], missType: array[count+4], amountMissed: checkAmount(array[count+5]) }}
+  if (specialEvent === "DAMAGESHIELD") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), school: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
+  if (specialEvent === "DAMAGESPLIT") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), school: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
   if (specialEvent === "ENCHANTAPPLIED") { return { spellName: array[count+1], itemID: array[count+2], itemName: array[count+3] }}
   if (specialEvent === "ENCHANTREMOVED") { return { spellName: array[count+1], itemID: array[count+2], itemName: array[count+3] }}
   if (specialEvent === "PARTYKILL") { return {}}
   if (specialEvent === "UNITDIED") { return {}}
   if (specialEvent === "UNITDESTROYED") { return {}}
   else { return false }
+}
+
+function checkCritGlancingCrushing(value) {
+  if (value === "1") {
+    return true;
+  }
+  return false;
+}
+
+function checkName(name){
+  if (name === "nil") {
+    return false;
+  }
+  return name;
+}
+
+function checkAmount(amount){
+  if (["nil", undefined].includes(amount)) {
+    return 0;
+  }
+  return parseInt(amount, 10);
 }
