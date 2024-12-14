@@ -13,8 +13,8 @@ export function parseString(string) {
 
   const event = findPrefixAndSuffix(array[2]);
 
-  let prefix;
-  let suffix;
+    let prefix;
+    let suffix;
 
     if(event[0] && event[1]) {
 
@@ -60,7 +60,7 @@ export function parseString(string) {
 
 }
 
-export function parseCombatLogFlag(flagString) {
+export function parseCombatLogFlag(name, flagString) {
   // Step 1: Convert the hex string (e.g., "0x512") to a decimal integer
   const decimalFlag = parseInt(flagString, 16);
 
@@ -99,6 +99,10 @@ export function parseCombatLogFlag(flagString) {
   if (special & 0x2000) result.special = 'FOCUS';
   if (special & 0x4000) result.special = 'MAINTANK';
   if (special & 0x8000) result.special = 'MAINASSIST';
+
+  if (name === "Unknown" && result.affiliation === undefined && result.reaction === undefined && result.control === undefined && result.control === undefined) {
+    return {affiliation: "0", reaction: "0", control: "0", special: "0"};
+  }
 
   // Return the parsed result object
   return result;
@@ -246,10 +250,10 @@ export function returnBaseParameters (array){
     event: array[2],
     sourceGUID: array[3],
     sourceName: checkName(array[4]),
-    sourceFlags: parseCombatLogFlag(array[5]),
+    sourceFlags: parseCombatLogFlag(checkName(array[4]), array[5]),
     destGUID: array[6],
     destName: checkName(array[7]),
-    destFlags: parseCombatLogFlag(array[8]),
+    destFlags: parseCombatLogFlag(checkName(array[7]), array[8]),
     };
 }
 
@@ -326,7 +330,7 @@ function checkCritGlancingCrushing(value) {
 
 function checkName(name){
   if (name === "nil") {
-    return false;
+    return "Unknown";
   }
   return name;
 }

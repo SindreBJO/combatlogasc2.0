@@ -300,3 +300,9 @@ export const BOSSNAMES = [
   "M'uru",
   "Kil'jaeden",
 ]
+
+export const GUIDImmuneMonsters = [
+  "test",
+  "test2",
+  "Panda",
+]

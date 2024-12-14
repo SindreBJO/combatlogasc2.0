@@ -1,6 +1,6 @@
 import React, { createContext, useState } from 'react';
 import { parseString, damageEventCheck } from '../helpers/parseHelpers.js';
-import { BOSSNAMES } from '../helpers/constants.js';
+import { BOSSNAMES, GUIDImmuneMonsters } from '../helpers/constants.js';
 
 // Create the context
 export const DataContext = createContext();
@@ -28,20 +28,25 @@ export const DataContextProvider = ({ children }) => {
         let dataTemp = [];
         let SourceListTemp = [];
         let validLineCount = 0;
-        let currentSessionStart = 0;
-        let currentSessionBOSS = false;
-        let sessionData = [];
+
 
         let lineCounter = 0;
         let lineCounterSessionStart = 0;
 
         let previousTimeStamp = 0;
         let previousDamageTimeStamp = 0;
-        let previousDamageWithin30Seconds = false;
+        let previousDamageWithin30Seconds = 0;
 
+        let currentSessionStart = 0;
+        let currentSessionBOSS = "Trash";
+        let sessionData = [];
         let sessionsCount = 0;
-        let unitNamesList = new Map();
-        let unitsDataList = [];
+        let sessionStartDate = 0;
+
+        let playerList = [];
+        let friendlyNPCList = [];
+        let hostileNPCList = [];
+        let monsterNPCList = [];
 
         let sourceFlagTest = [];
         let sourceFlagTestLines = [];
@@ -102,6 +107,8 @@ export const DataContextProvider = ({ children }) => {
                 console.log(testDataList);
                 console.log("Session data:")
                 console.log(sessionData);
+                console.log("Player list:")
+                console.log(playerList);
             }
                 
         }
@@ -124,7 +131,6 @@ export const DataContextProvider = ({ children }) => {
                 setValidLinesCount(prevCount => prevCount + 1);
                 checkIfNewSession();
                 testEventsToList(parsedLine.event);
-
             }else {
 
                 setInvalidLinesCount(prevCount => prevCount + 1);
@@ -146,18 +152,152 @@ export const DataContextProvider = ({ children }) => {
 
             }
 
-            function handleNameAndGUID(){
-                if(null){
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            function handleNameAndGUID() {
+                console.log("--------------------")
+                console.log("Handling Name and GUID")
+                console.log("sname: " + parsedLine.sourceName);
+                console.log("sid: " + parsedLine.sourceGUID);
+                console.log("dname: " + parsedLine.destName);
+                console.log("did: " + parsedLine.destGUID);
+                console.log("sflag:");
+                console.log(parsedLine.sourceFlags);
+                console.log("dflag:");
+                console.log(parsedLine.destFlags);
+
+                if (!parsedLine) { 
+                    console.error("-----Error: parsedLine is undefined."); 
+                    return; 
                 }
-                    
+                if (!parsedLine.sourceFlags) { 
+                    console.error("-----Error: parsedLine.sourceFlags is undefined."); 
+                    return; 
+                }
+                if (!parsedLine.sourceGUID) { 
+                    console.error("-----Error: parsedLine.sourceGUID is undefined."); 
+                    return; 
+                }
+                if (!parsedLine.sourceName) { 
+                    console.error("-----Error: parsedLine.sourceFlags.sourceName is undefined."); 
+                    return; 
+                }
+                if (!parsedLine.destName) { 
+                    console.error("-----Error: parsedLine.destName is undefined."); 
+                    return; 
+                }
+                if (!parsedLine.destGUID) { 
+                    console.error("-----Error: parsedLine.destGUID is undefined."); 
+                    return; 
+                }
+                if (!parsedLine.sourceFlags) { 
+                    console.error("-----Error: parsedLine.destFlags is undefined."); 
+                    return; 
+                }
+              
+                let processTypeSource = selectProcessType(parsedLine.sourceFlags);
+                let processTypeDest = selectProcessType(parsedLine.destFlags);
+            
+                
+                console.log("TypeSource: " + processTypeSource);
+                console.log("TypeDest: " + processTypeDest);
+                if (processTypeSource === "Player") {
+                    addToListIfUniqueSourceName(parsedLine, playerList);
+                }
+                if (processTypeSource === "FriendlyNPC") {
+                    addToListIfUniqueSourceName(parsedLine, friendlyNPCList);
+                }
+                if (processTypeSource === "HostileNPC") {
+                    addToListIfUniqueSourceName(parsedLine, hostileNPCList);
+                }
+                if (processTypeSource === "ImmuneFriendlyNPC") {
+                    addToListIfUniqueSourceName(parsedLine, friendlyNPCList);
+                }
+                if (processTypeSource === "ImmuneHostileNPC") {
+                    addToListIfUniqueSourceName(parsedLine, hostileNPCList);
+                }
+
             }
+            
+            
+            function addToListIfUniqueSourceName() {
+                const sourceName = playerList.find(player => player.name === parsedLine.sourceFlags.sourceName);
+                const destName = playerList.find(player => player.name === parsedLine.sourceFlags.sourceName);
+            
+                if (sourceName === undefined) {
+                    // Add a new player if they don't exist
+                    playerList.push({ name: parsedLine.sourceName, ids: [parsedLine.sourceGUID] });
+                    return;
+                } 
+                if (!sourceName.name.includes(parsedLine.sourceName)) {
+                    // Add unique GUID
+                    sourceName.name.push(parsedLine.sourceName);
+                    console.log("Added GUID to player: " + sourceName.name);
+                    return;
+                }
+            
+            }
+
+            function selectProcessType(flags, name) {
+                if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control !== "PLAYER") {
+                    return "Player";
+                } else if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control === "PLAYER") {
+                    return "Pet";
+                } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "FRIENDLY") {
+                    return flags.sourceName === GUIDImmuneMonsters ? "ImmuneFriendlyNPC" : "FriendlyEntity";
+                } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "HOSTILE") {
+                    return name === GUIDImmuneMonsters ? "ImmuneHostileNPC" : "HostileEntity";
+                } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "NEUTRAL") {
+                    return "NeutralEntity";
+                } else if (flags.affiliation === "0") {
+                    return "UnknownEntity";
+                }
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             function checkIfNewSession(){
                 /* console.log("Checking if new session")
                 console.log(parsedLine.isDamage)
                 console.log(parsedLine.timeMs)
                 console.log(lineCounter) */
+
+                handleNameAndGUID();
                 
                 if(parsedLine.isDamage){
 
@@ -176,7 +316,7 @@ export const DataContextProvider = ({ children }) => {
                     } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isUnitDead)) {
                     
                         sessionData.push({
-                            session: currentSessionBOSS,
+                            sessionBoss: currentSessionBOSS,
                             timeStart: currentSessionStart,
                             timeEnd: previousTimeStamp,
                             lines: lineCounter - lineCounterSessionStart,
@@ -204,22 +344,13 @@ export const DataContextProvider = ({ children }) => {
                 
 
                 
-
+            }
         }
-    }
-  
-
-    function handleFlag(string){ //in progress
-        let flagCurrent = Number(string.substring(2));
-        let flagObject = {};
-        
-        if (flagCurrent){}
-        
-    }
-    
-    
         readNextChunk();
     }
+    
+    
+   
 
     return (
         <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, sessionType, setSessionType }}>
