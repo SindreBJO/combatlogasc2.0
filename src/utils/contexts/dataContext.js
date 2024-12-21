@@ -1,6 +1,6 @@
 import React, { createContext, useState } from 'react';
 import { parseString, damageEventCheck } from '../helpers/parseHelpers.js';
-import { BOSSNAMES, GUIDImmuneMonsters } from '../helpers/constants.js';
+import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 
 // Create the context
 export const DataContext = createContext();
@@ -33,20 +33,27 @@ export const DataContextProvider = ({ children }) => {
         let lineCounter = 0;
         let lineCounterSessionStart = 0;
 
+        let startDate;
         let previousTimeStamp = 0;
         let previousDamageTimeStamp = 0;
         let previousDamageWithin30Seconds = 0;
 
         let currentSessionStart = 0;
         let currentSessionBOSS = "Trash";
+        let currentDate;
         let sessionData = [];
         let sessionsCount = 0;
         let sessionStartDate = 0;
 
         let playerList = [];
+        let petList = [];
+        let playerControledNPCList = [];
         let friendlyNPCList = [];
+        let neutralNPCList = [];
+        let MultipleIdFriendlyNPCList = [];
         let hostileNPCList = [];
-        let monsterNPCList = [];
+        let MultipleIdHostileNPCList = [];
+        let unknownNPCList = [];
 
         let sourceFlagTest = [];
         let sourceFlagTestLines = [];
@@ -109,6 +116,10 @@ export const DataContextProvider = ({ children }) => {
                 console.log(sessionData);
                 console.log("Player list:")
                 console.log(playerList);
+                console.log("Friendly NPC list:")
+                console.log(friendlyNPCList);
+                console.log("Hostile NPC list:")
+                console.log(hostileNPCList);
             }
                 
         }
@@ -160,23 +171,9 @@ export const DataContextProvider = ({ children }) => {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             function handleNameAndGUID() {
-                console.log("--------------------")
+
+                /*console.log("--------------------")
                 console.log("Handling Name and GUID")
                 console.log("sname: " + parsedLine.sourceName);
                 console.log("sid: " + parsedLine.sourceGUID);
@@ -185,7 +182,7 @@ export const DataContextProvider = ({ children }) => {
                 console.log("sflag:");
                 console.log(parsedLine.sourceFlags);
                 console.log("dflag:");
-                console.log(parsedLine.destFlags);
+                console.log(parsedLine.destFlags);*/
 
                 if (!parsedLine) { 
                     console.error("-----Error: parsedLine is undefined."); 
@@ -215,59 +212,89 @@ export const DataContextProvider = ({ children }) => {
                     console.error("-----Error: parsedLine.destFlags is undefined."); 
                     return; 
                 }
-              
-                let processTypeSource = selectProcessType(parsedLine.sourceFlags);
-                let processTypeDest = selectProcessType(parsedLine.destFlags);
-            
                 
-                console.log("TypeSource: " + processTypeSource);
-                console.log("TypeDest: " + processTypeDest);
-                if (processTypeSource === "Player") {
-                    addToListIfUniqueSourceName(parsedLine, playerList);
-                }
-                if (processTypeSource === "FriendlyNPC") {
-                    addToListIfUniqueSourceName(parsedLine, friendlyNPCList);
-                }
-                if (processTypeSource === "HostileNPC") {
-                    addToListIfUniqueSourceName(parsedLine, hostileNPCList);
-                }
-                if (processTypeSource === "ImmuneFriendlyNPC") {
-                    addToListIfUniqueSourceName(parsedLine, friendlyNPCList);
-                }
-                if (processTypeSource === "ImmuneHostileNPC") {
-                    addToListIfUniqueSourceName(parsedLine, hostileNPCList);
-                }
+                const processTypeSource = selectProcessType(parsedLine.sourceFlags, parsedLine.sourceName);
+                const processTypeDest = selectProcessType(parsedLine.destFlags, parsedLine.destName);
+
+                
+                /*console.log("TypeSource: " + processTypeSource);
+                console.log("TypeDest: " + processTypeDest);*/
+
+                const processTypeMapping = {
+                    Player: { list: playerList, allowMultipleIds: true },
+                    Pet: { list: petList, allowMultipleIds: true },
+                    FriendlyNPC: { list: friendlyNPCList, allowMultipleIds: false },
+                    HostileNPC: { list: hostileNPCList, allowMultipleIds: false },
+                    MultipleIdFriendlyNPC: { list: friendlyNPCList, allowMultipleIds: true },
+                    MultipleIdHostileNPC: { list: hostileNPCList, allowMultipleIds: true },
+                    NeutralEntity: { list: unknownNPCList, allowMultipleIds: false },
+                    UnknownEntity: { list: unknownNPCList, allowMultipleIds: false }
+                };
+
+                [
+                    { 
+                        type: processTypeSource, 
+                        obj: {
+                            name: parsedLine.sourceName, 
+                            GUID: parsedLine.sourceGUID,
+                            actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false,
+                            actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
+                            flags: parsedLine.sourceFlags,
+                            sourceActionList: sourceActionList,
+                        } 
+                    },
+                    { 
+                        type: processTypeDest, 
+                        obj: {
+                            name: parsedLine.destName, 
+                            GUID: parsedLine.destGUID, 
+                            flags: parsedLine.destFlags, 
+                            actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false, 
+                            actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
+                            actionList: destActionList,
+                        } 
+                    }
+                ].forEach(({ type, obj }) => {
+                    const mapping = processTypeMapping[type];
+                    if (mapping) {
+                        checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds, obj.actionList);
+                    }
+                });
 
             }
             
-            
-            function addToListIfUniqueSourceName() {
-                const sourceName = playerList.find(player => player.name === parsedLine.sourceFlags.sourceName);
-                const destName = playerList.find(player => player.name === parsedLine.sourceFlags.sourceName);
-            
-                if (sourceName === undefined) {
-                    // Add a new player if they don't exist
-                    playerList.push({ name: parsedLine.sourceName, ids: [parsedLine.sourceGUID] });
-                    return;
-                } 
-                if (!sourceName.name.includes(parsedLine.sourceName)) {
-                    // Add unique GUID
-                    sourceName.name.push(parsedLine.sourceName);
-                    console.log("Added GUID to player: " + sourceName.name);
-                    return;
+            function checkUniqueEntryInLists(obj, selectedEntityList, allowMultipleIds, selectedActionlist) {
+                // Find the source entry by name
+                let sourceEntry = selectedEntityList.find(entry => entry.name === obj.name);
+                
+                // If no entry exists, create one
+                if (sourceEntry === undefined) {
+                    sourceEntry = { name: obj.name, guid: [obj.GUID], flags: obj.flags, actions: [] };
+                    selectedEntityList.push(sourceEntry);
+                } else if (allowMultipleIds && !sourceEntry.guid.includes(obj.GUID)) {
+                    // If multiple IDs are allowed and GUID isn't already in the list, add it
+                    sourceEntry.guid.push(obj.GUID);
                 }
             
+                // Handle actions (e.g., actionName and actionId)
+                if (obj.actionName) {
+                    let actionEntry = sourceEntry.selectedActionlist.find(selectedActionlist => selectedActionlist.id === obj.actionId);
+                    if (actionEntry === undefined) {
+                        actionEntry = { name: obj.actionName, id: obj.actionId };
+                        sourceEntry.selectedActionlist.push(actionEntry);
+                    }
+                }
             }
 
-            function selectProcessType(flags, name) {
+            function selectProcessType(flags, name) { //yes
                 if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control !== "PLAYER") {
                     return "Player";
                 } else if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control === "PLAYER") {
                     return "Pet";
                 } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "FRIENDLY") {
-                    return flags.sourceName === GUIDImmuneMonsters ? "ImmuneFriendlyNPC" : "FriendlyEntity";
+                    return name === MultipleIdMonsters ? "MultipleIdFriendlyNPC" : "FriendlyEntity";
                 } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "HOSTILE") {
-                    return name === GUIDImmuneMonsters ? "ImmuneHostileNPC" : "HostileEntity";
+                    return name === MultipleIdMonsters ? "MultipleIdHostileNPC" : "HostileEntity";
                 } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "NEUTRAL") {
                     return "NeutralEntity";
                 } else if (flags.affiliation === "0") {
@@ -310,6 +337,7 @@ export const DataContextProvider = ({ children }) => {
                         previousTimeStamp = parsedLine.timeMs;
                         currentSessionStart = parsedLine.timeMs;
                         lineCounterSessionStart = lineCounter;
+                        previousDate = parsedLine.date;
                     
                         dataTemp.push(parsedLine);
                     
@@ -323,6 +351,14 @@ export const DataContextProvider = ({ children }) => {
                             lineStart: lineCounterSessionStart,
                             lineEnd: lineCounter,
                             duration: (previousTimeStamp - currentSessionStart) / 1000,
+                            players: playerList,
+                            pets: petList,
+                            playerControledNPCs: playerControledNPCList,
+                            neutralNPCs: neutralNPCList,
+                            friendlyNPCs: [...MultipleIdFriendlyNPCList, ...friendlyNPCList],
+                            hostileNPCs: [...MultipleIdHostileNPCList, ...hostileNPCList],
+                            unknownNPCs: unknownNPCList,
+
                         });
                         
                         dataTemp.push(parsedLine);
@@ -330,15 +366,24 @@ export const DataContextProvider = ({ children }) => {
                         currentSessionBOSS = false;
                         previousTimeStamp = 0;
                         currentSessionStart = 0;
+                        playerList = [];
+                        petList = [];
+                        playerControledNPCList = [];
+                        friendlyNPCList = [];
+                        neutralNPCList = [];
+                        MultipleIdFriendlyNPCList = [];
+                        hostileNPCList = [];
+                        MultipleIdHostileNPCList = [];
+                        unknownNPCList = [];
                     
                     } else {
-                    
+                        if (previousDate !== parsedLine.date){
                         previousTimeStamp = parsedLine.timeMs;
                         dataTemp.push(parsedLine);
-                    
+                        } else {
+
                     }
                     
-                  
                 }
                 lineCounter ++;
                 
@@ -358,5 +403,5 @@ export const DataContextProvider = ({ children }) => {
         </DataContext.Provider>
     );
 
-
+    
 }

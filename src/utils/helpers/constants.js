@@ -301,7 +301,7 @@ export const BOSSNAMES = [
   "Kil'jaeden",
 ]
 
-export const GUIDImmuneMonsters = [
+export const MultipleIdMonsters = [
   "test",
   "test2",
   "Panda",
