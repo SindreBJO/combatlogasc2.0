@@ -37,6 +37,7 @@ export const DataContextProvider = ({ children }) => {
         let previousTimeStamp = 0;
         let previousDamageTimeStamp = 0;
         let previousDamageWithin30Seconds = 0;
+        let previousDate;
 
         let currentSessionStart = 0;
         let currentSessionBOSS = "Trash";
@@ -240,7 +241,7 @@ export const DataContextProvider = ({ children }) => {
                             actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false,
                             actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
                             flags: parsedLine.sourceFlags,
-                            sourceActionList: sourceActionList,
+                            selectedActionlist: "source",
                         } 
                     },
                     { 
@@ -251,37 +252,48 @@ export const DataContextProvider = ({ children }) => {
                             flags: parsedLine.destFlags, 
                             actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false, 
                             actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
-                            actionList: destActionList,
+                            selectedActionlist: "dest",
                         } 
                     }
+
                 ].forEach(({ type, obj }) => {
                     const mapping = processTypeMapping[type];
                     if (mapping) {
-                        checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds, obj.actionList);
+                        checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds, obj.selectedActionlist);
                     }
                 });
 
             }
-            
+
             function checkUniqueEntryInLists(obj, selectedEntityList, allowMultipleIds, selectedActionlist) {
+
                 // Find the source entry by name
                 let sourceEntry = selectedEntityList.find(entry => entry.name === obj.name);
-                
+
                 // If no entry exists, create one
                 if (sourceEntry === undefined) {
-                    sourceEntry = { name: obj.name, guid: [obj.GUID], flags: obj.flags, actions: [] };
+
+                    sourceEntry = { name: obj.name, guid: [obj.GUID], flags: obj.flags, sourceActions: [], destActions: [] };
                     selectedEntityList.push(sourceEntry);
                 } else if (allowMultipleIds && !sourceEntry.guid.includes(obj.GUID)) {
+
                     // If multiple IDs are allowed and GUID isn't already in the list, add it
                     sourceEntry.guid.push(obj.GUID);
                 }
-            
+
                 // Handle actions (e.g., actionName and actionId)
                 if (obj.actionName) {
-                    let actionEntry = sourceEntry.selectedActionlist.find(selectedActionlist => selectedActionlist.id === obj.actionId);
-                    if (actionEntry === undefined) {
-                        actionEntry = { name: obj.actionName, id: obj.actionId };
-                        sourceEntry.selectedActionlist.push(actionEntry);
+                    let sourceEntry = sourceEntry.selectedActionlist.find(selectedActionlist => selectedActionlist.id === obj.actionId);
+                    if (obj.selectedActionlist === "source") {
+                        if (actionEntry === undefined) {
+                            actionEntry = { name: obj.actionName, id: obj.actionId };
+                            sourceEntry.selectedActionlist.push(actionEntry);
+                        }
+                    } else if (obj.selectedActionlist === "dest") {
+                        if (actionEntry === undefined) {
+                            actionEntry = { name: obj.actionName, id: obj.actionId };
+                            sourceEntry.selectedActionlist.push(actionEntry);
+                        }
                     }
                 }
             }
@@ -325,7 +337,7 @@ export const DataContextProvider = ({ children }) => {
                 console.log(lineCounter) */
 
                 handleNameAndGUID();
-                
+
                 if(parsedLine.isDamage){
 
                     if (BOSSNAMES.includes(parsedLine.sourceName) && !currentSessionBOSS){
@@ -338,9 +350,9 @@ export const DataContextProvider = ({ children }) => {
                         currentSessionStart = parsedLine.timeMs;
                         lineCounterSessionStart = lineCounter;
                         previousDate = parsedLine.date;
-                    
+
                         dataTemp.push(parsedLine);
-                    
+
                     } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isUnitDead)) {
                     
                         sessionData.push({
@@ -391,9 +403,10 @@ export const DataContextProvider = ({ children }) => {
                 
             }
         }
+    }
         readNextChunk();
     }
-    
+
     
    
 
