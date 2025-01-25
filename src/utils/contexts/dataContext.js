@@ -2,12 +2,10 @@ import React, { createContext, useState } from 'react';
 import { parseString, damageEventCheck } from '../helpers/parseHelpers.js';
 import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 
-// Create the context
 export const DataContext = createContext();
 
 const CHUNK_SIZE = 50 * 1024;
 
-// Create a provider component
 export const DataContextProvider = ({ children }) => {
     const [progress, setProgress] = useState('Ready for use');
     const [progressPercentage, setProgressPercentage] = useState(0);
@@ -18,7 +16,6 @@ export const DataContextProvider = ({ children }) => {
     const [sessionLines, setSessionLines] = useState([]);
     const [sessionCount, setSessionCount] = useState(0);
     const [sessionType, setSessionType] = useState("Default");
-    //Data of valid and invalid lines
 
     function readNewFile(file) {
         
@@ -218,19 +215,20 @@ export const DataContextProvider = ({ children }) => {
                 const processTypeDest = selectProcessType(parsedLine.destFlags, parsedLine.destName);
 
                 
-                /*console.log("TypeSource: " + processTypeSource);
-                console.log("TypeDest: " + processTypeDest);*/
+                /*console.log("TypeSource: " + processTypeSource); 
+                console.log("TypeDest: " + processTypeDest);*/ 
 
-                const processTypeMapping = {
-                    Player: { list: playerList, allowMultipleIds: true },
-                    Pet: { list: petList, allowMultipleIds: true },
-                    FriendlyNPC: { list: friendlyNPCList, allowMultipleIds: false },
-                    HostileNPC: { list: hostileNPCList, allowMultipleIds: false },
-                    MultipleIdFriendlyNPC: { list: friendlyNPCList, allowMultipleIds: true },
-                    MultipleIdHostileNPC: { list: hostileNPCList, allowMultipleIds: true },
-                    NeutralEntity: { list: unknownNPCList, allowMultipleIds: false },
-                    UnknownEntity: { list: unknownNPCList, allowMultipleIds: false }
-                };
+                // FORMAT: Type, {list, bool for multipleIDs} 
+                const processTypeMapping = { 
+                    Player: { list: playerList, allowMultipleIds: true }, 
+                    Pet: { list: petList, allowMultipleIds: true }, 
+                    FriendlyNPC: { list: friendlyNPCList, allowMultipleIds: false }, 
+                    HostileNPC: { list: hostileNPCList, allowMultipleIds: false }, 
+                    MultipleIdFriendlyNPC: { list: friendlyNPCList, allowMultipleIds: true }, 
+                    MultipleIdHostileNPC: { list: hostileNPCList, allowMultipleIds: true }, 
+                    NeutralEntity: { list: unknownNPCList, allowMultipleIds: false }, 
+                    UnknownEntity: { list: unknownNPCList, allowMultipleIds: false } 
+                }; 
 
                 [
                     { 
@@ -241,59 +239,63 @@ export const DataContextProvider = ({ children }) => {
                             actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false,
                             actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
                             flags: parsedLine.sourceFlags,
-                            selectedActionlist: "source",
+                            type: "source",
                         } 
                     },
                     { 
                         type: processTypeDest, 
-                        obj: {
+                        obj: { 
                             name: parsedLine.destName, 
                             GUID: parsedLine.destGUID, 
                             flags: parsedLine.destFlags, 
                             actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false, 
                             actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
-                            selectedActionlist: "dest",
+                            type: "dest", 
                         } 
-                    }
+                    } 
+                    
+                ].forEach(({ type, obj }) => { 
+                    const mapping = processTypeMapping[type]; 
+                    if (mapping) { 
+                        checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds); 
+                    } 
+                }); 
 
-                ].forEach(({ type, obj }) => {
-                    const mapping = processTypeMapping[type];
-                    if (mapping) {
-                        checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds, obj.selectedActionlist);
-                    }
-                });
+            } 
 
-            }
+            function checkUniqueEntryInLists(obj, selectedEntityList, allowMultipleIds) { 
 
-            function checkUniqueEntryInLists(obj, selectedEntityList, allowMultipleIds, selectedActionlist) {
-
-                // Find the source entry by name
                 let sourceEntry = selectedEntityList.find(entry => entry.name === obj.name);
 
-                // If no entry exists, create one
                 if (sourceEntry === undefined) {
 
-                    sourceEntry = { name: obj.name, guid: [obj.GUID], flags: obj.flags, sourceActions: [], destActions: [] };
-                    selectedEntityList.push(sourceEntry);
+                    selectedEntityList.push({ name: obj.name, guid: [obj.GUID], flags: obj.flags, sourceActions: [], destActions: [] });
+
                 } else if (allowMultipleIds && !sourceEntry.guid.includes(obj.GUID)) {
 
-                    // If multiple IDs are allowed and GUID isn't already in the list, add it
                     sourceEntry.guid.push(obj.GUID);
                 }
 
-                // Handle actions (e.g., actionName and actionId)
-                if (obj.actionName) {
-                    let sourceEntry = sourceEntry.selectedActionlist.find(selectedActionlist => selectedActionlist.id === obj.actionId);
-                    if (obj.selectedActionlist === "source") {
+                if (obj.actionName === undefined) {
+
+                    if (obj.type === "source") {
+
+                        let actionEntry = sourceEntry.sourceActions.find(action => action.id === obj.actionId);
+
                         if (actionEntry === undefined) {
                             actionEntry = { name: obj.actionName, id: obj.actionId };
-                            sourceEntry.selectedActionlist.push(actionEntry);
+                            sourceEntry.sourceActions.push(actionEntry);
                         }
-                    } else if (obj.selectedActionlist === "dest") {
+
+                    } else if (obj.type === "dest") {
+
+                        let actionEntry = sourceEntry.destActions.find(action => action.id === obj.actionId);
+
                         if (actionEntry === undefined) {
                             actionEntry = { name: obj.actionName, id: obj.actionId };
-                            sourceEntry.selectedActionlist.push(actionEntry);
+                            sourceEntry.destActions.push(actionEntry);
                         }
+
                     }
                 }
             }
