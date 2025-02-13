@@ -57,7 +57,7 @@ export const DataContextProvider = ({ children }) => {
         let sourceFlagTestLines = [];
 
         let testSchoolList = [];
-        let testEventList = [];
+        let testEventExistence = [];
         let testDataList = [];
 
 
@@ -106,8 +106,6 @@ export const DataContextProvider = ({ children }) => {
                     lineEnd: lineCounter,
                     duration: (previousTimeStamp - currentSessionStart) / 1000,
                 });
-                console.log("Recorded events:")
-                console.log(testEventList);
                 console.log("Recorded data:")
                 console.log(testDataList);
                 console.log("Session data:")
@@ -141,20 +139,18 @@ export const DataContextProvider = ({ children }) => {
                 checkIfNewSession();
                 testEventsToList(parsedLine.event);
             }else {
-
                 setInvalidLinesCount(prevCount => prevCount + 1);
                 dataTemp.push(parsedLine);
                 return false;
-
             }
 
             function testEventsToList(event){
 
                 if (parsedLine?.event){
 
-                    if(!testEventList.includes(parsedLine.event.join("_"))){
-                        testEventList.push(parsedLine.event.join("_"));
-                        testDataList.push(parsedLine);
+                    if(!testEventExistence.includes(parsedLine.event.join("_"))){
+                        testDataList.push([parsedLine.event.join("_"), parsedLine]);
+                        testEventExistence.push(parsedLine.event.join("_"))
                     }
 
                 }
@@ -226,8 +222,8 @@ export const DataContextProvider = ({ children }) => {
                     HostileNPC: { list: hostileNPCList, allowMultipleIds: false }, 
                     MultipleIdFriendlyNPC: { list: friendlyNPCList, allowMultipleIds: true }, 
                     MultipleIdHostileNPC: { list: hostileNPCList, allowMultipleIds: true }, 
-                    NeutralEntity: { list: unknownNPCList, allowMultipleIds: false }, 
-                    UnknownEntity: { list: unknownNPCList, allowMultipleIds: false } 
+                    NeutralNPC: { list: neutralNPCList, allowMultipleIds: false }, 
+                    UnknownNPC: { list: unknownNPCList, allowMultipleIds: false } 
                 }; 
 
                 [
@@ -236,8 +232,8 @@ export const DataContextProvider = ({ children }) => {
                         obj: {
                             name: parsedLine.sourceName, 
                             GUID: parsedLine.sourceGUID,
-                            actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false,
-                            actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
+                            actionName: parsedLine.spellName,
+                            actionId: parsedLine.spellId, 
                             flags: parsedLine.sourceFlags,
                             type: "source",
                         } 
@@ -248,14 +244,14 @@ export const DataContextProvider = ({ children }) => {
                             name: parsedLine.destName, 
                             GUID: parsedLine.destGUID, 
                             flags: parsedLine.destFlags, 
-                            actionName: parsedLine.spellName !== undefined ? parsedLine.spellName : false, 
-                            actionId: parsedLine.spellId !== undefined ? parsedLine.spellId : 0, 
+                            actionName: parsedLine.spellName, 
+                            actionId: parsedLine.spellId, 
                             type: "dest", 
                         } 
                     } 
                     
                 ].forEach(({ type, obj }) => { 
-                    const mapping = processTypeMapping[type]; 
+                    const mapping = processTypeMapping[type];
                     if (mapping) { 
                         checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds); 
                     } 
@@ -264,38 +260,28 @@ export const DataContextProvider = ({ children }) => {
             } 
 
             function checkUniqueEntryInLists(obj, selectedEntityList, allowMultipleIds) { 
-
                 let sourceEntry = selectedEntityList.find(entry => entry.name === obj.name);
 
                 if (sourceEntry === undefined) {
-
-                    selectedEntityList.push({ name: obj.name, guid: [obj.GUID], flags: obj.flags, sourceActions: [], destActions: [] });
-
+                    sourceEntry = { name: obj.name, guid: [obj.GUID], flags: obj.flags, sourceActions: [], destActions: [] };
+                    selectedEntityList.push(sourceEntry);
                 } else if (allowMultipleIds && !sourceEntry.guid.includes(obj.GUID)) {
-
                     sourceEntry.guid.push(obj.GUID);
                 }
 
-                if (obj.actionName === undefined) {
+                if (obj.type === "source") {
+                    let actionEntry = sourceEntry.sourceActions.find(action => action.id === obj.actionId);
+                    
+                    if (actionEntry === undefined) {
+                        sourceEntry.sourceActions.push({ name: obj.actionName, id: obj.actionId });
+                    }
 
-                    if (obj.type === "source") {
-
-                        let actionEntry = sourceEntry.sourceActions.find(action => action.id === obj.actionId);
-
-                        if (actionEntry === undefined) {
-                            actionEntry = { name: obj.actionName, id: obj.actionId };
-                            sourceEntry.sourceActions.push(actionEntry);
-                        }
-
-                    } else if (obj.type === "dest") {
-
-                        let actionEntry = sourceEntry.destActions.find(action => action.id === obj.actionId);
-
-                        if (actionEntry === undefined) {
-                            actionEntry = { name: obj.actionName, id: obj.actionId };
-                            sourceEntry.destActions.push(actionEntry);
-                        }
-
+                } else if (obj.type === "dest") {
+                    let actionEntry = sourceEntry.destActions.find(action => action.id === obj.actionId);
+                    
+                    if (actionEntry === undefined) {
+                        actionEntry = { name: obj.actionName, id: obj.actionId };
+                        sourceEntry.destActions.push(actionEntry);
                     }
                 }
             }
@@ -306,11 +292,11 @@ export const DataContextProvider = ({ children }) => {
                 } else if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control === "PLAYER") {
                     return "Pet";
                 } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "FRIENDLY") {
-                    return name === MultipleIdMonsters ? "MultipleIdFriendlyNPC" : "FriendlyEntity";
+                    return name === MultipleIdMonsters ? "MultipleIdFriendlyNPC" : "FriendlyNPC";
                 } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "HOSTILE") {
-                    return name === MultipleIdMonsters ? "MultipleIdHostileNPC" : "HostileEntity";
+                    return name === MultipleIdMonsters ? "MultipleIdHostileNPC" : "HostileNPC";
                 } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "NEUTRAL") {
-                    return "NeutralEntity";
+                    return "NeutralNPC";
                 } else if (flags.affiliation === "0") {
                     return "UnknownEntity";
                 }
@@ -342,7 +328,7 @@ export const DataContextProvider = ({ children }) => {
 
                 if(parsedLine.isDamage){
 
-                    if (BOSSNAMES.includes(parsedLine.sourceName) && !currentSessionBOSS){
+                    if (BOSSNAMES.includes(parsedLine.sourceName) && currentSessionBOSS === "Trash"){
                         currentSessionBOSS = parsedLine.sourceName;
                     }
 
@@ -355,7 +341,7 @@ export const DataContextProvider = ({ children }) => {
 
                         dataTemp.push(parsedLine);
 
-                    } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isUnitDead)) {
+                    } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isDead)) {
                     
                         sessionData.push({
                             sessionBoss: currentSessionBOSS,
@@ -377,7 +363,7 @@ export const DataContextProvider = ({ children }) => {
                         
                         dataTemp.push(parsedLine);
                         sessionsCount ++;
-                        currentSessionBOSS = false;
+                        currentSessionBOSS = "Trash";
                         previousTimeStamp = 0;
                         currentSessionStart = 0;
                         playerList = [];
@@ -390,15 +376,14 @@ export const DataContextProvider = ({ children }) => {
                         MultipleIdHostileNPCList = [];
                         unknownNPCList = [];
                     
-                    } else {
-                        if (previousDate !== parsedLine.date){
+                    } else if (previousDate !== parsedLine.date){
                         previousTimeStamp = parsedLine.timeMs;
                         dataTemp.push(parsedLine);
                         } else {
-
+                            console.log("Error: Session reading, in checkIfNewSession()")
                     }
                     
-                }
+                
                 lineCounter ++;
                 
 

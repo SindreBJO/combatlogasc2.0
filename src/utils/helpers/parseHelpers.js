@@ -199,55 +199,21 @@ export function findPrefixAndSuffix(event) {
 
 export function returnBaseParameters (array){
 
-  const buffStandard = array => {
-    return {isBuff: array.includes("BUFF"),
-            isDebuff: array.includes("DEBUFF"),
-    }
+  const isDamageStandard = event => {
+    return {isDamage: event.includes("DAMAGE") || event.includes("MISSED") ? true : false}
+  }
+  const isDeadStandard = event => {
+    return {isDead: event.includes("UNITDIED") || event.includes("PARTYKILL") ? true : false}
   }
 
-  const eventstandard = event => {
-
-    return {isDamage: event.includes(["DAMAGE", "MISSED"]),
-            isSpell: event.includes(["SPELL", "SPELLPERIODIC", "SPELLBUILDING"]),
-            isMelee: event.includes("SWING"),
-            isRange: event.includes("RANGE"),
-            isDamage: event.includes("DAMAGE"),
-            Missed: event.includes("MISS"),
-            isHeal: event.includes("HEAL"),
-            isEnergize: event.includes("ENERGIZE"),
-            isDrain: event.includes("DRAIN"),
-            isLeech: event.includes("LEECH"),
-            isInterrupt: event.includes("INTERRUPT"),
-            isDispel: event.includes("DISPEL"),
-            isDispelFailed: event.includes("DISPELFAILED"),
-            isStolen: event.includes("STOLEN"),
-            isAuraAppliedDose: event.includes("AURAAPPLIEDDOSE"),
-            isAuraRemovedDose: event.includes("AURAREMOVEDDOSE"),
-            isAuraApplied: event.includes("AURAAPPLIED"),
-            isAuraRemoved: event.includes("AURAREMOVED"),
-            isAuraRefresh: event.includes("AURAREFRESH"),
-            isAuraBroken: event.includes("AURABROKEN"),
-            isAuraBrokenSpell: event.includes("AURABROKEN_SPELL"),
-            isCastStart: event.includes("CASTSTART"),
-            isCastSuccess: event.includes("CASTSUCCESS"),
-            isCastFailed: event.includes("CASTFAILED"),
-            isInstakill: event.includes("INSTAKILL"),
-            isSummon: event.includes("SUMMON"),
-            isCreate: event.includes("CREATE"),
-            isResurrect: event.includes("RESURRECT"),
-            idDamageShield: event.includes("DAMAGESHIELD"),
-            idDamageShieldMissed: event.includes("DAMAGESHIELDMISSED"),
-            isPartyKill: event.includes("PARTYKILL"),
-            isUnitDied: event.includes("UNITDIED"),
-            isUnitDestroyed: event.includes("UNITDESTROYED"),
-            }
-  }
+  checkUndefined(array[4])
 
   return {
     date: splitDate(array[0]),
     timeMs: timeStampMs(array[1]),
-    ...eventstandard(array[2]),
     event: array[2],
+    ...isDamageStandard(array[2]),
+    ...isDeadStandard(array[2]),
     sourceGUID: array[3],
     sourceName: checkName(array[4]),
     sourceFlags: parseCombatLogFlag(checkName(array[4]), array[5]),
@@ -255,6 +221,12 @@ export function returnBaseParameters (array){
     destName: checkName(array[7]),
     destFlags: parseCombatLogFlag(checkName(array[7]), array[8]),
     };
+}
+
+function checkUndefined(input){
+ if (input === undefined){
+  console.log("this is undefined")
+ }
 }
 
 export function returnPrefixParameters(array, prefix, count){
