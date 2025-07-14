@@ -1,5 +1,5 @@
-import React, { createContext, useState } from 'react';
-import { parseString, damageEventCheck } from '../helpers/parseHelpers.js';
+import React, { createContext, useEffect, useState } from 'react';
+import { parseString, damageEventCheck, setGlobalYear } from '../helpers/parseHelpers.js';
 import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 
 export const DataContext = createContext();
@@ -15,52 +15,57 @@ export const DataContextProvider = ({ children }) => {
     const [sessions , setSessions] = useState([]);
     const [sessionLines, setSessionLines] = useState([]);
     const [sessionCount, setSessionCount] = useState(0);
-    const [sessionType, setSessionType] = useState("Default");
+    const [inputYear, setInputYear] = useState();
+
+    useEffect(() => {
+        setGlobalYear(inputYear || new Date().getFullYear())
+    }, [inputYear],[]);
+    
+    const reader = new FileReader();
+    let offset = 0;
+    let carryOver = '';
+
+    let lineCounter = 0;
+    let lineCounterSessionStart = 0;
+
+    let startDate;
+    let previousDate = 0;
+    let previousTimeStamp = 0;
+    let previousDamageTimeStamp = 0;
+
+
+    let currentSessionStart = 0;
+    let currentSessionBOSS = "Trash";
+    let currentDate;
+    let sessionData = [];
+    let sessionsCount = 0;
+    let sessionStartDate = 0;
+
+    let uniqueSubEventList = [];
+
+    let playerList = [];
+    let petList = [];
+    let playerControledNPCList = [];
+    let friendlyNPCList = [];
+    let neutralNPCList = [];
+    let MultipleIdFriendlyNPCList = [];
+    let hostileNPCList = [];
+    let MultipleIdHostileNPCList = [];
+    let unknownNPCList = [];
+
+    let sourceFlagTest = [];
+    let sourceFlagTestLines = [];
+
+    let testSchoolList = [];
+
+    let testDataList = [];
+    let testDataRaw = [];
+
+    let metaData = [];
+    let invalidData = [];
 
     function readNewFile(file) {
         
-        const reader = new FileReader();
-        let offset = 0;
-        let carryOver = '';
-        let dataTemp = [];
-        let SourceListTemp = [];
-        let validLineCount = 0;
-
-
-        let lineCounter = 0;
-        let lineCounterSessionStart = 0;
-
-        let startDate;
-        let previousTimeStamp = 0;
-        let previousDamageTimeStamp = 0;
-        let previousDamageWithin30Seconds = 0;
-        let previousDate;
-
-        let currentSessionStart = 0;
-        let currentSessionBOSS = "Trash";
-        let currentDate;
-        let sessionData = [];
-        let sessionsCount = 0;
-        let sessionStartDate = 0;
-
-        let playerList = [];
-        let petList = [];
-        let playerControledNPCList = [];
-        let friendlyNPCList = [];
-        let neutralNPCList = [];
-        let MultipleIdFriendlyNPCList = [];
-        let hostileNPCList = [];
-        let MultipleIdHostileNPCList = [];
-        let unknownNPCList = [];
-
-        let sourceFlagTest = [];
-        let sourceFlagTestLines = [];
-
-        let testSchoolList = [];
-        let testEventExistence = [];
-        let testDataList = [];
-
-
         setData([]);
         setValidLinesCount(0);
         setInvalidLinesCount(0);
@@ -83,22 +88,21 @@ export const DataContextProvider = ({ children }) => {
             });
             //Update the progress
             offset += CHUNK_SIZE;
-            setProgress(`Read ${Math.min(offset, file.size)} of ${file.size} bytes`);
+            setProgress(`Progress: ${(Math.min(offset, file.size) * 100 / file.size).toFixed(3)} %`);
             setProgressPercentage((offset / file.size) * 100);
 
             //Read the next chunk
             if (offset < file.size) {
                 readNextChunk();
             } else {
-
                 handleParse(carryOver);
                 //Finished reading the file and parse the data
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
                 setSessions(sessionLines);
-                setData(dataTemp);
+                setData(metaData);
                 sessionData.push({
-                    session: currentSessionBOSS,
+                    sessionBoss: currentSessionBOSS,
                     timeStart: currentSessionStart,
                     timeEnd: previousTimeStamp,
                     lines: lineCounter - lineCounterSessionStart,
@@ -116,6 +120,14 @@ export const DataContextProvider = ({ children }) => {
                 console.log(friendlyNPCList);
                 console.log("Hostile NPC list:")
                 console.log(hostileNPCList);
+                console.log("Unique Event List:")
+                console.log(testDataRaw);
+                console.log("test data list:")
+                console.log(metaData);
+                console.log("Invalid data:")
+                console.log(invalidData);
+                console.log("pet data;")
+                console.log(petList);
             }
                 
         }
@@ -128,38 +140,56 @@ export const DataContextProvider = ({ children }) => {
             //Handles the parsing of the line
         function handleParse(currentLine){
 
-            let parsedLine;
-
-            //Check if the line is valid and push it to the data array
-            if (parseString(currentLine)){
-
-                parsedLine = parseString(currentLine);
-                dataTemp.push(parsedLine);
-                setValidLinesCount(prevCount => prevCount + 1);
-                checkIfNewSession();
-                testEventsToList(parsedLine.event);
-            }else {
+            let parsedLine = parseString(currentLine);
+            if (!parsedLine) {
+                if (currentLine === "" || currentLine === "\r") { return } // Skips all empty lines
                 setInvalidLinesCount(prevCount => prevCount + 1);
-                dataTemp.push(parsedLine);
+                invalidData.push(currentLine.replace(/\r/g, ''));
                 return false;
             }
+                parsedLine = parseString(currentLine);
+                metaData.push(parsedLine);
+                setValidLinesCount(prevCount => prevCount + 1);
+                checkIfNewSession();
+                checkUniqueEvent(parsedLine.event);
+    
+                
 
-            function testEventsToList(event){
 
-                if (parsedLine?.event){
+            function checkUniqueEvent(event){
 
-                    if(!testEventExistence.includes(parsedLine.event.join("_"))){
-                        testDataList.push([parsedLine.event.join("_"), parsedLine]);
-                        testEventExistence.push(parsedLine.event.join("_"))
+                    if(!testDataList.includes(parsedLine.event.join("_"))){
+                        testDataList.push(parsedLine.event.join("_"));
+                        testDataRaw.push(currentLine);
                     }
+            }
+
+            function handleSession(){
+                if (previousTimeStamp === 0 && parsedLine.isDamage) {
+
+                    previousTimeStamp = parsedLine.timeMs;
+                    currentSessionStart = parsedLine.timeMs;
+                    lineCounterSessionStart = lineCounter;
+                    previousDate = parsedLine.date;
 
                 }
+            }
+
+            function startSession(){
 
             }
 
+            function endSession(){
 
+            }
 
+            function handleCombatRosterAndSignature(){
 
+            }
+
+            function checkAffiliationAndReaction(){
+
+            }
 
 
 
@@ -177,6 +207,8 @@ export const DataContextProvider = ({ children }) => {
                 console.log(parsedLine.sourceFlags);
                 console.log("dflag:");
                 console.log(parsedLine.destFlags);*/
+
+
 
                 if (!parsedLine) { 
                     console.error("-----Error: parsedLine is undefined."); 
@@ -207,8 +239,9 @@ export const DataContextProvider = ({ children }) => {
                     return; 
                 }
                 
-                const processTypeSource = selectProcessType(parsedLine.sourceFlags, parsedLine.sourceName);
-                const processTypeDest = selectProcessType(parsedLine.destFlags, parsedLine.destName);
+                const processTypeSource = 0;
+                const processTypeDest = 0
+                ;
 
                 
                 /*console.log("TypeSource: " + processTypeSource); 
@@ -286,21 +319,7 @@ export const DataContextProvider = ({ children }) => {
                 }
             }
 
-            function selectProcessType(flags, name) { //yes
-                if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control !== "PLAYER") {
-                    return "Player";
-                } else if (["MINE", "RAID", "PARTY"].includes(flags.affiliation) && flags.reaction === "FRIENDLY" && flags.control === "PLAYER") {
-                    return "Pet";
-                } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "FRIENDLY") {
-                    return name === MultipleIdMonsters ? "MultipleIdFriendlyNPC" : "FriendlyNPC";
-                } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "HOSTILE") {
-                    return name === MultipleIdMonsters ? "MultipleIdHostileNPC" : "HostileNPC";
-                } else if (["OUTSIDER", "MASK"].includes(flags.affiliation) && flags.reaction === "NEUTRAL") {
-                    return "NeutralNPC";
-                } else if (flags.affiliation === "0") {
-                    return "UnknownEntity";
-                }
-            }
+
 
 
 
@@ -324,8 +343,6 @@ export const DataContextProvider = ({ children }) => {
                 console.log(parsedLine.timeMs)
                 console.log(lineCounter) */
 
-                handleNameAndGUID();
-
                 if(parsedLine.isDamage){
 
                     if (BOSSNAMES.includes(parsedLine.sourceName) && currentSessionBOSS === "Trash"){
@@ -338,8 +355,6 @@ export const DataContextProvider = ({ children }) => {
                         currentSessionStart = parsedLine.timeMs;
                         lineCounterSessionStart = lineCounter;
                         previousDate = parsedLine.date;
-
-                        dataTemp.push(parsedLine);
 
                     } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isDead)) {
                     
@@ -361,7 +376,7 @@ export const DataContextProvider = ({ children }) => {
 
                         });
                         
-                        dataTemp.push(parsedLine);
+
                         sessionsCount ++;
                         currentSessionBOSS = "Trash";
                         previousTimeStamp = 0;
@@ -378,7 +393,7 @@ export const DataContextProvider = ({ children }) => {
                     
                     } else if (previousDate !== parsedLine.date){
                         previousTimeStamp = parsedLine.timeMs;
-                        dataTemp.push(parsedLine);
+
                         } else {
                             console.log("Error: Session reading, in checkIfNewSession()")
                     }
@@ -398,10 +413,11 @@ export const DataContextProvider = ({ children }) => {
    
 
     return (
-        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, sessionType, setSessionType }}>
+        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear }}>
             {children}
         </DataContext.Provider>
     );
 
     
 }
+

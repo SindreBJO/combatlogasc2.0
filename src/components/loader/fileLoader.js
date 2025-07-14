@@ -4,7 +4,7 @@ import { DataContext } from '../../utils/contexts/dataContext';
 
 
 export default function FileLoader() {
-    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile } = useContext(DataContext);
+    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear } = useContext(DataContext);
 
     function handleDrop(event) {
         event.preventDefault();
@@ -24,13 +24,26 @@ export default function FileLoader() {
         } else {
           alert('Please use a .txt file.');
         }
-      };
+    };
 
 
     
 
     return (
         <div>
+            <input
+                id="yearInput"
+                type="text"
+                value={inputYear}
+                onChange={e => {
+                    const val = e.target.value;
+                    if (/^[0-9]*$/.test(val)) {
+                        setInputYear(val);
+                    }
+                }}
+                placeholder="what year is it?"
+                style={{ marginBottom: '10px', padding: '5px', width: '200px' }}
+            />
         <div 
             onDrop={handleDrop} 
             onDragOver={(event) => event.preventDefault()} 

@@ -1,110 +1,224 @@
 import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyType, getSchooltype } from "./constants.js";
 
+// The string goes through 2 sets of processing here:
+
+// 1. Fromat an array that can continue the parsing process, these are 8 of the base values all strings should have
+//    a. Validate that there is a sufficent number of parts of data in the string and that the string is formatted correctly
+//    b. The event is split into prefix and suffix
+//    c. Assuming the log is from the current year, the date and time are converted to a new Date() format
+//    d. The source and destination flags are parsed to a tag that directly states the affiliation to the player
+//          Array format:
+//          [0] = time [ms since jan 1st 1970 00:00:00 UTC]
+//          [1] = event [prefix and suffix]
+//          [2] = sourceGUID
+//          [3] = sourceName
+//          [4] = sourceFlags
+//          [5] = destGUID
+//          [6] = destName
+//          [7] = destFlags
+
+// Worth to mention:
+// If a parse fails, false is returned in dataContext
+// If a parse is a empty string "", when handeling invalid string in dataContext "\r" is returned due to the .txt format
+// The last line of the file is always empty
+// All of the above mentions are corrected after return in dataContext.js
+// Special event is tagged with "specialEvent" as prefix and the event name as suffix
+// Source and destination flags are tagged with a specific statement that clearly states the affiliation to the player in a simple matter going forward
+
+// 2. Parse the array into an object that can be stored in metadata
+//    
+//    
+
+
+let globalYearSet;
+export function setGlobalYear(year) {globalYearSet = year; 
+  console.log("globalYearSet", globalYearSet)
+}
+
+
 export function parseString(string) {
 
-  const array = tryStringToArray(string);
+  //Step 1 preparing Array
 
-  if (array === false) {
+  if (typeof string !== "string") { return false }
 
-    console.log("Invalid string: " + string);
-    return false;
+  let parseArray = validateAndSplitParse(string)
+  if (parseArray === false) { return false }
 
-  }
+  parseArray[0] = setTimeUnix(parseArray[0])
+  if (parseArray[0] === false) { return false }
 
-  const event = findPrefixAndSuffix(array[2]);
+  parseArray[1] = setEvent(parseArray[1])
+  if (parseArray[1] === false) { return false }
 
-    let prefix;
-    let suffix;
+  parseArray[4] = parseAffiliation(parseArray[4])
+  if (parseArray[4] === false) { return false }
 
-    if(event[0] && event[1]) {
+  parseArray[7] = parseAffiliation(parseArray[7])
+  if (parseArray[7] === false) { return false }
 
-      array[2] = [event[0], event[1]];
-      prefix = event[0];
-      suffix = event[1];
+//Step 2 preparing Object
 
-    } else if (event[0] === "specialEvent") {
+  const baseParameters = returnBaseParameters(parseArray);
 
-      prefix = event[1];
-      suffix = false;
-
-    } else {
-
-      console.log("Invalid event: " + array[2]);
-      return false;
-
-    }
-  
-  let count = 8;
-  
-  const baseParameters = returnBaseParameters(array);
-
-  let prefixParameters;
-  let suffixParameters;
-  
-  if (event[0]) {
-
-    prefixParameters = returnPrefixParameters(array, prefix, count);
-    if (prefixParameters !== undefined){
-      count += Object.keys(prefixParameters).length;
-    }
-    if (event[1]) {
-      suffixParameters = returnSuffixParameters(array, suffix, count);
-    }
-  } else {
-
-    return false;
-
-  }
+  let indexCount = 7; // 8 base values, used to guide the selection of the next values
+  let prefixParameters = returnPrefixParameters(parseArray, parseArray[1][0], indexCount);
+  let suffixParameters = returnSuffixParameters(parseArray, parseArray[1][1], indexCount);
 
   return { ...baseParameters, ...prefixParameters, ...suffixParameters, isValid: true };
 
+
+
+
 }
 
-export function parseCombatLogFlag(name, flagString) {
-  // Step 1: Convert the hex string (e.g., "0x512") to a decimal integer
-  const decimalFlag = parseInt(flagString, 16);
 
-  // Step 2: Convert the decimal value to a binary string and pad to 16 bits
-  const binaryString = decimalFlag.toString(2).padStart(16, '0');
 
-  // Step 3: Extract specific parts of the flag using bitwise AND
-  const affiliation = decimalFlag & 0xF;   // Last 4 bits
-  const reaction = decimalFlag & 0xF0;    // Next 4 bits
-  const control = decimalFlag & 0xF00;    // Third group of 4 bits
-  const special = decimalFlag & 0xF000;   // Fourth group of 4 bits (special cases)
 
-  // Step 4: Create an object to hold the parsed components
-  const result = {};
+function validateAndSplitParse(string) {
+  if (typeof string === "string") {
 
-  // Step 5: Map affiliation flags to descriptions
-  if (affiliation === 0x1) result.affiliation = 'MINE';
-  if (affiliation === 0x2) result.affiliation = 'PARTY';
-  if (affiliation === 0x4) result.affiliation = 'RAID';
-  if (affiliation === 0x8) result.affiliation = 'OUTSIDER';
-  if (affiliation === 0xF) result.affiliation = 'MASK';
+    const commaCount = (string.match(/,/g) || []).length
+    const doubleSpaceCount = (string.match(/  /g) || []).length
 
-  // Step 6: Map reaction flags to descriptions
-  if (reaction === 0x10) result.reaction = 'FRIENDLY';
-  if (reaction === 0x20) result.reaction = 'NEUTRAL';
-  if (reaction === 0x40) result.reaction = 'HOSTILE';
-  if (reaction === 0xF0) result.reaction = 'MASK';
+    if (commaCount > 4 && doubleSpaceCount === 1) {
 
-  // Step 7: Map control flags to descriptions
-  if (control === 0x100) result.control = 'PLAYER';
-  if (control === 0x200) result.control = 'NPC';
-  if (control === 0x300) result.control = 'MASK';
+      let parts = string.split("  ")
+      let part1 = parts[0].split(" ")
+      let part2 = parts[1].split(",")
 
-  // Step 8: Map special flags to descriptions
-  if (special & 0x1000) result.special = 'TARGET';
-  if (special & 0x2000) result.special = 'FOCUS';
-  if (special & 0x4000) result.special = 'MAINTANK';
-  if (special & 0x8000) result.special = 'MAINASSIST';
+      if ([...part1, ...part2].length < 8) { return false }
+      return [[...part1], ...part2.map(str => str.replace(/\r/g, ''))]
+    }
+  }
+  
+  return false
+}
 
-  if (name === "Unknown" && result.affiliation === undefined && result.reaction === undefined && result.control === undefined && result.control === undefined) {
-    return {affiliation: "0", reaction: "0", control: "0", special: "0"};
+function setTimeUnix(timeStamp) {
+
+  const [monthStr, dayStr] = timeStamp[0].split("/")
+  const month = monthStr.padStart(2, '0')
+  const day = dayStr.padStart(2, '0')
+
+  const isoFormatted = `${globalYearSet}-${month}-${day}T${timeStamp[1]}`
+  return new Date(isoFormatted).getTime()
+}
+
+function setEvent(event) {
+
+  event = event.split('_')
+  if (event.length <= 1) { return false }
+
+  for (let i = 0; i < event.length; i++) {
+
+    let prefix = event.slice(0, i).join('')
+    let suffix = event.slice(i, 5).join('')
+    let specialEvent = event.join('')
+
+    if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)){ return [prefix, suffix] } 
+    else if (SPECIALEVENTS.includes(specialEvent) && i === event.length - 1){ return ["specialEvent", specialEvent] }
   }
 
-  // Return the parsed result object
+  return false
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export function parseAffiliation(flagMask) {
+  const decimalFlag = parseInt(flagMask, 16);
+  const binaryString = decimalFlag.toString(2).padStart(16, '0');
+
+  const affiliationBits = decimalFlag & 0xF;    // Last 4 bits
+  const reactionBits    = decimalFlag & 0xF0;   // Next 4 bits
+  const controlBits     = decimalFlag & 0xF00;  // Third group of 4 bits
+  const specialBits     = decimalFlag & 0xF000; // Fourth group (special flags)
+
+  const result = {};
+
+  // Affiliation
+  result.affiliation = {
+    0x1: 'MINE',
+    0x2: 'PARTY',
+    0x4: 'RAID',
+    0x8: 'OUTSIDER',
+    0xF: 'MASK'
+  }[affiliationBits];
+
+  // Reaction
+  result.reaction = {
+    0x10: 'FRIENDLY',
+    0x20: 'NEUTRAL',
+    0x40: 'HOSTILE',
+    0xF0: 'MASK'
+  }[reactionBits];
+
+  // Control
+  result.control = {
+    0x100: 'PLAYER',
+    0x200: 'NPC',
+    0x300: 'MASK'
+  }[controlBits];
+
+  // Special Flags
+  const specials = [];
+  if (specialBits & 0x1000) specials.push("TARGET");
+  if (specialBits & 0x2000) specials.push("FOCUS");
+  if (specialBits & 0x4000) specials.push("MAINTANK");
+  if (specialBits & 0x8000) specials.push("MAINASSIST");
+  result.special = specials.length ? specials : undefined;
+
+  // Early return for unknown
+  if (!result.affiliation && !result.reaction && !result.control) {
+    return "Unknown";
+  }
+
+  // Classification
+  const { affiliation, reaction, control } = result;
+
+if (["MINE", "RAID", "PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control !== "PLAYER") {
+    return "Player";
+} else if (["MINE", "RAID", "PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control === "PLAYER") {
+    return "Pet";
+} else if (["OUTSIDER", "MASK"].includes(result.affiliation) && result.reaction === "FRIENDLY") {
+    return "FriendlyNPC";
+} else if (["OUTSIDER", "MASK"].includes(result.affiliation) && result.reaction === "HOSTILE") {
+    return "HostileNPC";
+} else if (["OUTSIDER", "MASK"].includes(result.affiliation) && result.reaction === "NEUTRAL") {
+    return "NeutralNPC";
+} else if (result.affiliation === "0") {
+    return "Unknown";
+}
+
+  // If nothing matches, return the parsed object
   return result;
 }
 
@@ -118,115 +232,18 @@ export function damageEventCheck(parsedEvent) {
   return false;
 }
 
-//SUPPORTIVE HELPER FUNCTIONS
-
-export function tryStringToArray(string) {
-  if (typeof string === "string") {
-
-    const commaCount = (string.match(/,/g) || []).length;
-    const doubleSpaceCount = (string.match(/  /g) || []).length;
-
-    if (commaCount > 4 && doubleSpaceCount === 1) {
-
-      let parts = string.split("  ");
-      let part1 = parts[0].split(" ");
-      let part2 = parts[1].split(",");
-      return [...part1, ...part2].map(str => str.replace(/["\\\r]/g, ''));
-
-    }
-  }
-  
-  return false;
-}
-
-
-
-
-//+ Converts the time to milliseconds
-export function timeStampMs(time) {
-  let timeArray = time.split(/[:.]/)
-  let hours = parseInt(timeArray[0]) * 3600000;
-  let minutes = parseInt(timeArray[1]) * 60000;
-  let seconds = parseInt(timeArray[2]) * 1000;
-  let milliseconds = parseInt(timeArray[3]);
-  const timeSum =+ hours + minutes + seconds + milliseconds;
-  return timeSum ;
-}
-
-//+ Splits the date into an array
-export function splitDate(date) {
-  let dateArray = date.split("/");
-  let month = parseInt(dateArray[0]);
-  let day = parseInt(dateArray[1]);
-  return [month, day];
-}
-
-
-//Finds the Prefix and Suffix of the event (Suffix is whats left over after the prefix)
-export function findPrefixAndSuffix(event) {
-
-  let check;
-
-  if (typeof event === 'string') {
-    check = event.split('_');
-  } else {
-    console.error('event is not a string:', event);
-}
- 
-
-  if (check.length <= 1) {
-    return false;
-  } 
-
-  for (let i = 0; i < check.length; i++) {
-
-    let prefix = check.slice(0, i).join('');
-    let suffix = check.slice(i, 5).join('');
-    let specialEvent = check.join('');
-
-    if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)){
-      return [prefix, suffix];
-
-    } else if (SPECIALEVENTS.includes(specialEvent) && i === check.length - 1){
-      return ["specialEvent", specialEvent];
-    }
-  }
-
-  // If no valid prefix/suffix found, return empty array or handle it as needed
-  return false;
-
-}
-
 export function returnBaseParameters (array){
 
-  const isDamageStandard = event => {
-    return {isDamage: event.includes("DAMAGE") || event.includes("MISSED") ? true : false}
-  }
-  const isDeadStandard = event => {
-    return {isDead: event.includes("UNITDIED") || event.includes("PARTYKILL") ? true : false}
-  }
-
-  checkUndefined(array[4])
-
   return {
-    date: splitDate(array[0]),
-    timeMs: timeStampMs(array[1]),
-    event: array[2],
-    ...isDamageStandard(array[2]),
-    ...isDeadStandard(array[2]),
-    sourceGUID: array[3],
-    sourceName: checkName(array[4]),
-    sourceFlags: parseCombatLogFlag(checkName(array[4]), array[5]),
-    destGUID: array[6],
-    destName: checkName(array[7]),
-    destFlags: parseCombatLogFlag(checkName(array[7]), array[8]),
+    timeStamp: array[0],
+    event: array[1],
+    sourceGUID: array[2],
+    sourceName: checkName(array[3]),
+    sourceFlag: array[4],
+    destGUID: array[5],
+    destName: checkName(array[6]),
+    destFlag: array[7],
     };
-}
-
-function checkUndefined(input){
- if (input === undefined){
-  console.log("this is undefined")
- }
 }
 
 export function returnPrefixParameters(array, prefix, count){
