@@ -7,18 +7,19 @@ import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyTy
 //    b. The event is split into prefix and suffix
 //    c. Assuming the log is from the current year, the date and time are converted to a new Date() format
 //    d. The source and destination flags are parsed to a tag that directly states the affiliation to the player
+
 //          Array format:
-//          [0] = time [ms since jan 1st 1970 00:00:00 UTC]
+//          [0] = time [ms since jan 1st 1970 00:00:00 UTC] Unix Format
 //          [1] = event [prefix and suffix]
 //          [2] = sourceGUID
 //          [3] = sourceName
-//          [4] = sourceFlags
+//          [4] = sourceFlags (simplified affiliation to the player)
 //          [5] = destGUID
 //          [6] = destName
-//          [7] = destFlags
+//          [7] = destFlags (simplified affiliation to the player)
 
 // Worth to mention:
-// If a parse fails, false is returned in dataContext
+// If a parse fails verification at any stage, false is returned in dataContext and the raw string is saved in invalidData
 // If a parse is a empty string "", when handeling invalid string in dataContext "\r" is returned due to the .txt format
 // The last line of the file is always empty
 // All of the above mentions are corrected after return in dataContext.js
@@ -26,15 +27,27 @@ import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyTy
 // Source and destination flags are tagged with a specific statement that clearly states the affiliation to the player in a simple matter going forward
 
 // 2. Parse the array into an object that can be stored in metadata
-//    
-//    
+//    a) The base parameters object are returned as an part of the final object
+//    b) the parameters for prefix and suffix are returned as the final part of the return object which details all values for that parse with corresponding keys
 
 
 let globalYearSet;
-export function setGlobalYear(year) {globalYearSet = year; 
-  console.log("globalYearSet", globalYearSet)
-}
+export function setGlobalYear(year) { globalYearSet = year }
 
+export function testArrayLength(string) {
+
+    if (typeof string !== "string") { return false }
+
+    let parseArray = validateAndSplitParse(string)
+    if (parseArray === false) { return false }
+
+    parseArray[0] = setTimeUnix(parseArray[0])
+    if (parseArray[0] === false) { return false }
+
+    parseArray[1] = setEvent(parseArray[1])
+    if (parseArray[1] === false) { return false }
+    return [parseArray.length, parseArray];
+}
 
 export function parseString(string) {
 
@@ -57,15 +70,21 @@ export function parseString(string) {
   parseArray[7] = parseAffiliation(parseArray[7])
   if (parseArray[7] === false) { return false }
 
-//Step 2 preparing Object
+
+//Step 2 preparing return Object
 
   const baseParameters = returnBaseParameters(parseArray);
 
   let indexCount = 7; // 8 base values, used to guide the selection of the next values
   let prefixParameters = returnPrefixParameters(parseArray, parseArray[1][0], indexCount);
+  indexCount += Object.keys(prefixParameters).length;
   let suffixParameters = returnSuffixParameters(parseArray, parseArray[1][1], indexCount);
+  return { 
+  ...baseParameters, 
+  ...(prefixParameters), 
+  ...suffixParameters 
+}
 
-  return { ...baseParameters, ...prefixParameters, ...suffixParameters, isValid: true };
 
 
 
@@ -85,7 +104,7 @@ function validateAndSplitParse(string) {
 
       let parts = string.split("  ")
       let part1 = parts[0].split(" ")
-      let part2 = parts[1].split(",")
+      let part2 = parts[1].split(/,(?! )/);
 
       if ([...part1, ...part2].length < 8) { return false }
       return [[...part1], ...part2.map(str => str.replace(/\r/g, ''))]
@@ -94,6 +113,8 @@ function validateAndSplitParse(string) {
   
   return false
 }
+
+
 
 function setTimeUnix(timeStamp) {
 
@@ -116,42 +137,15 @@ function setEvent(event) {
     let suffix = event.slice(i, 5).join('')
     let specialEvent = event.join('')
 
-    if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)){ return [prefix, suffix] } 
+    if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)){
+    
+      return [prefix, suffix] 
+    } 
     else if (SPECIALEVENTS.includes(specialEvent) && i === event.length - 1){ return ["specialEvent", specialEvent] }
   }
 
   return false
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export function parseAffiliation(flagMask) {
   const decimalFlag = parseInt(flagMask, 16);
@@ -194,15 +188,14 @@ export function parseAffiliation(flagMask) {
   if (specialBits & 0x2000) specials.push("FOCUS");
   if (specialBits & 0x4000) specials.push("MAINTANK");
   if (specialBits & 0x8000) specials.push("MAINASSIST");
-  result.special = specials.length ? specials : undefined;
 
   // Early return for unknown
   if (!result.affiliation && !result.reaction && !result.control) {
-    return "Unknown";
+    return "None";
   }
 
   // Classification
-  const { affiliation, reaction, control } = result;
+
 
 if (["MINE", "RAID", "PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control !== "PLAYER") {
     return "Player";
@@ -222,16 +215,6 @@ if (["MINE", "RAID", "PARTY"].includes(result.affiliation) && result.reaction ==
   return result;
 }
 
-export function damageEventCheck(parsedEvent) {
-  const prefix = parsedEvent[0];
-  const suffix = parsedEvent[1];
-
-  if (VALIDDAMAGEPREFIX.includes(prefix) && ["DAMAGE", "MISS"].includes(suffix)) {
-    return true;
-  }
-  return false;
-}
-
 export function returnBaseParameters (array){
 
   return {
@@ -249,33 +232,26 @@ export function returnBaseParameters (array){
 export function returnPrefixParameters(array, prefix, count){
 
   if (prefix === "SWING") { { } }
-  if (prefix === "RANGE") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
-  if (prefix === "SPELL") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
-  if (prefix === "SPELLPERIODIC") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
-  if (prefix === "SPELLBUILDING") { return { spellId: array[count+1], spellName: array[count+2], school: getSchooltype(array[count+3]) }}
+  if (prefix === "RANGE") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
+  if (prefix === "SPELL") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
+  if (prefix === "SPELLPERIODIC") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
+  if (prefix === "SPELLBUILDING") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
   if (prefix === "ENVIRONMENTAL") { return { environmentalType: array[count+1] }}
-  else { 
-
-    const result = returnSpecialEventParameters(array, prefix, count);
-    if (result) {
-      return result;
-    } else {
-      return false;
-    }
-  }
+  else { return false }
 }
 
 export function returnSuffixParameters(array, suffix, count){
 
   if (suffix === "DAMAGE") { return { amount: checkAmount(array[count+1]), overkill: checkAmount(array[count+2]), school: getSchooltype(array[count+3]), resisted: checkAmount(array[count+4]), blocked: checkAmount(array[count+5]), absorbed: checkAmount(array[count+6]), critical: checkCritGlancingCrushing(array[count+7]), glancing: checkCritGlancingCrushing(array[count+8]), crushing: checkCritGlancingCrushing(array[count+9]) }}
-  if (suffix === "MISSED") { return { missType: array[count+1], amountMissed: checkAmount(array[count+2]) }}
+  if (suffix === "MISSED" && ["BLOCK", "RESIST", "ABSORB"].includes((array[count+1]))) { return { missType: array[count+1], amount: checkAmount(array[count+1]) }}
+  if (suffix === "MISSED") { return { missType: array[count+1] }}
   if (suffix === "HEAL") { return { amount: checkAmount(array[count+1]), overhealing: checkAmount(array[count+2]), absorbed: checkAmount(array[count+3]), critical: checkCritGlancingCrushing(array[count+4]) }}
   if (suffix === "ENERGIZE") {  return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]) }}
   if (suffix === "DRAIN") { return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]), extraAmount: checkAmount(array[count+3]) }}
   if (suffix === "LEECH") { return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]), extraAmount: checkAmount(array[count+3]) }}
   if (suffix === "INTERRUPT") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]) }}
-  if (suffix === "DISPELFAILED") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
-  if (suffix === "DISPEL") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]) }}
+  if (suffix === "DISPELFAILED") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: checkUndefined(array[count+4]) }}
+  if (suffix === "DISPEL") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
   if (suffix === "STOLEN") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
   if (suffix === "EXTRAATTACKS") { return { amount: checkAmount(array[count+1]) }}
   if (suffix === "AURAAPPLIEDDOSE") { return { auraType: array[count+1], amount: checkAmount(array[count+2]) }}
@@ -294,20 +270,23 @@ export function returnSuffixParameters(array, suffix, count){
   if (suffix === "CREATE") { return {}}
   if (suffix === "SUMMON") { return {}}
   if (suffix === "RESURRECT") { return {}}
+  if (suffix === "DAMAGESHIELDMISSED" && ["EVADE", "IMMUNE", "MISS", "DEFLECT", "DODGE", "PARRY", "REFLECT" ].includes((array[count+4]))) { return { spellId: array[count+1], spellName: array[count+2], spellSchool: array[count+3], missType: array[count+4] }}
+  if (suffix === "DAMAGESHIELDMISSED") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: array[count+3], missType: array[count+4], amountMissed: checkAmount(array[count+5]) }}
+  if (suffix === "DAMAGESHIELD") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), extraSchool: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
+  if (suffix === "DAMAGESPLIT") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), school: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
+  if (suffix === "ENCHANTAPPLIED") { return { spellName: array[count+1], itemID: checkUndefined(array[count+2]), itemName: checkUndefined(array[count+3]) }}
+  if (suffix === "ENCHANTREMOVED") { return { spellName: array[count+1], itemID: checkUndefined(array[count+2]), itemName: checkUndefined(array[count+3]) }}
+  if (suffix === "PARTYKILL") { return {}}
+  if (suffix === "UNITDIED") { return {}}
+  if (suffix === "UNITDESTROYED") { return {}}
   else { return false }
 }
 
-function returnSpecialEventParameters(array, specialEvent, count){
-
-  if (specialEvent === "DAMAGESHIELDMISSED") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], missType: array[count+4], amountMissed: checkAmount(array[count+5]) }}
-  if (specialEvent === "DAMAGESHIELD") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), school: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
-  if (specialEvent === "DAMAGESPLIT") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), school: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
-  if (specialEvent === "ENCHANTAPPLIED") { return { spellName: array[count+1], itemID: array[count+2], itemName: array[count+3] }}
-  if (specialEvent === "ENCHANTREMOVED") { return { spellName: array[count+1], itemID: array[count+2], itemName: array[count+3] }}
-  if (specialEvent === "PARTYKILL") { return {}}
-  if (specialEvent === "UNITDIED") { return {}}
-  if (specialEvent === "UNITDESTROYED") { return {}}
-  else { return false }
+function checkUndefined(value) {
+  if (value === undefined) {
+    return "not known";
+  }
+  return value;
 }
 
 function checkCritGlancingCrushing(value) {
@@ -319,13 +298,13 @@ function checkCritGlancingCrushing(value) {
 
 function checkName(name){
   if (name === "nil") {
-    return "Unknown";
+    return "None";
   }
   return name;
 }
 
 function checkAmount(amount){
-  if (["nil", undefined].includes(amount)) {
+  if (amount === "nil") {
     return 0;
   }
   return parseInt(amount, 10);

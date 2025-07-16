@@ -145,48 +145,59 @@ export function getEnergyType(value) {
 }
 
 export const SCHOOLS = new Map([
-//Single Schools
-[0, "Unknown"],
-[1, "Physical"],
-[0x2, "Holy"],
-[0x4, "Fire"],
-[0x8, "Nature"],
-[0x10, "Frost"],
-[0x20, "Shadow"],
-[0x40, "Arcane"],
-//Dual Schools
-[0x3, "Holystrike (Holy + Physical)"],
-[0x5, "Flamestrike (Fire + Physical)"],
-[0x6, "Holyfire (Holy + Fire)"],
-[0x9, "Stormstrike (Nature + Physical)"],
-[0xA, "Holystorm (Holy + Nature)"],
-[0xC, "Firestorm (Fire + Nature)"],
-[0x11, "Froststrike (Frost + Physical)"],
-[0x12, "Holyfrost (Holy + Frost)"],
-[0x14, "Frostfire (Fire + Frost)"],
-[0x18, "Froststorm (Nature + Frost)"],
-[0x21, "Shadowstrike (Shadow + Physical)"],
-[0x22, "ShadowLight (Holy + Shadow)"],
-[0x24, "Shadowflame (Fire + Shadow)"],
-[0x28, "Shadowstorm (Nature + Shadow)"],
-[0x30, "Shadowfrost (Frost + Shadow)"],
-[0x41, "Spellstrike (Arcane + Physical)"],
-[0x42, "Divine (Arcane + Holy)"],
-[0x44, "Spellfire (Arcane + Fire)"],
-[0x48, "Spellstorm (Arcane + Nature)"],
-[0x50, "Spellfrost (Arcane + Frost)"],
-[0x60, "Spellshadow (Arcane + Shadow)"],
-//Trio Schools
-[0x1C, "Elemental (Fire + Nature + Frost)"],
-[0x7C, "Chromatic (Fire + Nature + Frost + Arcane)"],
-//Penta Schools
-[0x7E, "Magic (Holy + Fire + Nature + Frost + Shadow)"],
-[0x7F, "Chaos (Holy + Fire + Nature + Frost + Shadow + Arcane)"],
+  [0, "Unknown"],
+  [1, "Physical"],
+  [2, "Holy"],
+  [4, "Fire"],
+  [8, "Nature"],
+  [16, "Frost"],
+  [32, "Shadow"],
+  [64, "Arcane"],
+  // Dual Schools
+  [3, "Holystrike (Holy + Physical)"],
+  [5, "Flamestrike (Fire + Physical)"],
+  [6, "Holyfire (Holy + Fire)"],
+  [9, "Stormstrike (Nature + Physical)"],
+  [10, "Holystorm (Holy + Nature)"],
+  [12, "Firestorm (Fire + Nature)"],
+  [17, "Froststrike (Frost + Physical)"],
+  [18, "Holyfrost (Holy + Frost)"],
+  [20, "Frostfire (Fire + Frost)"],
+  [24, "Froststorm (Nature + Frost)"],
+  [33, "Shadowstrike (Shadow + Physical)"],
+  [34, "ShadowLight (Holy + Shadow)"],
+  [36, "Shadowflame (Fire + Shadow)"],
+  [40, "Shadowstorm (Nature + Shadow)"],
+  [48, "Shadowfrost (Frost + Shadow)"],
+  [65, "Spellstrike (Arcane + Physical)"],
+  [66, "Divine (Arcane + Holy)"],
+  [68, "Spellfire (Arcane + Fire)"],
+  [72, "Spellstorm (Arcane + Nature)"],
+  [80, "Spellfrost (Arcane + Frost)"],
+  [96, "Spellshadow (Arcane + Shadow)"],
+  // Trio Schools
+  [28, "Elemental (Fire + Nature + Frost)"],
+  [124, "Chromatic (Fire + Nature + Frost + Arcane)"],
+  // Penta Schools
+  [126, "Magic (Holy + Fire + Nature + Frost + Shadow)"],
+  [127, "Chaos (Holy + Fire + Nature + Frost + Shadow + Arcane)"]
 ])
 
 export function getSchooltype(value) {
-  return SCHOOLS.get(parseInt(value, 16)) || false;
+  let parsed
+  if (typeof value === "number") {
+    parsed = value
+  } else if (typeof value === "string") {
+    // Detect hex strings like "0x20" vs regular decimal strings like "32"
+    parsed = parseInt(value, value.startsWith("0x") ? 16 : 10)
+  } else {
+    return "Invalid School"
+  }
+  return SCHOOLS.get(parsed) || "Unknown School"
 }
+
+
+
 
 export const BOSSNAMES = [
   //Zul'Gurub

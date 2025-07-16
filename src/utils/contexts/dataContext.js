@@ -1,5 +1,5 @@
 import React, { createContext, useEffect, useState } from 'react';
-import { parseString, damageEventCheck, setGlobalYear } from '../helpers/parseHelpers.js';
+import { parseString, damageEventCheck, setGlobalYear, testArrayLength } from '../helpers/parseHelpers.js';
 import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 
 export const DataContext = createContext();
@@ -63,6 +63,8 @@ export const DataContextProvider = ({ children }) => {
 
     let metaData = [];
     let invalidData = [];
+
+    let tempTestDataList = [];
 
     function readNewFile(file) {
         
@@ -128,6 +130,8 @@ export const DataContextProvider = ({ children }) => {
                 console.log(invalidData);
                 console.log("pet data;")
                 console.log(petList);
+                console.log("Unique list test:")
+                console.log(tempTestDataList);
             }
                 
         }
@@ -141,19 +145,40 @@ export const DataContextProvider = ({ children }) => {
         function handleParse(currentLine){
 
             let parsedLine = parseString(currentLine);
-            if (!parsedLine) {
-                if (currentLine === "" || currentLine === "\r") { return } // Skips all empty lines
-                setInvalidLinesCount(prevCount => prevCount + 1);
-                invalidData.push(currentLine.replace(/\r/g, ''));
-                return false;
-            }
-                parsedLine = parseString(currentLine);
+            if (parsedLine) {
+
                 metaData.push(parsedLine);
+                uniqueEntryTest(parsedLine);
                 setValidLinesCount(prevCount => prevCount + 1);
                 checkIfNewSession();
                 checkUniqueEvent(parsedLine.event);
-    
                 
+            }
+            if (currentLine === "" || currentLine === "\r") { return } // Skips all empty lines
+            if (parsedLine === false) {
+                setInvalidLinesCount(prevCount => prevCount + 1);
+                invalidData.push(currentLine.replace(/\r/g, ''));
+            return;
+            }
+
+            function uniqueEntryTest() {
+                const testArray = testArrayLength(currentLine)
+                if (testArray[0] != Object.keys(parsedLine).length){
+                    console.error("Error: Length of parsed line does not match the expected length. " + "Expected: " + testArray[0] + ", Actual: " + Object.keys(parsedLine).length);
+                    console.error("Parsed Line: ", parsedLine);
+                    console.error("Current Line: ", testArray[1]);
+                }
+                const hasUndefined = Object.values(parsedLine).some(value => value === undefined)
+                if (hasUndefined) {
+                    console.error("Error: Parsed line contains undefined values.");
+                    console.error("Parsed Line: ", parsedLine);
+                    console.error("Current Line: ", testArray[1]);
+                }
+
+
+            }
+
+
 
 
             function checkUniqueEvent(event){
@@ -207,37 +232,6 @@ export const DataContextProvider = ({ children }) => {
                 console.log(parsedLine.sourceFlags);
                 console.log("dflag:");
                 console.log(parsedLine.destFlags);*/
-
-
-
-                if (!parsedLine) { 
-                    console.error("-----Error: parsedLine is undefined."); 
-                    return; 
-                }
-                if (!parsedLine.sourceFlags) { 
-                    console.error("-----Error: parsedLine.sourceFlags is undefined."); 
-                    return; 
-                }
-                if (!parsedLine.sourceGUID) { 
-                    console.error("-----Error: parsedLine.sourceGUID is undefined."); 
-                    return; 
-                }
-                if (!parsedLine.sourceName) { 
-                    console.error("-----Error: parsedLine.sourceFlags.sourceName is undefined."); 
-                    return; 
-                }
-                if (!parsedLine.destName) { 
-                    console.error("-----Error: parsedLine.destName is undefined."); 
-                    return; 
-                }
-                if (!parsedLine.destGUID) { 
-                    console.error("-----Error: parsedLine.destGUID is undefined."); 
-                    return; 
-                }
-                if (!parsedLine.sourceFlags) { 
-                    console.error("-----Error: parsedLine.destFlags is undefined."); 
-                    return; 
-                }
                 
                 const processTypeSource = 0;
                 const processTypeDest = 0
