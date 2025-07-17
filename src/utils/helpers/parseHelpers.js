@@ -46,6 +46,7 @@ export function testArrayLength(string) {
 
     parseArray[1] = setEvent(parseArray[1])
     if (parseArray[1] === false) { return false }
+    parseArray[1] = parseArray[1].join('_');
     return [parseArray.length, parseArray];
 }
 
@@ -197,22 +198,17 @@ export function parseAffiliation(flagMask) {
   // Classification
 
 
-if (["MINE", "RAID", "PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control !== "PLAYER") {
-    return "Player";
-} else if (["MINE", "RAID", "PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control === "PLAYER") {
-    return "Pet";
-} else if (["OUTSIDER", "MASK"].includes(result.affiliation) && result.reaction === "FRIENDLY") {
-    return "FriendlyNPC";
-} else if (["OUTSIDER", "MASK"].includes(result.affiliation) && result.reaction === "HOSTILE") {
-    return "HostileNPC";
-} else if (["OUTSIDER", "MASK"].includes(result.affiliation) && result.reaction === "NEUTRAL") {
-    return "NeutralNPC";
-} else if (result.affiliation === "0") {
-    return "Unknown";
-}
-
+if (["MINE","RAID","PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control === undefined) { return "Player" }
+if (["MINE","RAID","PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control === "PLAYER") { return "Unknown" }
+if (["MINE","RAID","PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && ["NPC"].includes(result.control)) { return "Pet" }
+if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "FRIENDLY" && ["NPC", undefined].includes(result.control)) { return "FriendlyNPC" }
+if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "HOSTILE" && ["PLAYER"].includes(result.control)) { return "EnemyPlayer" }
+if (["OUTSIDER","MASK"].includes(result.affiliation) && ["FRIENDLY", "NEUTRAL"].includes(result.reaction) && ["PLAYER"].includes(result.control)) { return "FriendlyPlayer" }
+if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "HOSTILE" && ["NPC", undefined].includes(result.control)) { return "EnemyNPC" }
+if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "NEUTRAL" && ["NPC", undefined].includes(result.control)) { return "NeutralNPC" }
+console.log("FUCK")
   // If nothing matches, return the parsed object
-  return result;
+  return "Unknown";
 }
 
 export function returnBaseParameters (array){

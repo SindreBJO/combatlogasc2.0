@@ -25,32 +25,22 @@ export const DataContextProvider = ({ children }) => {
     let offset = 0;
     let carryOver = '';
 
-    let lineCounter = 0;
-    let lineCounterSessionStart = 0;
-
-    let startDate;
-    let previousDate = 0;
+    let unparsedLineIndex = 0;
+    let sessionStartLineIndex = 0;
     let previousTimeStamp = 0;
-    let previousDamageTimeStamp = 0;
 
 
     let currentSessionStart = 0;
     let currentSessionBOSS = "Trash";
-    let currentDate;
     let sessionData = [];
     let sessionsCount = 0;
-    let sessionStartDate = 0;
-
-    let uniqueSubEventList = [];
 
     let playerList = [];
     let petList = [];
     let playerControledNPCList = [];
     let friendlyNPCList = [];
     let neutralNPCList = [];
-    let MultipleIdFriendlyNPCList = [];
     let hostileNPCList = [];
-    let MultipleIdHostileNPCList = [];
     let unknownNPCList = [];
 
     let sourceFlagTest = [];
@@ -58,13 +48,41 @@ export const DataContextProvider = ({ children }) => {
 
     let testSchoolList = [];
 
-    let testDataList = [];
-    let testDataRaw = [];
+    let lengthTestData = []
+
+    let eventTestData = {
+        uniqueEvents: [],
+        uniqueEventsExampleParses: []
+    };
+
+    let affiliationTestData = {
+        playerList: [],
+        petList: [],
+        enemyPlayerList: [],
+        friendlyPlayerList: [],
+        friendlyNPCList: [],
+        neutralNPCList: [],
+        enemyNPCList: [],
+        unknownNPCList: [],
+        noneList: []
+    };
+
+    let playerCount = 0;
+    let petCount = 0;
+    let enemyPlayerCount = 0;
+    let friendlyPlayerCount = 0;
+    let friendlyNPCCount = 0;
+    let neutralNPCCount = 0;
+    let enemyNPCCount = 0;
+    let unknownNPCCount = 0;
+    let noneCount = 0;
 
     let metaData = [];
     let invalidData = [];
 
     let tempTestDataList = [];
+
+    let linesCount = 0;
 
     function readNewFile(file) {
         
@@ -98,40 +116,59 @@ export const DataContextProvider = ({ children }) => {
                 readNextChunk();
             } else {
                 handleParse(carryOver);
+                
                 //Finished reading the file and parse the data
+
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
-                setSessions(sessionLines);
-                setData(metaData);
-                sessionData.push({
-                    sessionBoss: currentSessionBOSS,
-                    timeStart: currentSessionStart,
-                    timeEnd: previousTimeStamp,
-                    lines: lineCounter - lineCounterSessionStart,
-                    lineStart: lineCounterSessionStart,
-                    lineEnd: lineCounter,
-                    duration: (previousTimeStamp - currentSessionStart) / 1000,
-                });
-                console.log("Recorded data:")
-                console.log(testDataList);
-                console.log("Session data:")
-                console.log(sessionData);
-                console.log("Player list:")
-                console.log(playerList);
-                console.log("Friendly NPC list:")
-                console.log(friendlyNPCList);
-                console.log("Hostile NPC list:")
-                console.log(hostileNPCList);
-                console.log("Unique Event List:")
-                console.log(testDataRaw);
-                console.log("test data list:")
+                console.log (" ");
+                console.log('----- File reading -----');
+                console.log(" ");
+                console.log('%cCompleted', 'color: green');
+                console.log(" ")
+
+                //LENGTH TEST DECLARATION
+
+                console.log("----- Length Test: -----")
+                console.log(" ")
+
+                if (lengthTestData.length === 0) {
+                    console.log(`${(( linesCount - lengthTestData.length)/(linesCount)).toFixed(5) * 100} %c% test coverage`, 'color: green')
+                } else {
+                    console.log('%cFailed Length Parses:', 'color: red');
+                    console.log(lengthTestData);
+                    console.log(`${(( linesCount - lengthTestData.length)/(linesCount)).toFixed(5) * 100} %c% test coverage`, 'color: green')
+                }
+                
+                console.log(" ")
+                console.log("----- Entity Test -----")
+                console.log(" ")
+                console.log("Player Count: " + playerCount);
+                console.log("Pet Count: " + petCount);
+                console.log("Enemy Player Count: " + enemyPlayerCount);
+                console.log("Friendly Player Count: " + friendlyPlayerCount);
+                console.log("Friendly NPC Count: " + friendlyNPCCount);
+                console.log("Neutral NPC Count: " + neutralNPCCount);
+                console.log("Enemy NPC Count: " + enemyNPCCount);
+                console.log("Unknown NPC Count: " + unknownNPCCount);
+                console.log("None Count: " + noneCount);
+                console.log(" ")
+                let total = playerCount + petCount + enemyPlayerCount + friendlyPlayerCount + friendlyNPCCount + neutralNPCCount + enemyNPCCount + unknownNPCCount + noneCount;
+                console.log("%cTotal Count: " + total, 'color: green');
+                console.log((total/(linesCount * 2)) * 100 + "%c % test coverage", 'color: green')
+                console.log(" ")
+                console.log("----- Event Tests: -----")
+                console.log(" ")
+                console.log("%cUnique Events:", 'color: green');
+                console.log(eventTestData.uniqueEvents);
+                console.log("%cUnique Events Example Parses:", 'color: green');
+                console.log(eventTestData.uniqueEventsExampleParses);
+                console.log(" ")
+                console.log("Unique Units:")
+                console.log(affiliationTestData);
+                console.log("Meta Data:")
                 console.log(metaData);
-                console.log("Invalid data:")
-                console.log(invalidData);
-                console.log("pet data;")
-                console.log(petList);
-                console.log("Unique list test:")
-                console.log(tempTestDataList);
+
             }
                 
         }
@@ -142,62 +179,139 @@ export const DataContextProvider = ({ children }) => {
             };
 
             //Handles the parsing of the line
-        function handleParse(currentLine){
+        function handleParse(unparsedLine){
 
-            let parsedLine = parseString(currentLine);
-            if (parsedLine) {
-
-                metaData.push(parsedLine);
-                uniqueEntryTest(parsedLine);
+            let parsedObject = parseString(unparsedLine);
+            if (parsedObject) {
+                lengthTest(parsedObject, unparsedLine);
+                affiliationTest(parsedObject)
                 setValidLinesCount(prevCount => prevCount + 1);
-                checkIfNewSession();
-                checkUniqueEvent(parsedLine.event);
-                
+                metaData.push(parsedObject);
             }
-            if (currentLine === "" || currentLine === "\r") { return } // Skips all empty lines
-            if (parsedLine === false) {
+            if (unparsedLine === "" || unparsedLine === "\r") { return } // Skips all empty lines
+            if (parsedObject === false) {
                 setInvalidLinesCount(prevCount => prevCount + 1);
-                invalidData.push(currentLine.replace(/\r/g, ''));
+                invalidData.push(unparsedLine.replace(/\r/g, ''));
             return;
             }
+            linesCount++;
+            parsedObject = null;
+            unparsedLine = null;
+        }
 
-            function uniqueEntryTest() {
-                const testArray = testArrayLength(currentLine)
-                if (testArray[0] != Object.keys(parsedLine).length){
-                    console.error("Error: Length of parsed line does not match the expected length. " + "Expected: " + testArray[0] + ", Actual: " + Object.keys(parsedLine).length);
-                    console.error("Parsed Line: ", parsedLine);
-                    console.error("Current Line: ", testArray[1]);
-                }
-                const hasUndefined = Object.values(parsedLine).some(value => value === undefined)
-                if (hasUndefined) {
-                    console.error("Error: Parsed line contains undefined values.");
-                    console.error("Parsed Line: ", parsedLine);
-                    console.error("Current Line: ", testArray[1]);
-                }
+            function lengthTest(obj, string) {
+              const [parsedArrayLength, parsedArray] = testArrayLength(string);
+              if (parsedArrayLength != Object.keys(obj).length){
+                 lengthTestData.push(["Expected: " + parsedArrayLength, "Actual: " + Object.keys(obj).length, parsedArray]);
+              }
+            }
 
+            function eventTest(obj) {
 
             }
 
+            function affiliationTest(obj){
 
+                const sourceFlag = obj.sourceFlag?.trim();
+                const destFlag = obj.destFlag?.trim();
 
-
-            function checkUniqueEvent(event){
-
-                    if(!testDataList.includes(parsedLine.event.join("_"))){
-                        testDataList.push(parsedLine.event.join("_"));
-                        testDataRaw.push(currentLine);
+                if (sourceFlag === "Player") {
+                    if (!affiliationTestData.playerList.includes(obj.sourceName)) {
+                        affiliationTestData.playerList.push(obj.sourceName);
                     }
+                    playerCount++;
+                } else if (sourceFlag === "Pet") {
+                    if (!affiliationTestData.petList.includes(obj.sourceName)) {
+                        affiliationTestData.petList.push(obj.sourceName);
+                    }
+                    petCount++;
+                } else if (sourceFlag === "FriendlyNPC") {
+                    if (!affiliationTestData.friendlyNPCList.includes(obj.sourceName)) {
+                        affiliationTestData.friendlyNPCList.push(obj.sourceName);
+                    }
+                    friendlyNPCCount++;
+                } else if (sourceFlag === "EnemyPlayer") {
+                    if (!affiliationTestData.enemyPlayerList.includes(obj.sourceName)) {
+                        affiliationTestData.enemyPlayerList.push(obj.sourceName);
+                    }
+                    enemyPlayerCount++;
+                } else if (sourceFlag === "FriendlyPlayer") {
+                    if (!affiliationTestData.friendlyPlayerList.includes(obj.sourceName)) {
+                        affiliationTestData.friendlyPlayerList.push(obj.sourceName);
+                    }
+                    friendlyPlayerCount++;
+                } else if (sourceFlag === "EnemyNPC") {
+                    if (!affiliationTestData.enemyNPCList.includes(obj.sourceName)) {
+                        affiliationTestData.enemyNPCList.push(obj.sourceName);
+                    }
+                    enemyNPCCount++;
+                } else if (sourceFlag === "NeutralNPC") {
+                    if (!affiliationTestData.neutralNPCList.includes(obj.sourceName)) {
+                        affiliationTestData.neutralNPCList.push(obj.sourceName);
+                    }
+                    neutralNPCCount++;
+                } else if (sourceFlag === "Unknown") {
+                    if (!affiliationTestData.unknownNPCList.includes(obj.sourceName)) {
+                        affiliationTestData.unknownNPCList.push(obj.sourceName);
+                    }
+                    unknownNPCCount++;
+                } else if (sourceFlag === "None") {
+                    if (!affiliationTestData.noneList.includes(obj.sourceName)) {
+                        affiliationTestData.noneList.push(obj.sourceName);
+                    }
+                    noneCount++;
+                }
+
+                if (destFlag === "Player") {
+                    if (!affiliationTestData.playerList.includes(obj.destName)) {
+                        affiliationTestData.playerList.push(obj.destName);
+                    }
+                    playerCount++;
+                } else if (destFlag === "Pet") {
+                    if (!affiliationTestData.petList.includes(obj.destName)) {
+                        affiliationTestData.petList.push(obj.destName);
+                    }
+                    petCount++;
+                } else if (destFlag === "FriendlyNPC") {
+                    if (!affiliationTestData.friendlyNPCList.includes(obj.destName)) {
+                        affiliationTestData.friendlyNPCList.push(obj.destName);
+                    }
+                    friendlyNPCCount++;
+                } else if (destFlag === "EnemyPlayer") {
+                    if (!affiliationTestData.enemyPlayerList.includes(obj.destName)) {
+                        affiliationTestData.enemyPlayerList.push(obj.destName);
+                    }
+                    enemyPlayerCount++;
+                } else if (destFlag === "FriendlyPlayer") {
+                    if (!affiliationTestData.friendlyPlayerList.includes(obj.destName)) {
+                        affiliationTestData.friendlyPlayerList.push(obj.destName);
+                    }
+                    friendlyPlayerCount++;
+                } else if (destFlag === "EnemyNPC") {
+                    if (!affiliationTestData.enemyNPCList.includes(obj.destName)) {
+                        affiliationTestData.enemyNPCList.push(obj.destName);
+                    }
+                    enemyNPCCount++;
+                } else if (destFlag === "NeutralNPC") {
+                    if (!affiliationTestData.neutralNPCList.includes(obj.destName)) {
+                        affiliationTestData.neutralNPCList.push(obj.destName);
+                    }
+                    neutralNPCCount++;
+                } else if (destFlag === "Unknown") {
+                    if (!affiliationTestData.unknownNPCList.includes(obj.destName)) {
+                        affiliationTestData.unknownNPCList.push(obj.destName);
+                    }
+                    unknownNPCCount++;
+                } else if (destFlag === "None") {
+                    if (!affiliationTestData.noneList.includes(obj.sourceName)) {
+                        affiliationTestData.noneList.push(obj.sourceName);
+                    }
+                    noneCount++;
+                }
             }
 
             function handleSession(){
-                if (previousTimeStamp === 0 && parsedLine.isDamage) {
-
-                    previousTimeStamp = parsedLine.timeMs;
-                    currentSessionStart = parsedLine.timeMs;
-                    lineCounterSessionStart = lineCounter;
-                    previousDate = parsedLine.date;
-
-                }
+                
             }
 
             function startSession(){
@@ -212,199 +326,13 @@ export const DataContextProvider = ({ children }) => {
 
             }
 
-            function checkAffiliationAndReaction(){
-
-            }
-
-
-
-
-
             function handleNameAndGUID() {
 
-                /*console.log("--------------------")
-                console.log("Handling Name and GUID")
-                console.log("sname: " + parsedLine.sourceName);
-                console.log("sid: " + parsedLine.sourceGUID);
-                console.log("dname: " + parsedLine.destName);
-                console.log("did: " + parsedLine.destGUID);
-                console.log("sflag:");
-                console.log(parsedLine.sourceFlags);
-                console.log("dflag:");
-                console.log(parsedLine.destFlags);*/
-                
-                const processTypeSource = 0;
-                const processTypeDest = 0
-                ;
-
-                
-                /*console.log("TypeSource: " + processTypeSource); 
-                console.log("TypeDest: " + processTypeDest);*/ 
-
-                // FORMAT: Type, {list, bool for multipleIDs} 
-                const processTypeMapping = { 
-                    Player: { list: playerList, allowMultipleIds: true }, 
-                    Pet: { list: petList, allowMultipleIds: true }, 
-                    FriendlyNPC: { list: friendlyNPCList, allowMultipleIds: false }, 
-                    HostileNPC: { list: hostileNPCList, allowMultipleIds: false }, 
-                    MultipleIdFriendlyNPC: { list: friendlyNPCList, allowMultipleIds: true }, 
-                    MultipleIdHostileNPC: { list: hostileNPCList, allowMultipleIds: true }, 
-                    NeutralNPC: { list: neutralNPCList, allowMultipleIds: false }, 
-                    UnknownNPC: { list: unknownNPCList, allowMultipleIds: false } 
-                }; 
-
-                [
-                    { 
-                        type: processTypeSource, 
-                        obj: {
-                            name: parsedLine.sourceName, 
-                            GUID: parsedLine.sourceGUID,
-                            actionName: parsedLine.spellName,
-                            actionId: parsedLine.spellId, 
-                            flags: parsedLine.sourceFlags,
-                            type: "source",
-                        } 
-                    },
-                    { 
-                        type: processTypeDest, 
-                        obj: { 
-                            name: parsedLine.destName, 
-                            GUID: parsedLine.destGUID, 
-                            flags: parsedLine.destFlags, 
-                            actionName: parsedLine.spellName, 
-                            actionId: parsedLine.spellId, 
-                            type: "dest", 
-                        } 
-                    } 
-                    
-                ].forEach(({ type, obj }) => { 
-                    const mapping = processTypeMapping[type];
-                    if (mapping) { 
-                        checkUniqueEntryInLists(obj, mapping.list, mapping.allowMultipleIds); 
-                    } 
-                }); 
-
-            } 
-
-            function checkUniqueEntryInLists(obj, selectedEntityList, allowMultipleIds) { 
-                let sourceEntry = selectedEntityList.find(entry => entry.name === obj.name);
-
-                if (sourceEntry === undefined) {
-                    sourceEntry = { name: obj.name, guid: [obj.GUID], flags: obj.flags, sourceActions: [], destActions: [] };
-                    selectedEntityList.push(sourceEntry);
-                } else if (allowMultipleIds && !sourceEntry.guid.includes(obj.GUID)) {
-                    sourceEntry.guid.push(obj.GUID);
-                }
-
-                if (obj.type === "source") {
-                    let actionEntry = sourceEntry.sourceActions.find(action => action.id === obj.actionId);
-                    
-                    if (actionEntry === undefined) {
-                        sourceEntry.sourceActions.push({ name: obj.actionName, id: obj.actionId });
-                    }
-
-                } else if (obj.type === "dest") {
-                    let actionEntry = sourceEntry.destActions.find(action => action.id === obj.actionId);
-                    
-                    if (actionEntry === undefined) {
-                        actionEntry = { name: obj.actionName, id: obj.actionId };
-                        sourceEntry.destActions.push(actionEntry);
-                    }
-                }
-            }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            function checkIfNewSession(){
-                /* console.log("Checking if new session")
-                console.log(parsedLine.isDamage)
-                console.log(parsedLine.timeMs)
-                console.log(lineCounter) */
-
-                if(parsedLine.isDamage){
-
-                    if (BOSSNAMES.includes(parsedLine.sourceName) && currentSessionBOSS === "Trash"){
-                        currentSessionBOSS = parsedLine.sourceName;
-                    }
-
-                    if (previousTimeStamp === 0){
-                    
-                        previousTimeStamp = parsedLine.timeMs;
-                        currentSessionStart = parsedLine.timeMs;
-                        lineCounterSessionStart = lineCounter;
-                        previousDate = parsedLine.date;
-
-                    } else if ((parsedLine.timeMs > previousTimeStamp + 60000) || (parsedLine.destName === currentSessionBOSS && parsedLine.isDead)) {
-                    
-                        sessionData.push({
-                            sessionBoss: currentSessionBOSS,
-                            timeStart: currentSessionStart,
-                            timeEnd: previousTimeStamp,
-                            lines: lineCounter - lineCounterSessionStart,
-                            lineStart: lineCounterSessionStart,
-                            lineEnd: lineCounter,
-                            duration: (previousTimeStamp - currentSessionStart) / 1000,
-                            players: playerList,
-                            pets: petList,
-                            playerControledNPCs: playerControledNPCList,
-                            neutralNPCs: neutralNPCList,
-                            friendlyNPCs: [...MultipleIdFriendlyNPCList, ...friendlyNPCList],
-                            hostileNPCs: [...MultipleIdHostileNPCList, ...hostileNPCList],
-                            unknownNPCs: unknownNPCList,
-
-                        });
-                        
-
-                        sessionsCount ++;
-                        currentSessionBOSS = "Trash";
-                        previousTimeStamp = 0;
-                        currentSessionStart = 0;
-                        playerList = [];
-                        petList = [];
-                        playerControledNPCList = [];
-                        friendlyNPCList = [];
-                        neutralNPCList = [];
-                        MultipleIdFriendlyNPCList = [];
-                        hostileNPCList = [];
-                        MultipleIdHostileNPCList = [];
-                        unknownNPCList = [];
-                    
-                    } else if (previousDate !== parsedLine.date){
-                        previousTimeStamp = parsedLine.timeMs;
-
-                        } else {
-                            console.log("Error: Session reading, in checkIfNewSession()")
-                    }
-                    
-                
-                lineCounter ++;
-                
-
-                
-            }
         }
-    }
-        readNextChunk();
-    }
-
     
-   
+        readNextChunk();
+
+    }
 
     return (
         <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear }}>
