@@ -1,4 +1,11 @@
-import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyType, getSchooltype } from "./constants.js";
+import {
+  VALIDPREFIX,
+  VALIDSUFFIX,
+  SPECIALEVENTS,
+  VALIDDAMAGEPREFIX,
+  getEnergyType,
+  getSchooltype,
+} from "./constants.js";
 
 // The string goes through 2 sets of processing here:
 
@@ -17,6 +24,7 @@ import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyTy
 //          [5] = destGUID
 //          [6] = destName
 //          [7] = destFlags (simplified affiliation to the player)
+//          [8] = additional data, the length of the total array varies and is handled in the next step
 
 // Worth to mention:
 // If a parse fails verification at any stage, false is returned in dataContext and the raw string is saved in invalidData
@@ -29,158 +37,175 @@ import { VALIDPREFIX, VALIDSUFFIX, SPECIALEVENTS, VALIDDAMAGEPREFIX, getEnergyTy
 // 2. Parse the array into an object that can be stored in metadata
 //    a) The base parameters object are returned as an part of the final object
 //    b) the parameters for prefix and suffix are returned as the final part of the return object which details all values for that parse with corresponding keys
-
+//       - In some cases the parse is missing default structure and the length is not correct, these values will be returned as unique in the final object, so far only buffType have resulted in this
+//    c) The final object is returned with all the values from the parse with corresponding keys
 
 let globalYearSet;
-export function setGlobalYear(year) { globalYearSet = year }
+export function setGlobalYear(year) {
+  globalYearSet = year;
+}
 
 export function testArrayLength(string) {
+  if (typeof string !== "string") {
+    return false;
+  }
 
-    if (typeof string !== "string") { return false }
+  let parseArray = validateAndSplitParse(string);
+  if (parseArray === false) {
+    return false;
+  }
 
-    let parseArray = validateAndSplitParse(string)
-    if (parseArray === false) { return false }
+  parseArray[0] = setTimeUnix(parseArray[0]);
+  if (parseArray[0] === false) {
+    return false;
+  }
 
-    parseArray[0] = setTimeUnix(parseArray[0])
-    if (parseArray[0] === false) { return false }
-
-    parseArray[1] = setEvent(parseArray[1])
-    if (parseArray[1] === false) { return false }
-    parseArray[1] = parseArray[1].join('_');
-    return [parseArray.length, parseArray];
+  parseArray[1] = setEvent(parseArray[1]);
+  if (parseArray[1] === false) {
+    return false;
+  }
+  parseArray[1] = parseArray[1].join("_");
+  return [parseArray.length, parseArray];
 }
 
 export function parseString(string) {
-
   //Step 1 preparing Array
 
-  if (typeof string !== "string") { return false }
+  if (typeof string !== "string") {
+    return false;
+  }
 
-  let parseArray = validateAndSplitParse(string)
-  if (parseArray === false) { return false }
+  let parseArray = validateAndSplitParse(string);
+  if (parseArray === false) {
+    return false;
+  }
 
-  parseArray[0] = setTimeUnix(parseArray[0])
-  if (parseArray[0] === false) { return false }
+  parseArray[0] = setTimeUnix(parseArray[0]);
+  if (parseArray[0] === false) {
+    return false;
+  }
 
-  parseArray[1] = setEvent(parseArray[1])
-  if (parseArray[1] === false) { return false }
+  parseArray[1] = setEvent(parseArray[1]);
+  if (parseArray[1] === false) {
+    return false;
+  }
 
-  parseArray[4] = parseAffiliation(parseArray[4])
-  if (parseArray[4] === false) { return false }
+  parseArray[4] = parseAffiliation(parseArray[4]);
+  if (parseArray[4] === false) {
+    return false;
+  }
 
-  parseArray[7] = parseAffiliation(parseArray[7])
-  if (parseArray[7] === false) { return false }
+  parseArray[7] = parseAffiliation(parseArray[7]);
+  if (parseArray[7] === false) {
+    return false;
+  }
 
-
-//Step 2 preparing return Object
+  //Step 2 preparing return Object
 
   const baseParameters = returnBaseParameters(parseArray);
 
   let indexCount = 7; // 8 base values, used to guide the selection of the next values
-  let prefixParameters = returnPrefixParameters(parseArray, parseArray[1][0], indexCount);
+  let prefixParameters = returnPrefixParameters(
+    parseArray,
+    parseArray[1][0],
+    indexCount,
+  );
   indexCount += Object.keys(prefixParameters).length;
-  let suffixParameters = returnSuffixParameters(parseArray, parseArray[1][1], indexCount);
-  return { 
-  ...baseParameters, 
-  ...(prefixParameters), 
-  ...suffixParameters 
+  let suffixParameters = returnSuffixParameters(
+    parseArray,
+    parseArray[1][1],
+    indexCount,
+  );
+  return {
+    ...baseParameters,
+    ...prefixParameters,
+    ...suffixParameters,
+  };
 }
-
-
-
-
-
-}
-
-
-
 
 function validateAndSplitParse(string) {
   if (typeof string === "string") {
-
-    const commaCount = (string.match(/,/g) || []).length
-    const doubleSpaceCount = (string.match(/  /g) || []).length
+    const commaCount = (string.match(/,/g) || []).length;
+    const doubleSpaceCount = (string.match(/  /g) || []).length;
 
     if (commaCount > 4 && doubleSpaceCount === 1) {
-
-      let parts = string.split("  ")
-      let part1 = parts[0].split(" ")
+      let parts = string.split("  ");
+      let part1 = parts[0].split(" ");
       let part2 = parts[1].split(/,(?! )/);
 
-      if ([...part1, ...part2].length < 8) { return false }
-      return [[...part1], ...part2.map(str => str.replace(/\r/g, ''))]
+      if ([...part1, ...part2].length < 8) {
+        return false;
+      }
+      return [[...part1], ...part2.map((str) => str.replace(/\r/g, ""))];
     }
   }
-  
-  return false
+
+  return false;
 }
 
-
-
 function setTimeUnix(timeStamp) {
+  const [monthStr, dayStr] = timeStamp[0].split("/");
+  const month = monthStr.padStart(2, "0");
+  const day = dayStr.padStart(2, "0");
 
-  const [monthStr, dayStr] = timeStamp[0].split("/")
-  const month = monthStr.padStart(2, '0')
-  const day = dayStr.padStart(2, '0')
-
-  const isoFormatted = `${globalYearSet}-${month}-${day}T${timeStamp[1]}`
-  return new Date(isoFormatted).getTime()
+  const isoFormatted = `${globalYearSet}-${month}-${day}T${timeStamp[1]}`;
+  return new Date(isoFormatted).getTime();
 }
 
 function setEvent(event) {
-
-  event = event.split('_')
-  if (event.length <= 1) { return false }
-
-  for (let i = 0; i < event.length; i++) {
-
-    let prefix = event.slice(0, i).join('')
-    let suffix = event.slice(i, 5).join('')
-    let specialEvent = event.join('')
-
-    if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)){
-    
-      return [prefix, suffix] 
-    } 
-    else if (SPECIALEVENTS.includes(specialEvent) && i === event.length - 1){ return ["specialEvent", specialEvent] }
+  event = event.split("_");
+  if (event.length <= 1) {
+    return false;
   }
 
-  return false
+  for (let i = 0; i < event.length; i++) {
+    let prefix = event.slice(0, i).join("");
+    let suffix = event.slice(i, 5).join("");
+    let specialEvent = event.join("");
+
+    if (VALIDPREFIX.includes(prefix) && VALIDSUFFIX.includes(suffix)) {
+      return [prefix, suffix];
+    } else if (SPECIALEVENTS.includes(specialEvent) && i === event.length - 1) {
+      return ["specialEvent", specialEvent];
+    }
+  }
+
+  return false;
 }
 
 export function parseAffiliation(flagMask) {
   const decimalFlag = parseInt(flagMask, 16);
-  const binaryString = decimalFlag.toString(2).padStart(16, '0');
+  const binaryString = decimalFlag.toString(2).padStart(16, "0");
 
-  const affiliationBits = decimalFlag & 0xF;    // Last 4 bits
-  const reactionBits    = decimalFlag & 0xF0;   // Next 4 bits
-  const controlBits     = decimalFlag & 0xF00;  // Third group of 4 bits
-  const specialBits     = decimalFlag & 0xF000; // Fourth group (special flags)
+  const affiliationBits = decimalFlag & 0xf; // Last 4 bits
+  const reactionBits = decimalFlag & 0xf0; // Next 4 bits
+  const controlBits = decimalFlag & 0xf00; // Third group of 4 bits
+  const specialBits = decimalFlag & 0xf000; // Fourth group (special flags)
 
   const result = {};
 
   // Affiliation
   result.affiliation = {
-    0x1: 'MINE',
-    0x2: 'PARTY',
-    0x4: 'RAID',
-    0x8: 'OUTSIDER',
-    0xF: 'MASK'
+    0x1: "MINE",
+    0x2: "PARTY",
+    0x4: "RAID",
+    0x8: "OUTSIDER",
+    0xf: "MASK",
   }[affiliationBits];
 
   // Reaction
   result.reaction = {
-    0x10: 'FRIENDLY',
-    0x20: 'NEUTRAL',
-    0x40: 'HOSTILE',
-    0xF0: 'MASK'
+    0x10: "FRIENDLY",
+    0x20: "NEUTRAL",
+    0x40: "HOSTILE",
+    0xf0: "MASK",
   }[reactionBits];
 
   // Control
   result.control = {
-    0x100: 'PLAYER',
-    0x200: 'NPC',
-    0x300: 'MASK'
+    0x100: "PLAYER",
+    0x200: "NPC",
+    0x300: "MASK",
   }[controlBits];
 
   // Special Flags
@@ -190,29 +215,76 @@ export function parseAffiliation(flagMask) {
   if (specialBits & 0x4000) specials.push("MAINTANK");
   if (specialBits & 0x8000) specials.push("MAINASSIST");
 
-  // Early return for unknown
+  if (
+    ["MINE", "PARTY", "RAID"].includes(result.affiliation) &&
+    result.reaction === "FRIENDLY" &&
+    result.control === undefined
+  ) {
+    return "Player";
+  }
+
+  // Group 2: Friendly pets or minions (controlled NPCs or players)
+  if (
+    ["MINE", "PARTY", "RAID"].includes(result.affiliation) &&
+    result.reaction === "FRIENDLY" &&
+    ["PLAYER"].includes(result.control)
+  ) {
+    return "Pet";
+  }
+
+  // Group 3: External friendly NPCs (e.g., quest givers, guards)
+  if (
+    ["OUTSIDER", "MASK"].includes(result.affiliation) &&
+    result.reaction === "FRIENDLY" &&
+    ["NPC", undefined].includes(result.control)
+  ) {
+    return "FriendlyNPC";
+  }
+
+  // Group 4: Enemy players (PvP opponents)
+  if (
+    ["OUTSIDER", "MASK"].includes(result.affiliation) &&
+    result.reaction === "HOSTILE" &&
+    result.control === "PLAYER"
+  ) {
+    return "EnemyPlayer";
+  }
+
+  // Group 5: Friendly or neutral players not in group (e.g., phased players)
+  if (
+    ["OUTSIDER", "MASK"].includes(result.affiliation) &&
+    ["FRIENDLY", "NEUTRAL"].includes(result.reaction) &&
+    result.control === "PLAYER"
+  ) {
+    return "FriendlyPlayer";
+  }
+
+  // Group 6: Hostile NPCs (enemies in the world)
+  if (
+    ["OUTSIDER", "MASK"].includes(result.affiliation) &&
+    result.reaction === "HOSTILE" &&
+    ["NPC", undefined].includes(result.control)
+  ) {
+    return "EnemyNPC";
+  }
+
+  // Group 7: Neutral NPCs (guards, wildlife, quest mobs)
+  if (
+    ["OUTSIDER", "MASK"].includes(result.affiliation) &&
+    result.reaction === "NEUTRAL" &&
+    ["NPC", undefined].includes(result.control)
+  ) {
+    return "NeutralNPC";
+  }
+
+  // If nothing matches, return the parsed object
   if (!result.affiliation && !result.reaction && !result.control) {
     return "None";
   }
-
-  // Classification
-
-
-if (["MINE","RAID","PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control === undefined) { return "Player" }
-if (["MINE","RAID","PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && result.control === "PLAYER") { return "Unknown" }
-if (["MINE","RAID","PARTY"].includes(result.affiliation) && result.reaction === "FRIENDLY" && ["NPC"].includes(result.control)) { return "Pet" }
-if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "FRIENDLY" && ["NPC", undefined].includes(result.control)) { return "FriendlyNPC" }
-if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "HOSTILE" && ["PLAYER"].includes(result.control)) { return "EnemyPlayer" }
-if (["OUTSIDER","MASK"].includes(result.affiliation) && ["FRIENDLY", "NEUTRAL"].includes(result.reaction) && ["PLAYER"].includes(result.control)) { return "FriendlyPlayer" }
-if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "HOSTILE" && ["NPC", undefined].includes(result.control)) { return "EnemyNPC" }
-if (["OUTSIDER","MASK"].includes(result.affiliation) && result.reaction === "NEUTRAL" && ["NPC", undefined].includes(result.control)) { return "NeutralNPC" }
-console.log("FUCK")
-  // If nothing matches, return the parsed object
   return "Unknown";
 }
 
-export function returnBaseParameters (array){
-
+export function returnBaseParameters(array) {
   return {
     timeStamp: array[0],
     event: array[1],
@@ -222,60 +294,281 @@ export function returnBaseParameters (array){
     destGUID: array[5],
     destName: checkName(array[6]),
     destFlag: array[7],
+  };
+}
+
+export function returnPrefixParameters(array, prefix, count) {
+  if (prefix === "SWING") {
+    {
+    }
+  }
+  if (prefix === "RANGE") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      spellSchool: getSchooltype(array[count + 3]),
     };
+  }
+  if (prefix === "SPELL") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      spellSchool: getSchooltype(array[count + 3]),
+    };
+  }
+  if (prefix === "SPELLPERIODIC") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      spellSchool: getSchooltype(array[count + 3]),
+    };
+  }
+  if (prefix === "SPELLBUILDING") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      spellSchool: getSchooltype(array[count + 3]),
+    };
+  }
+  if (prefix === "ENVIRONMENTAL") {
+    return { environmentalType: array[count + 1] };
+  } else {
+    return false;
+  }
 }
 
-export function returnPrefixParameters(array, prefix, count){
-
-  if (prefix === "SWING") { { } }
-  if (prefix === "RANGE") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
-  if (prefix === "SPELL") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
-  if (prefix === "SPELLPERIODIC") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
-  if (prefix === "SPELLBUILDING") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: getSchooltype(array[count+3]) }}
-  if (prefix === "ENVIRONMENTAL") { return { environmentalType: array[count+1] }}
-  else { return false }
-}
-
-export function returnSuffixParameters(array, suffix, count){
-
-  if (suffix === "DAMAGE") { return { amount: checkAmount(array[count+1]), overkill: checkAmount(array[count+2]), school: getSchooltype(array[count+3]), resisted: checkAmount(array[count+4]), blocked: checkAmount(array[count+5]), absorbed: checkAmount(array[count+6]), critical: checkCritGlancingCrushing(array[count+7]), glancing: checkCritGlancingCrushing(array[count+8]), crushing: checkCritGlancingCrushing(array[count+9]) }}
-  if (suffix === "MISSED" && ["BLOCK", "RESIST", "ABSORB"].includes((array[count+1]))) { return { missType: array[count+1], amount: checkAmount(array[count+1]) }}
-  if (suffix === "MISSED") { return { missType: array[count+1] }}
-  if (suffix === "HEAL") { return { amount: checkAmount(array[count+1]), overhealing: checkAmount(array[count+2]), absorbed: checkAmount(array[count+3]), critical: checkCritGlancingCrushing(array[count+4]) }}
-  if (suffix === "ENERGIZE") {  return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]) }}
-  if (suffix === "DRAIN") { return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]), extraAmount: checkAmount(array[count+3]) }}
-  if (suffix === "LEECH") { return { amount: checkAmount(array[count+1]), powerType: getEnergyType(array[count+2]), extraAmount: checkAmount(array[count+3]) }}
-  if (suffix === "INTERRUPT") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]) }}
-  if (suffix === "DISPELFAILED") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: checkUndefined(array[count+4]) }}
-  if (suffix === "DISPEL") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
-  if (suffix === "STOLEN") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: getSchooltype(array[count+3]), auraType: array[count+4] }}
-  if (suffix === "EXTRAATTACKS") { return { amount: checkAmount(array[count+1]) }}
-  if (suffix === "AURAAPPLIEDDOSE") { return { auraType: array[count+1], amount: checkAmount(array[count+2]) }}
-  if (suffix === "AURAREMOVEDDOSE") { return { auraType: array[count+1], amount: checkAmount(array[count+2]) }}
-  if (suffix === "AURAAPPLIED") { return { auraType: array[count+1] }}
-  if (suffix === "AURAREMOVED") { return { auraType: array[count+1] }}
-  if (suffix === "AURAREFRESH") {  return { auraType: array[count+1] }}
-  if (suffix === "AURABROKEN_SPELL") { return { extraSpellId: array[count+1], extraSpellName: array[count+2], extraSchool: array[count+3], auraType: array[count+4] }}
-  if (suffix === "AURABROKEN") { return { auraType: array[count+1] }}
-  if (suffix === "CASTSTART") { return {}}
-  if (suffix === "CASTSUCCESS") { return {}}
-  if (suffix === "CASTFAILED") { return {failedType: array[count+1] }}
-  if (suffix === "INSTAKILL") { return {}}
-  if (suffix === "DURABILITYDAMAGEALL") { return {}}
-  if (suffix === "DURABILITYDAMAGE") { return {}}
-  if (suffix === "CREATE") { return {}}
-  if (suffix === "SUMMON") { return {}}
-  if (suffix === "RESURRECT") { return {}}
-  if (suffix === "DAMAGESHIELDMISSED" && ["EVADE", "IMMUNE", "MISS", "DEFLECT", "DODGE", "PARRY", "REFLECT" ].includes((array[count+4]))) { return { spellId: array[count+1], spellName: array[count+2], spellSchool: array[count+3], missType: array[count+4] }}
-  if (suffix === "DAMAGESHIELDMISSED") { return { spellId: array[count+1], spellName: array[count+2], spellSchool: array[count+3], missType: array[count+4], amountMissed: checkAmount(array[count+5]) }}
-  if (suffix === "DAMAGESHIELD") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), extraSchool: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
-  if (suffix === "DAMAGESPLIT") { return { spellId: array[count+1], spellName: array[count+2], school: array[count+3], amount: checkAmount(array[count+4]), overkill: checkAmount(array[count+5]), school: array[count+6], resisted: checkAmount(array[count+7]), blocked: checkAmount(array[count+8]), absorbed: checkAmount(array[count+9]), critical: checkCritGlancingCrushing(array[count+10]), glancing: checkCritGlancingCrushing(array[count+11]), crushing: checkCritGlancingCrushing(array[count+12]) }}
-  if (suffix === "ENCHANTAPPLIED") { return { spellName: array[count+1], itemID: checkUndefined(array[count+2]), itemName: checkUndefined(array[count+3]) }}
-  if (suffix === "ENCHANTREMOVED") { return { spellName: array[count+1], itemID: checkUndefined(array[count+2]), itemName: checkUndefined(array[count+3]) }}
-  if (suffix === "PARTYKILL") { return {}}
-  if (suffix === "UNITDIED") { return {}}
-  if (suffix === "UNITDESTROYED") { return {}}
-  else { return false }
+export function returnSuffixParameters(array, suffix, count) {
+  if (suffix === "DAMAGE") {
+    return {
+      amount: checkAmount(array[count + 1]),
+      overkill: checkAmount(array[count + 2]),
+      school: getSchooltype(array[count + 3]),
+      resisted: checkAmount(array[count + 4]),
+      blocked: checkAmount(array[count + 5]),
+      absorbed: checkAmount(array[count + 6]),
+      critical: checkCritGlancingCrushing(array[count + 7]),
+      glancing: checkCritGlancingCrushing(array[count + 8]),
+      crushing: checkCritGlancingCrushing(array[count + 9]),
+    };
+  }
+  if (
+    suffix === "MISSED" &&
+    ["BLOCK", "RESIST", "ABSORB"].includes(array[count + 1])
+  ) {
+    return {
+      missType: array[count + 1],
+      amount: checkAmount(array[count + 1]),
+    };
+  }
+  if (suffix === "MISSED") {
+    return { missType: array[count + 1] };
+  }
+  if (suffix === "HEAL") {
+    return {
+      amount: checkAmount(array[count + 1]),
+      overhealing: checkAmount(array[count + 2]),
+      absorbed: checkAmount(array[count + 3]),
+      critical: checkCritGlancingCrushing(array[count + 4]),
+    };
+  }
+  if (suffix === "ENERGIZE") {
+    return {
+      amount: checkAmount(array[count + 1]),
+      powerType: getEnergyType(array[count + 2]),
+    };
+  }
+  if (suffix === "DRAIN") {
+    return {
+      amount: checkAmount(array[count + 1]),
+      powerType: getEnergyType(array[count + 2]),
+      extraAmount: checkAmount(array[count + 3]),
+    };
+  }
+  if (suffix === "LEECH") {
+    return {
+      amount: checkAmount(array[count + 1]),
+      powerType: getEnergyType(array[count + 2]),
+      extraAmount: checkAmount(array[count + 3]),
+    };
+  }
+  if (suffix === "INTERRUPT") {
+    return {
+      extraSpellId: array[count + 1],
+      extraSpellName: array[count + 2],
+      extraSchool: getSchooltype(array[count + 3]),
+    };
+  }
+  if (suffix === "DISPELFAILED") {
+    return {
+      extraSpellId: array[count + 1],
+      extraSpellName: array[count + 2],
+      extraSchool: getSchooltype(array[count + 3]),
+      auraType: checkUndefined(array[count + 4]),
+    };
+  }
+  if (suffix === "DISPEL") {
+    return {
+      extraSpellId: array[count + 1],
+      extraSpellName: array[count + 2],
+      extraSchool: getSchooltype(array[count + 3]),
+      auraType: array[count + 4],
+    };
+  }
+  if (suffix === "STOLEN") {
+    return {
+      extraSpellId: array[count + 1],
+      extraSpellName: array[count + 2],
+      extraSchool: getSchooltype(array[count + 3]),
+      auraType: array[count + 4],
+    };
+  }
+  if (suffix === "EXTRAATTACKS") {
+    return { amount: checkAmount(array[count + 1]) };
+  }
+  if (suffix === "AURAAPPLIEDDOSE") {
+    return {
+      auraType: array[count + 1],
+      amount: checkAmount(array[count + 2]),
+    };
+  }
+  if (suffix === "AURAREMOVEDDOSE") {
+    return {
+      auraType: array[count + 1],
+      amount: checkAmount(array[count + 2]),
+    };
+  }
+  if (suffix === "AURAAPPLIED") {
+    return { auraType: array[count + 1] };
+  }
+  if (suffix === "AURAREMOVED") {
+    return { auraType: array[count + 1] };
+  }
+  if (suffix === "AURAREFRESH") {
+    return { auraType: array[count + 1] };
+  }
+  if (suffix === "AURABROKEN_SPELL") {
+    return {
+      extraSpellId: array[count + 1],
+      extraSpellName: array[count + 2],
+      extraSchool: array[count + 3],
+      auraType: array[count + 4],
+    };
+  }
+  if (suffix === "AURABROKEN") {
+    return { auraType: array[count + 1] };
+  }
+  if (suffix === "CASTSTART") {
+    return {};
+  }
+  if (suffix === "CASTSUCCESS") {
+    return {};
+  }
+  if (suffix === "CASTFAILED") {
+    return { failedType: array[count + 1] };
+  }
+  if (suffix === "INSTAKILL") {
+    return {};
+  }
+  if (suffix === "DURABILITYDAMAGEALL") {
+    return {};
+  }
+  if (suffix === "DURABILITYDAMAGE") {
+    return {};
+  }
+  if (suffix === "CREATE") {
+    return {};
+  }
+  if (suffix === "SUMMON") {
+    return {};
+  }
+  if (suffix === "RESURRECT") {
+    return {};
+  }
+  if (
+    suffix === "DAMAGESHIELDMISSED" &&
+    [
+      "EVADE",
+      "IMMUNE",
+      "MISS",
+      "DEFLECT",
+      "DODGE",
+      "PARRY",
+      "REFLECT",
+    ].includes(array[count + 4])
+  ) {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      spellSchool: array[count + 3],
+      missType: array[count + 4],
+    };
+  }
+  if (suffix === "DAMAGESHIELDMISSED") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      spellSchool: array[count + 3],
+      missType: array[count + 4],
+      amountMissed: checkAmount(array[count + 5]),
+    };
+  }
+  if (suffix === "DAMAGESHIELD") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      school: array[count + 3],
+      amount: checkAmount(array[count + 4]),
+      overkill: checkAmount(array[count + 5]),
+      extraSchool: array[count + 6],
+      resisted: checkAmount(array[count + 7]),
+      blocked: checkAmount(array[count + 8]),
+      absorbed: checkAmount(array[count + 9]),
+      critical: checkCritGlancingCrushing(array[count + 10]),
+      glancing: checkCritGlancingCrushing(array[count + 11]),
+      crushing: checkCritGlancingCrushing(array[count + 12]),
+    };
+  }
+  if (suffix === "DAMAGESPLIT") {
+    return {
+      spellId: array[count + 1],
+      spellName: array[count + 2],
+      school: array[count + 3],
+      amount: checkAmount(array[count + 4]),
+      overkill: checkAmount(array[count + 5]),
+      school: array[count + 6],
+      resisted: checkAmount(array[count + 7]),
+      blocked: checkAmount(array[count + 8]),
+      absorbed: checkAmount(array[count + 9]),
+      critical: checkCritGlancingCrushing(array[count + 10]),
+      glancing: checkCritGlancingCrushing(array[count + 11]),
+      crushing: checkCritGlancingCrushing(array[count + 12]),
+    };
+  }
+  if (suffix === "ENCHANTAPPLIED") {
+    return {
+      spellName: array[count + 1],
+      itemID: checkUndefined(array[count + 2]),
+      itemName: checkUndefined(array[count + 3]),
+    };
+  }
+  if (suffix === "ENCHANTREMOVED") {
+    return {
+      spellName: array[count + 1],
+      itemID: checkUndefined(array[count + 2]),
+      itemName: checkUndefined(array[count + 3]),
+    };
+  }
+  if (suffix === "PARTYKILL") {
+    return {};
+  }
+  if (suffix === "UNITDIED") {
+    return {};
+  }
+  if (suffix === "UNITDESTROYED") {
+    return {};
+  } else {
+    return false;
+  }
 }
 
 function checkUndefined(value) {
@@ -292,14 +585,14 @@ function checkCritGlancingCrushing(value) {
   return false;
 }
 
-function checkName(name){
+function checkName(name) {
   if (name === "nil") {
     return "None";
   }
   return name;
 }
 
-function checkAmount(amount){
+function checkAmount(amount) {
   if (amount === "nil") {
     return 0;
   }

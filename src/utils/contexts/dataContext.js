@@ -13,7 +13,6 @@ export const DataContextProvider = ({ children }) => {
     const [invalidLinesCount, setInvalidLinesCount] = useState(0);
     const [data, setData] = useState([]);
     const [sessions , setSessions] = useState([]);
-    const [sessionLines, setSessionLines] = useState([]);
     const [sessionCount, setSessionCount] = useState(0);
     const [inputYear, setInputYear] = useState();
 
@@ -25,16 +24,22 @@ export const DataContextProvider = ({ children }) => {
     let offset = 0;
     let carryOver = '';
 
-    let unparsedLineIndex = 0;
-    let sessionStartLineIndex = 0;
-    let previousTimeStamp = 0;
 
 
-    let currentSessionStart = 0;
-    let currentSessionBOSS = "Trash";
-    let sessionData = [];
-    let sessionsCount = 0;
 
+
+
+    //Session variables
+    let currentSessionData = [];
+    let currentSessionIndexStart = 0;
+    let currentSessionBossName = "None";
+    let currentSessionStartTime = 0;
+    let currentSessionEndTime = 0;
+    let previousParseTimeStamp = 0;
+    let currentSessionOutcome = "Unknown";
+
+
+    //Indications
     let playerList = [];
     let petList = [];
     let playerControledNPCList = [];
@@ -92,7 +97,6 @@ export const DataContextProvider = ({ children }) => {
         setProgress('Loadingstate');
         setProgressPercentage(0);
         setSessionCount(0);
-        setSessionLines([]);
         setSessions([]);
 
         //Read the file
@@ -212,8 +216,8 @@ export const DataContextProvider = ({ children }) => {
 
             function affiliationTest(obj){
 
-                const sourceFlag = obj.sourceFlag?.trim();
-                const destFlag = obj.destFlag?.trim();
+                const sourceFlag = obj.sourceFlag;
+                const destFlag = obj.destFlag;
 
                 if (sourceFlag === "Player") {
                     if (!affiliationTestData.playerList.includes(obj.sourceName)) {
@@ -260,7 +264,10 @@ export const DataContextProvider = ({ children }) => {
                         affiliationTestData.noneList.push(obj.sourceName);
                     }
                     noneCount++;
-                }
+                } else {
+                        console.log(`Source name ${obj.sourceName}.`);
+                        console.log(sourceFlag);
+                    }
 
                 if (destFlag === "Player") {
                     if (!affiliationTestData.playerList.includes(obj.destName)) {
@@ -307,11 +314,16 @@ export const DataContextProvider = ({ children }) => {
                         affiliationTestData.noneList.push(obj.sourceName);
                     }
                     noneCount++;
+                } else {
+                    console.log(`Dest name ${obj.destName}.`);
+                    console.log(destFlag);
                 }
             }
 
             function handleSession(){
-                
+                if (1){
+
+                }
             }
 
             function startSession(){
