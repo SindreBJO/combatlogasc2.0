@@ -129,6 +129,7 @@ function validateAndSplitParse(string) {
     const doubleSpaceCount = (string.match(/  /g) || []).length;
 
     if (commaCount > 4 && doubleSpaceCount === 1) {
+      string = string.replace(/"/g, '');
       let parts = string.split("  ");
       let part1 = parts[0].split(" ");
       let part2 = parts[1].split(/,(?! )/);
@@ -220,7 +221,7 @@ export function parseAffiliation(flagMask) {
     result.reaction === "FRIENDLY" &&
     result.control === undefined
   ) {
-    return "Player";
+    return "player";
   }
 
   // Group 2: Friendly pets or minions (controlled NPCs or players)
@@ -229,7 +230,7 @@ export function parseAffiliation(flagMask) {
     result.reaction === "FRIENDLY" &&
     ["PLAYER"].includes(result.control)
   ) {
-    return "Pet";
+    return "pet";
   }
 
   // Group 3: External friendly NPCs (e.g., quest givers, guards)
@@ -238,7 +239,7 @@ export function parseAffiliation(flagMask) {
     result.reaction === "FRIENDLY" &&
     ["NPC", undefined].includes(result.control)
   ) {
-    return "FriendlyNPC";
+    return "friendlyNPC";
   }
 
   // Group 4: Enemy players (PvP opponents)
@@ -247,7 +248,7 @@ export function parseAffiliation(flagMask) {
     result.reaction === "HOSTILE" &&
     result.control === "PLAYER"
   ) {
-    return "EnemyPlayer";
+    return "enemyPlayer";
   }
 
   // Group 5: Friendly or neutral players not in group (e.g., phased players)
@@ -256,7 +257,7 @@ export function parseAffiliation(flagMask) {
     ["FRIENDLY", "NEUTRAL"].includes(result.reaction) &&
     result.control === "PLAYER"
   ) {
-    return "FriendlyPlayer";
+    return "friendlyPlayer";
   }
 
   // Group 6: Hostile NPCs (enemies in the world)
@@ -265,7 +266,7 @@ export function parseAffiliation(flagMask) {
     result.reaction === "HOSTILE" &&
     ["NPC", undefined].includes(result.control)
   ) {
-    return "EnemyNPC";
+    return "enemyNPC";
   }
 
   // Group 7: Neutral NPCs (guards, wildlife, quest mobs)
@@ -274,14 +275,14 @@ export function parseAffiliation(flagMask) {
     result.reaction === "NEUTRAL" &&
     ["NPC", undefined].includes(result.control)
   ) {
-    return "NeutralNPC";
+    return "neutralNPC";
   }
 
   // If nothing matches, return the parsed object
   if (!result.affiliation && !result.reaction && !result.control) {
-    return "None";
+    return "none";
   }
-  return "Unknown";
+  return "unknown";
 }
 
 export function returnBaseParameters(array) {

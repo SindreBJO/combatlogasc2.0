@@ -4,7 +4,7 @@ import { DataContext } from '../../utils/contexts/dataContext';
 
 
 export default function FileLoader() {
-    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear } = useContext(DataContext);
+    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear, setInputDamageTimeout } = useContext(DataContext);
 
     function handleDrop(event) {
         event.preventDefault();
@@ -26,39 +26,55 @@ export default function FileLoader() {
         }
     };
 
-
-    
-
     return (
-        <div>
-            <input
+        <div className="file-loader-container">
+          <div className="file-loader-card">
+            <h2 className="file-loader-title">Combat Log Parser</h2>
+            <div className="file-loader-inputs">
+              <input
                 id="yearInput"
+                className="file-loader-input"
                 type="text"
-                value={inputYear}
+                value={inputYear ?? ""}
                 onChange={e => {
-                    const val = e.target.value;
-                    if (/^[0-9]*$/.test(val)) {
-                        setInputYear(val);
-                    }
+                  const val = e.target.value;
+                  if (/^[0-9]*$/.test(val)) {
+                    setInputYear(val);
+                  }
                 }}
-                placeholder="what year is it?"
-                style={{ marginBottom: '10px', padding: '5px', width: '200px' }}
-            />
-        <div 
-            onDrop={handleDrop} 
-            onDragOver={(event) => event.preventDefault()} 
-            style={{ border: '2px dashed #ccc', padding: '20px', textAlign: 'center' }}
-        >
-            Drop your .txt file here
-            <div>{progress}</div>
-            <progress value={progressPercentage} max="100"></progress>
-            <div>
-                <h2>Valid lines: {validLinesCount}</h2>
-                <h2>Invalid lines: {invalidLinesCount}</h2>
-                <h2>Sessions: {sessionCount}</h2>
+                placeholder={new Date().getFullYear()}
+              />
+              <input
+                id="damageTimeoutInput"
+                className="file-loader-input"
+                type="text"
+                onChange={e => {
+                  const val = e.target.value;
+                  if (/^[0-9]*$/.test(val)) {
+                    setInputDamageTimeout(val);
+                  }
+                }}
+                placeholder="60 sec (range: 20-120)"
+              />
             </div>
+            <div 
+              className="file-loader-dropzone"
+              onDrop={handleDrop} 
+              onDragOver={(event) => event.preventDefault()} 
+            >
+              <span className="file-loader-droptext">Drop your .txt file here or select below</span>
+              <input className="file-loader-fileinput" type="file" onChange={handleFileChange} />
+            </div>
+            <div className="file-loader-progress">
+              <div>{progress}</div>
+              <progress value={progressPercentage} max="100" className="file-loader-progressbar"></progress>
+            </div>
+            <div className="file-loader-stats">
+              <div>Valid lines: <span>{validLinesCount}</span></div>
+              <div>Invalid lines: <span>{invalidLinesCount}</span></div>
+              <div>Sessions: <span>{sessionCount}</span></div>
+            </div>
+          </div>
         </div>
-         <input type="file" onChange={handleFileChange} />
-         </div>
     );
 }

@@ -10,9 +10,11 @@ export default function Home(){
       muted 
       loop 
       style={{ 
-        top: 0, 
+        position: "fixed",
+        top: "80px", 
         left: 0, 
-        width: "100%", 
+        width: "100vw", 
+        height: "100vh", 
         objectFit: "cover", 
         zIndex: 0
       }}

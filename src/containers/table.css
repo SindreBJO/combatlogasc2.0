@@ -1,0 +1,71 @@
+/* Modern WoW Metrics Table Styles */
+.metrics-table-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 32px auto;
+  background: #f7fafd;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(39,68,114,0.08);
+  padding: 32px 24px;
+}
+
+.metrics-table-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #274472;
+  margin-bottom: 24px;
+}
+
+.metrics-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(39,68,114,0.04);
+}
+
+.metrics-table th, .metrics-table td {
+  padding: 12px 10px;
+  text-align: center;
+  font-size: 1.08rem;
+}
+
+.metrics-table th {
+  background: #e0eafc;
+  color: #274472;
+  font-weight: 600;
+  border-bottom: 2px solid #bfcbe2;
+}
+
+.metrics-table tr {
+  transition: background 0.2s;
+}
+
+.metrics-table tbody tr:hover {
+  background: #f0f4f8;
+}
+
+.metrics-table td {
+  color: #4176b6;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.metrics-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+@media (max-width: 700px) {
+  .metrics-table-container {
+    padding: 12px 2px;
+    max-width: 99vw;
+  }
+  .metrics-table-title {
+    font-size: 1.3rem;
+  }
+  .metrics-table th, .metrics-table td {
+    padding: 8px 2px;
+    font-size: 0.95rem;
+  }
+}

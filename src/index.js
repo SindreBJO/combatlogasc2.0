@@ -5,14 +5,17 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { DataContextProvider } from './utils/contexts/dataContext.js';
+import { AnalysisContextProvider } from './utils/contexts/dataAnalysisContext.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   
     <DataContextProvider>
+    <AnalysisContextProvider>
     <Router>
     <App />
     </Router>
+    </AnalysisContextProvider>
     </DataContextProvider>
 );
 

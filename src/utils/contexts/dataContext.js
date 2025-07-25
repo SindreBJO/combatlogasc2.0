@@ -3,6 +3,7 @@ import { parseString, damageEventCheck, setGlobalYear, testArrayLength } from '.
 import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 
 export const DataContext = createContext();
+// File is read, parsed data is stored, tests are done and sessions are declared here
 
 const CHUNK_SIZE = 50 * 1024;
 
@@ -15,29 +16,58 @@ export const DataContextProvider = ({ children }) => {
     const [sessions , setSessions] = useState([]);
     const [sessionCount, setSessionCount] = useState(0);
     const [inputYear, setInputYear] = useState();
+    const [inputDamageTimeout, setInputDamageTimeout] = useState();
 
     useEffect(() => {
         setGlobalYear(inputYear || new Date().getFullYear())
     }, [inputYear],[]);
+
+    useEffect(() => {
+        if (inputDamageTimeout > 120 || inputDamageTimeout < 20 || inputDamageTimeout === undefined) {
+            setInputDamageTimeout(60);
+        }
+    }, [inputDamageTimeout], []);
+
     
     const reader = new FileReader();
     let offset = 0;
     let carryOver = '';
 
-
-
-
-
-
     //Session variables
-    let currentSessionData = [];
-    let currentSessionIndexStart = 0;
-    let currentSessionBossName = "None";
-    let currentSessionStartTime = 0;
-    let currentSessionEndTime = 0;
-    let previousParseTimeStamp = 0;
-    let currentSessionOutcome = "Unknown";
+    let currentSessionData = {
+        day: "Error",
+        month: "Error",
+        year: "Error",
+        startTime: 0,
+        startHour: 0,
+        startMinute: 0,
+        startSecond: 0,
+        startMillisecond: 0,
+        endTime: 0,
+        endHour: 0,
+        endMinute: 0,
+        endSecond: 0,
+        endMillisecond: 0,
+        encounterLength: 0,
+        dataIndexStart: 0,
+        dataIndexEnd: 0,
+        bossName: "None",
+        outcome: "Unknown",
+        entitiesData: {
+            players: [],
+            friendlyPlayers: [],
+            pets: [],
+            enemyPlayers: [],
+            enemyNPC: [],
+            friendlyNPCs: [],
+            neutralNPCs: [],
+            hostileNPCs: [],
+            unknownNPCs: []
+        }
 
+    };
+    let sessionActive = false;
+    let previousDamageParseTimeStamp;
 
     //Indications
     let playerList = [];
@@ -72,6 +102,7 @@ export const DataContextProvider = ({ children }) => {
         noneList: []
     };
 
+    //Test variables
     let playerCount = 0;
     let petCount = 0;
     let enemyPlayerCount = 0;
@@ -82,12 +113,24 @@ export const DataContextProvider = ({ children }) => {
     let unknownNPCCount = 0;
     let noneCount = 0;
 
-    let metaData = [];
-    let invalidData = [];
+    //Currentparse variable
+    let parsedObject = null;
 
-    let tempTestDataList = [];
-
+    //Tracking variables
     let linesCount = 0;
+
+    //Meta data
+    let metaData = {
+        sessions:[],
+        data: [],
+        dataIndexStart: 0,
+        dataIndexEnd: 0,
+        dataIndexCount: 0,
+        dataTimeLength: 0,
+        dataTimeStampStart: 0,
+        dataTimeStampEnd: 0,
+    };
+    let invalidData = [];
 
     function readNewFile(file) {
         
@@ -119,12 +162,17 @@ export const DataContextProvider = ({ children }) => {
             if (offset < file.size) {
                 readNextChunk();
             } else {
+                metaData.dataTimeStampEnd = parsedObject.timeStamp;
                 handleParse(carryOver);
                 
                 //Finished reading the file and parse the data
 
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
+                
+                metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
+                setData(metaData);
+                if (sessionActive){endSession()}
                 console.log (" ");
                 console.log('----- File reading -----');
                 console.log(" ");
@@ -172,8 +220,8 @@ export const DataContextProvider = ({ children }) => {
                 console.log(affiliationTestData);
                 console.log("Meta Data:")
                 console.log(metaData);
-
-            }
+                console.log("linesCount: " + linesCount);
+            }   
                 
         }
 
@@ -185,12 +233,15 @@ export const DataContextProvider = ({ children }) => {
             //Handles the parsing of the line
         function handleParse(unparsedLine){
 
-            let parsedObject = parseString(unparsedLine);
+            parsedObject = parseString(unparsedLine);
             if (parsedObject) {
+                if (metaData.dataTimeStampStart === 0) { metaData.dataTimeStampStart = parsedObject.timeStamp }
+                handleSession();
                 lengthTest(parsedObject, unparsedLine);
                 affiliationTest(parsedObject)
                 setValidLinesCount(prevCount => prevCount + 1);
-                metaData.push(parsedObject);
+                metaData.data.push(parsedObject);
+                linesCount++;
             }
             if (unparsedLine === "" || unparsedLine === "\r") { return } // Skips all empty lines
             if (parsedObject === false) {
@@ -198,9 +249,6 @@ export const DataContextProvider = ({ children }) => {
                 invalidData.push(unparsedLine.replace(/\r/g, ''));
             return;
             }
-            linesCount++;
-            parsedObject = null;
-            unparsedLine = null;
         }
 
             function lengthTest(obj, string) {
@@ -219,135 +267,324 @@ export const DataContextProvider = ({ children }) => {
                 const sourceFlag = obj.sourceFlag;
                 const destFlag = obj.destFlag;
 
-                if (sourceFlag === "Player") {
+                if (sourceFlag === "player") {
                     if (!affiliationTestData.playerList.includes(obj.sourceName)) {
                         affiliationTestData.playerList.push(obj.sourceName);
                     }
                     playerCount++;
-                } else if (sourceFlag === "Pet") {
+                } else if (sourceFlag === "pet") {
                     if (!affiliationTestData.petList.includes(obj.sourceName)) {
                         affiliationTestData.petList.push(obj.sourceName);
                     }
                     petCount++;
-                } else if (sourceFlag === "FriendlyNPC") {
+                } else if (sourceFlag === "friendlyNPC") {
                     if (!affiliationTestData.friendlyNPCList.includes(obj.sourceName)) {
                         affiliationTestData.friendlyNPCList.push(obj.sourceName);
                     }
                     friendlyNPCCount++;
-                } else if (sourceFlag === "EnemyPlayer") {
+                } else if (sourceFlag === "enemyPlayer") {
                     if (!affiliationTestData.enemyPlayerList.includes(obj.sourceName)) {
                         affiliationTestData.enemyPlayerList.push(obj.sourceName);
                     }
                     enemyPlayerCount++;
-                } else if (sourceFlag === "FriendlyPlayer") {
+                } else if (sourceFlag === "friendlyPlayer") {
                     if (!affiliationTestData.friendlyPlayerList.includes(obj.sourceName)) {
                         affiliationTestData.friendlyPlayerList.push(obj.sourceName);
                     }
                     friendlyPlayerCount++;
-                } else if (sourceFlag === "EnemyNPC") {
+                } else if (sourceFlag === "enemyNPC") {
                     if (!affiliationTestData.enemyNPCList.includes(obj.sourceName)) {
                         affiliationTestData.enemyNPCList.push(obj.sourceName);
                     }
                     enemyNPCCount++;
-                } else if (sourceFlag === "NeutralNPC") {
+                } else if (sourceFlag === "neutralNPC") {
                     if (!affiliationTestData.neutralNPCList.includes(obj.sourceName)) {
                         affiliationTestData.neutralNPCList.push(obj.sourceName);
                     }
                     neutralNPCCount++;
-                } else if (sourceFlag === "Unknown") {
+                } else if (sourceFlag === "unknown") {
                     if (!affiliationTestData.unknownNPCList.includes(obj.sourceName)) {
                         affiliationTestData.unknownNPCList.push(obj.sourceName);
                     }
                     unknownNPCCount++;
-                } else if (sourceFlag === "None") {
+                } else if (sourceFlag === "none") {
                     if (!affiliationTestData.noneList.includes(obj.sourceName)) {
                         affiliationTestData.noneList.push(obj.sourceName);
                     }
                     noneCount++;
                 } else {
-                        console.log(`Source name ${obj.sourceName}.`);
+                        console.log(`Source name ${obj.sourceName} had an error with flag:`);
                         console.log(sourceFlag);
                     }
 
-                if (destFlag === "Player") {
+                if (destFlag === "player") {
                     if (!affiliationTestData.playerList.includes(obj.destName)) {
                         affiliationTestData.playerList.push(obj.destName);
                     }
                     playerCount++;
-                } else if (destFlag === "Pet") {
+                } else if (destFlag === "pet") {
                     if (!affiliationTestData.petList.includes(obj.destName)) {
                         affiliationTestData.petList.push(obj.destName);
                     }
                     petCount++;
-                } else if (destFlag === "FriendlyNPC") {
+                } else if (destFlag === "friendlyNPC") {
                     if (!affiliationTestData.friendlyNPCList.includes(obj.destName)) {
                         affiliationTestData.friendlyNPCList.push(obj.destName);
                     }
                     friendlyNPCCount++;
-                } else if (destFlag === "EnemyPlayer") {
+                } else if (destFlag === "enemyPlayer") {
                     if (!affiliationTestData.enemyPlayerList.includes(obj.destName)) {
                         affiliationTestData.enemyPlayerList.push(obj.destName);
                     }
                     enemyPlayerCount++;
-                } else if (destFlag === "FriendlyPlayer") {
+                } else if (destFlag === "friendlyPlayer") {
                     if (!affiliationTestData.friendlyPlayerList.includes(obj.destName)) {
                         affiliationTestData.friendlyPlayerList.push(obj.destName);
                     }
                     friendlyPlayerCount++;
-                } else if (destFlag === "EnemyNPC") {
+                } else if (destFlag === "enemyNPC") {
                     if (!affiliationTestData.enemyNPCList.includes(obj.destName)) {
                         affiliationTestData.enemyNPCList.push(obj.destName);
                     }
                     enemyNPCCount++;
-                } else if (destFlag === "NeutralNPC") {
+                } else if (destFlag === "neutralNPC") {
                     if (!affiliationTestData.neutralNPCList.includes(obj.destName)) {
                         affiliationTestData.neutralNPCList.push(obj.destName);
                     }
                     neutralNPCCount++;
-                } else if (destFlag === "Unknown") {
+                } else if (destFlag === "unknown") {
                     if (!affiliationTestData.unknownNPCList.includes(obj.destName)) {
                         affiliationTestData.unknownNPCList.push(obj.destName);
                     }
                     unknownNPCCount++;
-                } else if (destFlag === "None") {
+                } else if (destFlag === "none") {
                     if (!affiliationTestData.noneList.includes(obj.sourceName)) {
                         affiliationTestData.noneList.push(obj.sourceName);
                     }
                     noneCount++;
                 } else {
-                    console.log(`Dest name ${obj.destName}.`);
+                    console.log(`Dest name ${obj.destName} had an error with flag:`);
                     console.log(destFlag);
                 }
             }
 
+
+
+
+
+
+
+
+
+
+
+            //SESSION HANDLING
             function handleSession(){
-                if (1){
+                if (!sessionActive && ["DAMAGE", "MISSED"].includes(parsedObject.event[1])) {
+                    startSession();
+                }
+
+                if (sessionActive) {
+                    if (previousDamageParseTimeStamp < (parsedObject.timeStamp - (inputDamageTimeout * 1000))) {
+                        endSession();
+                    }
+                    if ((currentSessionData.bossName === "None") && BOSSNAMES.includes(parsedObject.sourceName)){
+                        currentSessionData.bossName = parsedObject.sourceName;
+                    }
+                    if ((currentSessionData.bossName === "None") && BOSSNAMES.includes(parsedObject.destName)){
+                        currentSessionData.bossName = parsedObject.destName;
+                    }
+                    if (parsedObject.event[1] === "DAMAGE" || parsedObject.event[1] === "MISSED") {
+                        previousDamageParseTimeStamp = parsedObject.timeStamp;
+                    }
+                    handleCurrentSessionData();
+                    if ((parsedObject.destName === currentSessionData.bossName) && (parsedObject.event[1] === "DIED")) {
+                        currentSessionData.outcome = "Victory";
+                        endSession();
+                    }
+                    
 
                 }
+
             }
 
-            function startSession(){
+            function startSession() {
+                console.log("Starting session");
+                const timestamp = new Date(parsedObject.timeStamp);
+                sessionActive = true;
+                const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                currentSessionData.day = dayNames[timestamp.getDay()];
+                currentSessionData.month = monthNames[timestamp.getMonth()];
+                currentSessionData.year = timestamp.getFullYear();
+                currentSessionData.startHour = timestamp.getHours();
+                currentSessionData.startMinute = timestamp.getMinutes();
+                currentSessionData.startSecond = timestamp.getSeconds();
+                currentSessionData.startMillisecond = timestamp.getMilliseconds();
+                currentSessionData.startTime = parsedObject.timeStamp;
+                currentSessionData.dataIndexStart = linesCount;
+            }
+
+            function handleCurrentSessionData() {
+                if (parsedObject.sourceName === "Shard of Gonk" || parsedObject.destName === "Shard of Gonk") { return }
+                let sourceProcessType = checkProcessType(parsedObject.sourceFlag);
+                let destProcessType = checkProcessType(parsedObject.destFlag);
+                if (sourceProcessType === "ByID" && MultipleIdMonsters.includes(parsedObject.sourceName)) { sourceProcessType = "ByName" }
+                if (destProcessType === "ByID" && MultipleIdMonsters.includes(parsedObject.destName)) { destProcessType = "ByName" }
+
+                //Processing the source entity by unique name
+                if( (parsedObject.spellName || parsedObject.spellId || parsedObject.spellSchool) === undefined) {
+                    
+                } else if (sourceProcessType === "ByName") {
+
+                    const entityListForSource = currentSessionData.entitiesData?.[`${parsedObject.sourceFlag}s`];
+
+                    // If the entity is not allready discovered, add it and set default datastructure
+                    if (!entityListForSource?.some(entity => entity.name === parsedObject.sourceName)) {
+                      entityListForSource?.push({
+                        name: parsedObject.sourceName,
+                        GUID: parsedObject.sourceGUID,
+                        type: parsedObject.sourceFlag,
+                        linesCount: linesCount,
+                        interactions: {
+                            received: [{}],
+                            dealt: [{
+                            name: parsedObject.spellName,
+                            spellID: parsedObject.spellId,
+                            spellSchool: parsedObject.spellSchool,
+                            auraType: parsedObject.auraType || null,
+                            }]
+                        }
+                      });
+                    } else if (entityListForSource?.some(entity => entity.name === parsedObject.sourceName)) {
+                      // If the entity is allready discovered, update the interactions
+                      const entity = entityListForSource.find(entity => entity.name === parsedObject.sourceName);
+                      if (!entity.interactions.dealt.some(interaction => interaction.name === parsedObject.spellName)) {
+                        entity.interactions.dealt.push({
+                          name: parsedObject.spellName,
+                          spellID: parsedObject.spellId,
+                          spellSchool: parsedObject.spellSchool,
+                          auraType: parsedObject.auraType || null,
+                        });
+                      }
+                    }
+            }
+
+                if (destProcessType === "ByID"){
+
+                    const entityListForDest = currentSessionData.entitiesData?.[`${parsedObject.destFlag}s`];
+
+                    if (!entityListForDest?.some(entity => entity.GUID === parsedObject.destGUID)) {
+                      entityListForDest?.push({
+                        name: parsedObject.destName,
+                        GUID: parsedObject.destGUID,
+                        type: parsedObject.destFlag,
+                        linesCount: linesCount,
+                        interactions: {
+                            received: [{
+                                name: parsedObject.spellName,
+                                spellID: parsedObject.spellId,
+                                spellSchool: parsedObject.spellSchool,
+                                auraType: parsedObject.auraType || null,
+                            }], 
+                            dealt: [{}]
+                        }
+                    });
+
+                        } else if (entityListForDest?.some(entity => entity.GUID === parsedObject.destGUID)) {
+                        // If the entity is allready discovered, update the interactions
+                        const entity = entityListForDest.find(entity => entity.GUID === parsedObject.destGUID);
+                        if (!entity.interactions.received.some(interaction => interaction.name === parsedObject.spellName)) {
+                            entity.interactions.received.push({
+                                name: parsedObject.spellName,
+                                spellID: parsedObject.spellId,
+                                spellSchool: parsedObject.spellSchool,
+                                auraType: parsedObject.auraType || null,
+                      });
+                    }
+                }
+
+
+                    
+            }
+
+
+
+               
+            }
+
+            function checkProcessType(entity){
+                if (["player", "pet", "enemyPlayer", "friendlyPlayer"].includes(entity)){
+                    return "ByName"
+                } else if (["friendlyNPC", "neutralNPC", "enemyNPC", "unknown"].includes(entity)){
+                    return "ByID"
+                } else {
+                    return "none";
+                }
 
             }
 
             function endSession(){
-
+                console.log("Ending session");
+                const timestamp = new Date(parsedObject.timeStamp);
+                sessionActive = false;
+                const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+                const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+                currentSessionData.day = [timestamp.getDay(), dayNames[timestamp.getDay()]];
+                currentSessionData.month = [timestamp.getMonth(), monthNames[timestamp.getMonth()]];
+                currentSessionData.year = timestamp.getFullYear();
+                currentSessionData.endTime = parsedObject.timeStamp;
+                currentSessionData.endHour = timestamp.getHours();
+                currentSessionData.endMinute = timestamp.getMinutes();
+                currentSessionData.endSecond = timestamp.getSeconds();
+                currentSessionData.endMillisecond = timestamp.getMilliseconds();
+                currentSessionData.encounterLength = (parsedObject.timeStamp - currentSessionData.startTime) / 1000;
+                currentSessionData.dataIndexEnd = linesCount;
+                metaData.sessions.push(currentSessionData);
+                setSessionCount(count => count + 1);
+                resetSession();
             }
 
-            function handleCombatRosterAndSignature(){
-
+            function resetSession(){
+                console.log("Resetting session data");
+                currentSessionData = {
+                    day: "Error",
+                    month: "Error",
+                    year: "Error",
+                    startTime: 0,
+                    startHour: 0,
+                    startMinute: 0,
+                    startSecond: 0,
+                    startMillisecond: 0,
+                    endTime: 0,
+                    endHour: 0,
+                    endMinute: 0,
+                    endSecond: 0,
+                    endMillisecond: 0,
+                    encounterLength: 0,
+                    dataIndexStart: 0,
+                    dataIndexEnd: 0,
+                    bossName: "None",
+                    outcome: "Unknown",
+                    entitiesData: {
+                        players: [],
+                        pets: [],
+                        enemies: [],
+                        friendlyNPCs: [],
+                        neutralNPCs: [],
+                        hostileNPCs: [],
+                        unknownNPCs: []
+                    }
+                };
             }
-
-            function handleNameAndGUID() {
-
-        }
     
         readNextChunk();
 
     }
 
+
     return (
-        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear }}>
+        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout }}>
             {children}
         </DataContext.Provider>
     );
