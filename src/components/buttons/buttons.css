@@ -1,9 +1,30 @@
+.nav-button {
+  padding: 12px 28px;
+  font-size: 16px;
+  background: #e3f2fd;
+  color: #1976d2;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.06);
+  cursor: pointer;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: background 0.2s, box-shadow 0.2s, color 0.2s, transform 0.15s;
+  text-decoration: none;
+  font-weight: 600;
+}
 
+.nav-button:hover,
+.nav-button:focus {
+  background: #bbdefb;
+  color: #1565c0;
+  box-shadow: 0 4px 16px rgba(33, 150, 243, 0.12);
+  transform: translateY(-1px) scale(1.03);
+  outline: none;
+}
 
-
-
-
-.nav-button{
-    padding: 20px;
-    font-size: 20px;
+.nav-button:active {
+  background: #90caf9;
+  color: #0d47a1;
+  transform: scale(0.98);
 }

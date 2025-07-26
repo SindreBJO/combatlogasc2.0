@@ -10,7 +10,9 @@ export const AnalysisContextProvider = ({ children }) => {
     useEffect(() => {
         console.log("AnalysisContextProvider initialized with data:", data);
     }, []);
+    
     const getDamageDone = (entityName, startIndex, endIndex, flagType) => {
+        console.log(data)
         if (!data.data || !data.sessions) return 0;
         const entityData = data.data.filter(obj => 
             (obj.sourceName === entityName) && 
