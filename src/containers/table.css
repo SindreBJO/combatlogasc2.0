@@ -1,167 +1,166 @@
-/* Modern WoW Metrics Table Styles */
-.metrics-table-container {
-  width: 95%;
+/* Modern, smooth metrics table styling */
+.metricTable-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 97%;
   max-width: 2500px;
-  margin: 32px auto;
-  background: #f7fafd;
-  border-radius: 18px;
-  box-shadow: 0 4px 24px rgba(39,68,114,0.08);
+  min-height: 40vh;
   padding: 32px 24px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(38, 144, 163, 0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+  border: none;
 }
 
-.metrics-table-title {
-  text-align: center;
-  font-size: 2rem;
+.metricTable-title-wrapper{
+  display: flex;
+  width: 100%;
+  user-select: none;
+}
+
+.metricTable-title {
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #274472;
-  margin-bottom: 24px;
+  color: #222;
+  margin-bottom: 16px;
+  justify-self: left;
+  text-align: center;
 }
 
 .metrics-table {
   width: 100%;
-  border-collapse: collapse;
-  background: #fff;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(39,68,114,0.04);
-  table-layout: fixed; /* ensures equal column width */
+  box-shadow: 0 2px 8px rgba(38,144,163,0.07);
+}
+.metrics-table {
+  
 }
 
-.metrics-table-big-thread {
-  width: 16%; /* big threads: twice as wide as small threads */
+.metrics-table th.metricTable-big-cell {
+  width: 8.33%; /* 1/12 of table width for each big cell */
 }
-.metrics-table-small-thread {
-  width: 8%; /* small threads */
+.metrics-table th.metricTable-small-cell {
+  width: 4.16%; /* half the width of big cell */
 }
-
-.metrics-table th, .metrics-table td {
-  padding: 16px 24px; /* increased horizontal padding for more space */
-  text-align: center;
-  font-size: 1.08rem;
-}
-
-.metrics-table th:not(:last-child), .metrics-table td:not(:last-child) {
-  border-right: 2px solid #bfcbe2; /* vertical line between columns */
-}
-
 .metrics-table th {
-  background: #e0eafc;
-  color: #274472;
+  padding: 16px 8px;
+  font-size: 1.1rem;
   font-weight: 600;
-  border-bottom: 2px solid #bfcbe2;
+  color: #000000;
+  text-align: center;
+  border-right: 2px solid #2690a3;
+  overflow: hidden;
+  border-bottom: 2px solid #2690a3;
 }
-
-.metrics-table tr {
-  height: 56px; /* fixed row height for even spacing */
-  transition: background 0.2s;
-}
-
-.metrics-table thead th:hover {
-  background: #71dd6760;
-}
-
-.metrics-table tbody tr:hover {
-  background: #71dd6760;
+.metrics-table th:last-child {
+  border-right: 0px solid #2690a3;
 }
 
 .metrics-table td {
-  color: #4176b6;
-  border-bottom: 2px solid #bfcbe2; /* thicker, more visible line */
+  padding: 14px 8px;
+  font-size: 1rem;
+  color: #222;
+  text-align: center;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background 0.2s;
 }
-
-.metrics-table tbody tr:last-child td {
+.metrics-table tr:last-child td {
   border-bottom: none;
 }
 
-.session-scroll-bar-wrapper {
-  width: 95%;
-  margin: 0 auto 32px auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding-top: 8px;
+.metricTable-header-text {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #fff;
+  text-align: center;
+  background: #eafaf7;
+  user-select: none;
 }
 
-.session-scroll-bar {
+.metricTable-header-text:hover {
+  background-color: #48dd3a;
+}
+
+.metricTable-big-cell {
+  /* Optional: make big columns slightly wider */
+}
+
+/* Session button bar styling */
+.session-buttons-bar {
   display: flex;
-  flex-direction: row;
+  gap: 12px;
+  margin-bottom: 24px;
+  justify-content: flex-start;
+  align-items: center;
   overflow-x: auto;
-  white-space: nowrap;
-  margin-bottom: 16px;
-  cursor: grab;
-  user-select: none;
-  gap: 0;
-  padding: 16px 0 ;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding: 16px;
+  min-height: 40px;
 }
-.session-scroll-bar.scrolling {
-  cursor: grabbing;
+
+.session-buttons-bar::-webkit-scrollbar {
+  height: 8px;
+  background: #eafaf7;
 }
-.session-scroll-bar::-webkit-scrollbar {
-  height: 14px; /* larger scrollbar, sits below buttons */
-}
-.session-scroll-bar::-webkit-scrollbar-thumb {
-  background: #bfcbe2;
+
+.session-buttons-bar::-webkit-scrollbar-thumb {
+  background: #2690a3;
   border-radius: 4px;
 }
-.session-scroll-bar::-webkit-scrollbar-track {
-  background: #f7fafd;
-}
-.session-scroll-bar button {
-  position: relative;
-  width: auto;
-  min-width: 80px;
-  max-width: none;
-  flex: 0 0 auto;
-  overflow: visible;
-  text-overflow: unset;
-  white-space: nowrap;
-  display: inline-block;
-  margin: 5px 4px;
-  padding: 15px 18px;
-  background: linear-gradient(90deg, #e0eafc 0%, #bfcbe2 100%);
-  color: #274472;
-  font-weight: 600;
-  font-size: 1.08rem;
-  border: 1.5px solid #bfcbe2;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(39,68,114,0.08);
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
-  cursor: pointer;
-}
-.session-scroll-bar button.active {
-  background: #71dd6760;
-  color: #6257a1;
-  border-color: #4176b6;
-  box-shadow: 0 4px 16px rgba(39,68,114,0.12);
-}
-.session-scroll-bar button:hover {
-  transform: scale(1.05);
-  border: 1.5px solid #00000073;
-}
-.session-index-label {
-  position: absolute;
-  right: 2px;
-  bottom: 2px;
-  color: #000000;
-  font-size: 0.9rem;
-  font-weight: 700;
-  border-radius: 6px;
-  padding: 1px 3px;
-  opacity: 0.85;
-  pointer-events: none;
-  z-index: 2;
+
+.session-buttons-bar::-webkit-scrollbar-track {
+  background: #eafaf7;
+    top: -100px;
 }
 
-@media (max-width: 700px) {
-  .metrics-table-container {
-    padding: 12px 2px;
-    max-width: 99vw;
-  }
-  .metrics-table-title {
-    font-size: 1.3rem;
-  }
-  .metrics-table th, .metrics-table td {
-    padding: 8px 2px;
-    font-size: 0.95rem;
-  }
+.session-btn {
+  background: linear-gradient(90deg, #2690a3 0%, #4caf50 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 28px;
+  font-size: 1rem;
+  font-weight: 600;
+  user-select: none;
+  height: 50px;
+  box-shadow: 0 2px 8px rgba(38,144,163,0.07);
+  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  max-width: 100%;
+  opacity: 0.5;
+}
+.session-btn:hover {
+  background: linear-gradient(90deg, #4caf50 0%, #2690a3 100%);
+  box-shadow: 0 4px 16px rgba(38,144,163,0.12);
+  transform: scale(1.05);
+  opacity: 1;
+  z-index: 100;
+}
+.session-btn.active {
+  background: #86b333;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(38,144,163,0.18);
+  scale: 1.05;
+  opacity: 1;
+  z-index: 99;
+}
+
+.session-btn-index {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  font-size: 0.85rem;
+  color: #222;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-weight: 700;
+  pointer-events: none;
 }

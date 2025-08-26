@@ -29,7 +29,9 @@ export default function FileLoader() {
     return (
         <div className="file-loader-container">
           <div className="file-loader-card">
+            <div className='file-loader-title-wrapper'>
             <h2 className="file-loader-title">Combat Log Parser</h2>
+            </div>
             <div className="file-loader-inputs">
               <input
                 id="yearInput"
@@ -42,7 +44,7 @@ export default function FileLoader() {
                     setInputYear(val);
                   }
                 }}
-                placeholder={new Date().getFullYear()}
+                placeholder={"Year (" + new Date().getFullYear() + ")"}
               />
               <input
                 id="damageTimeoutInput"
@@ -54,7 +56,7 @@ export default function FileLoader() {
                     setInputDamageTimeout(val);
                   }
                 }}
-                placeholder="60 sec (range: 20-120)"
+                placeholder="Session Timeout (50) (range: 20-120)"
               />
             </div>
             <div 

@@ -17,7 +17,7 @@ export default function App() {
         <Header/>
         <LayoutContainer/>
         <Routes>
-          <Route path="/" element={<Home/>}/>
+          <Route path="/" element={<NewSession/>}/>
           <Route path="/Filedrop" element={<NewSession/>}/>
           <Route path="/Table" element={<CurrentSession/>}/>
           <Route path="/Graph" element={<UserManual/>}/>
