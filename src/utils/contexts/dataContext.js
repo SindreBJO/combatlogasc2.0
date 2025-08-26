@@ -1,7 +1,7 @@
 import React, { createContext, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
-// Helpers
+// Helpers and constants
 import { parseString, setGlobalYear, testArrayLength } from '../helpers/parseHelpers.js';
 import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 
@@ -9,53 +9,67 @@ import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
 import { startSession, endSession, addSessionMeta } from '../stores/sessionSlice.js';
 
 export const DataContext = createContext();
-// File is read, parsed data is stored, tests are done and sessions are declared here
 
+// Define chunk size for file reading and progress tracking
 const CHUNK_SIZE = 50 * 1024;
 
+// DataContextProvider component to manage file reading and parsed data and meta data.
 export const DataContextProvider = ({ children }) => {
+
+    // UI states
     const [progress, setProgress] = useState('Ready for use');
     const [progressPercentage, setProgressPercentage] = useState(0);
     const [sessionCount, setSessionCount] = useState(0);
     const [validLinesCount, setValidLinesCount] = useState(0);
     const [invalidLinesCount, setInvalidLinesCount] = useState(0);
+
+    // Input states
     const [inputYear, setInputYear] = useState();
     const [inputDamageTimeout, setInputDamageTimeout] = useState();
-    const [data, setData] = useState([]);
 
+    // Parsed data state
+    const [data, setData] = useState([]);
     const dispatch = useDispatch();
-    // Use Redux session state
+    
+    // Redux sessions states
     const sessionState = useSelector(state => state.session);
     const sessionActive = sessionState.sessionActive;
     const currentSessionData = sessionState.currentSessionData;
 
+    // Current year or input year for correct date parsing
     useEffect(() => {
         setGlobalYear(inputYear || new Date().getFullYear())
     }, [inputYear]);
 
+    // Default damage timeout for sessions, with a range check (20-120s)
     useEffect(() => {
         if (inputDamageTimeout > 120 || inputDamageTimeout < 20 || inputDamageTimeout === undefined) {
             setInputDamageTimeout(50);
         }
     }, [inputDamageTimeout]);
 
+    //Initialize reader and related valiables
     const reader = new FileReader();
     let offset = 0;
     let carryOver = '';
 
+    //Initialize or reset meta data and declared variables
     let metaData = {
         sessions:[],
         data: [],
+        invalidData: [],
         dataIndexStart: null,
-        dataIndexEnd: 0,
-        dataTimeLength: 0,
-        dataTimeStampStart: 0,
-        dataTimeStampEnd: 0,
+        dataIndexEnd: null,
+        dataTimeLength: null,
+        dataTimeStampStart: null,
+        dataTimeStampEnd: null,
     };
+
+    // Line index and invalid data storage
     let indexLine = 0;
-    let invalidData = [];
     let parsedObject = null;
 
+    // Main file reading and parsing function, executed when a new file is provided/dropped
     function readNewFile(file) {
         // Reset all variables
         setData([]);
@@ -94,7 +108,6 @@ export const DataContextProvider = ({ children }) => {
                 console.log('%cCompleted', 'color: green');
                 console.log(" ")
                 console.log(metaData)
-                console.log(invalidData)
             }   
                 
         }
@@ -116,7 +129,7 @@ export const DataContextProvider = ({ children }) => {
                 if (unparsedLine === "" || unparsedLine === "\r") { return } // Skips all empty lines
                 if (parsedObject === false) {
                     setInvalidLinesCount(prevCount => prevCount + 1);
-                    invalidData.push(unparsedLine.replace(/\r/g, ''));
+                    metaData.invalidData.push(unparsedLine.replace(/\r/g, ''));
                     return;
                 }
             }
