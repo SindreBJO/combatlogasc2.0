@@ -1,0 +1,208 @@
+/* WoW WotLK Era Themed Loader Styles */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+.wow-wotlk-bg {
+  min-height: 100vh;
+  min-width: 100vw;
+  height: 100vh;
+  width: 100vw;
+  background: url('https://cdn.mos.cms.futurecdn.net/Xbh76nmW744S57hozxMLtU.jpg');
+  background-size: cover;
+  background-blend-mode: multiply;
+  background-repeat: no-repeat;
+  background-position: center center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.wow-wotlk-card {
+  background: linear-gradient(135deg, #23272f 80%, #2d313a 100%);
+  border-radius: 18px;
+  border: 3px solid #a88b4a;
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.65), 0 2px 0 #3a2e1a inset;
+  padding: 36px 32px 32px 32px;
+  max-width: 420px;
+  width: 100%;
+  color: #e7cfa0;
+  font-family: 'Lora', 'Merriweather', 'Georgia', serif;
+  position: relative;
+}
+.wow-wotlk-titlebar {
+  width: 100%;
+  background: linear-gradient(90deg, #a88b4a 0%, #ffe082 100%);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 8px #000a;
+}
+.wow-wotlk-title {
+  color: #23272f;
+  font-size: 2.1rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-shadow: 0 2px 8px #ffe08299, 0 1px 0 #fff;
+  margin: 0;
+  padding: 12px 0 8px 0;
+  text-align: center;
+}
+.wow-wotlk-inputs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.wow-wotlk-input {
+  background: #23272f;
+  color: #e7cfa0;
+  border: 2px solid #a88b4a;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 1.1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+.wow-wotlk-input:focus {
+  border: 2.5px solid #ffe082;
+  box-shadow: 0 0 0 2px #ffe08255;
+}
+.wow-wotlk-dropzone {
+  background: linear-gradient(90deg, #23272f 60%, #a88b4a 100%);
+  border: 2.5px dashed #a88b4a;
+  border-radius: 12px;
+  padding: 24px 0 18px 0;
+  margin: 18px 0 12px 0;
+  text-align: center;
+  color: #ffe082;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.4s, color 0.2s, border 0.2s, box-shadow 0.2s, opacity 0.7s;
+  position: relative;
+  overflow: hidden;
+}
+.wow-wotlk-dropzone::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #00000000 0%, #ffe082 100%);
+  opacity: 0;
+  transition: opacity 1.5s;
+  z-index: 1;
+  pointer-events: none;
+}
+.wow-wotlk-dropzone:hover::after {
+  opacity: 1;
+}
+.wow-wotlk-dropzone > * {
+  position: relative;
+  z-index: 2;
+}
+.wow-wotlk-dropzone:hover {
+  border: 2.5px solid #ffe082;
+  color: #23272f;
+}
+.wow-wotlk-droptext {
+  display: block;
+  margin-bottom: 8px;
+  color: #ffe082;
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-shadow: 0 1px 4px #000a;
+}
+.wow-wotlk-progress {
+  margin: 18px 0 10px 0;
+  color: #5ad1e6 ;
+}
+.wow-wotlk-progressbar {
+  width: 100%;
+  height: 16px;
+  border-radius: 15px;
+  background: #23272f;
+  border: 2px solid #a88b4a;
+  accent-color: #5ad1e6;
+  /* Remove gradient background, let the fill show */
+}
+
+/* Chrome, Safari, Edge */
+.wow-wotlk-progressbar::-webkit-progress-bar {
+  background-color: #23272f;
+  border-radius: 10px;
+  overflow: hidden;
+}
+.wow-wotlk-progressbar::-webkit-progress-value {
+  background: #5ad1e6;
+  border-radius: 8px;
+  /* Ensure the fill doesn't overflow the border */
+  box-shadow: 0 0 0 100px #5ad1e6 inset;
+}
+
+/* Firefox */
+.wow-wotlk-progressbar::-moz-progress-bar {
+  background: #5ad1e6;
+  border-radius: 8px;
+}
+
+/* Remove default appearance for consistency */
+.wow-wotlk-progressbar {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+.wow-wotlk-stats {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  color: #ffe082;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.file-loader-container{
+    width: 100vw;
+}
+.file-loader-inputs{
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 18px;
+    width: 100%;
+}
+@media (max-width: 600px) {
+  .wow-wotlk-card {
+    padding: 18px 6px 16px 6px;
+    max-width: 98vw;
+  }
+  .wow-wotlk-title {
+    font-size: 1.3rem;
+    padding: 8px 0 4px 0;
+  }
+  .wow-wotlk-inputs {
+    flex-direction: column;
+    gap: 6px;
+  }
+}
+
+/* Fade-in and fade-out animation */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Apply fade-in to all elements by default */
+.wow-wotlk-bg, .wow-wotlk-card, .wow-wotlk-titlebar, .wow-wotlk-title, .wow-wotlk-inputs, .wow-wotlk-input, .wow-wotlk-dropzone, .wow-wotlk-droptext, .wow-wotlk-progress, .wow-wotlk-progressbar, .wow-wotlk-stats, .file-loader-container, .file-loader-inputs {
+  animation: fadeIn 0.7s ease-in;
+}
+
+/* Utility class for fade-out (add/remove via JS/React as needed) */
+.fade-out {
+  animation: fadeOut 0.5s ease-in forwards;
+}

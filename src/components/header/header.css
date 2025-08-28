@@ -1,28 +1,76 @@
-header{
-    width: 100vw;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    z-index: 100;
+header {
+  width: 100vw;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+  background: linear-gradient(90deg, #23272f 80%, #2d313a 100%);
+  border-bottom: 4px solid #a88b4a;
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.65), 0 2px 0 #3a2e1a inset;
+  min-height: 72px;
+  position: relative;
 }
 
-.nav{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0;
-    margin: 0;
-    list-style-type: none;
-    width: auto;
+.header-title {
+  font-family: 'Lora', 'Merriweather', 'Georgia', serif;
+  color: #ffe082;
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px #a88b4a99, 0 1px 0 #fff;
+  margin: 0 32px 0 0;
+  padding: 0;
+  background: linear-gradient(90deg, #ffe082 60%, #a88b4a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-left: 20px;
 }
 
-.nav-list{
-    display: flex;
-    flex-direction: row;
-    width: auto;
-    padding: 0;
-    margin: 0;
-    list-style-type: none;
-    gap: 20px;
+.nav {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  width: auto;
+  padding-right: 20px;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: row;
+  width: auto;
+  padding: 0;
+  margin: 0;
+  list-style-type: none;
+  gap: 24px;
+}
+
+.nav-element {
+  border-radius: 8px;
+  transition: background 0.2s, box-shadow 0.2s;
+  box-shadow: 0 2px 8px #000a;
+}
+
+.nav-element:hover {
+  background: linear-gradient(90deg, #a88b4a 0%, #ffe082 100%);
+  box-shadow: 0 4px 16px #a88b4a55;
+}
+
+@media (max-width: 700px) {
+  header {
+    flex-direction: column;
+    padding: 0 8px;
+    min-height: 56px;
+  }
+  .header-title {
+    font-size: 1.3rem;
+    margin: 0 0 8px 0;
+  }
+  .nav-list {
+    gap: 10px;
+  }
 }

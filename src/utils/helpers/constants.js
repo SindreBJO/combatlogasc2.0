@@ -317,3 +317,7 @@ export const MultipleIdMonsters = [
   "test2",
   "Panda",
 ]
+
+export const bannedNames = [
+  "Shard of Gonk",
+]

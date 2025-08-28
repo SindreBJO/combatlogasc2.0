@@ -26,63 +26,122 @@ export default function PerformanceMetricsTable() {
   }, [data, selectedSessionIdx]);
 
   return (
-    <div className="metricTable-container">
-      <div className="metricTable-title-wrapper">
-      <h2 className="metricTable-title">Sessions</h2>
+    <div className="metricTable-container fadein">
+      <div className="metricTable-title-wrapper fadein">
+      <h2 className="metricTable-title fadein">Available Sessions</h2>
       </div>
-      <div className="session-buttons-bar">
+      <div className="session-buttons-bar fadein">
         {!data || !data.sessions || data.sessions.length === 0
-          ? <div><p style={{color: "black"}}>No sessions found!</p></div>
+          ? <div><p className="session-btns-none fadein">No sessions found!</p></div>
           : data.sessions.map((session, idx) => {
               let btnClass = `session-btn${selectedSessionIdx === idx ? ' active' : ''}`;
-              let btnStyle = { position: 'relative' };
-              if (session.bossName === 'Trash') {
-                btnStyle.background = '#e53935'; // red
-              } else if (session.bossName) {
-                btnStyle.background = '#ffd600'; // yellow
-              }
-              if (session.outcome === 'Victory') {
-                btnStyle.background = '#43a047'; // green
-              }
+              let outcomeClass = '';
+              if (session.outcome === 'VictoryBoss') outcomeClass = 'session-btn-victoryboss';
+              else if (session.outcome === 'VictoryTrash') outcomeClass = 'session-btn-victorytrash';
+              else if (session.outcome === 'Wipe') outcomeClass = 'session-btn-wipe';
+              else if (session.outcome === 'Timeout') outcomeClass = 'session-btn-timeout';
+              else if (session.bossName === 'Trash') outcomeClass = 'session-btn-trash';
               return (
                 <button
                   key={idx}
-                  className={btnClass}
-                  style={btnStyle}
+                  className={`${btnClass} ${outcomeClass} fadein`}
                   onClick={() => setSelectedSessionIdx(idx)}
                 >
-
-                  {session.bossName || session.name || `Session ${idx + 1}`}
-                  <span className="session-btn-index">{idx + 1}</span>
+                  <span className="session-btn-label fadein">{session.bossName || session.name || `Session ${idx + 1}`}</span>
+                  <span className={`session-btn-index${selectedSessionIdx === idx ? ' active' : ''} fadein`}>{idx + 1}</span>
                 </button>
               );
             })
         }
       </div>
-      <div className="metricTable-title-wrapper">
-      <h2 className="metricTable-title">Preformance Metrics</h2>
+      <div className="metricTable-title-wrapper fadein">
+      <h2 className="metricTable-title fadein">Selected Session</h2>
       </div>
-      <table className="metrics-table">
-        <thead>
-          <tr>
-            <th className="metricTable-header-text metricTable-big-cell">Name</th>
-            <th className="metricTable-header-text metricTable-small-cell">DPS</th>
-            <th className="metricTable-header-text metricTable-big-cell">Damage Done</th>
-            <th className="metricTable-header-text metricTable-big-cell">Damage Taken</th>
-            <th className="metricTable-header-text metricTable-big-cell">Healing Taken</th>
-            <th className="metricTable-header-text metricTable-big-cell">Absorbed</th>
-            <th className="metricTable-header-text metricTable-small-cell">HPS</th>
-            <th className="metricTable-header-text metricTable-big-cell">Healing Done</th>
-            <th className="metricTable-header-text metricTable-big-cell">Est. Absorb</th>
-            <th className="metricTable-header-text metricTable-small-cell">Interrupts</th>
-            <th className="metricTable-header-text metricTable-small-cell">Dispels</th>
-            <th className="metricTable-header-text metricTable-small-cell">Purges</th>
+      {/* Session Info Panel */}
+      <div className="session-info-panel fadein">
+        {data.sessions && data.sessions[selectedSessionIdx] ? (() => {
+          const session = data.sessions[selectedSessionIdx];
+          const start = session.startTime ? new Date(session.startTime) : null;
+          const end = session.endTime ? new Date(session.endTime) : null;
+          const durationSec = session.encounterLengthSec ? session.encounterLengthSec.toFixed(1) : 'N/A';
+          return (
+            <>
+              <div className="session-info-panel-flex fadein">
+                <div className="session-info-panel-section fadein">
+                  <h3 className="session-info-panel-title fadein">Session #{selectedSessionIdx + 1}</h3>
+                  <div className="session-info-panel-boss-row fadein"><b className="session-info-panel-label fadein">Boss:</b> <span className={session.bossName === 'Trash' ? 'session-info-panel-boss-trash fadein' : 'session-info-panel-boss fadein'}>{session.bossName || 'Trash'}</span></div>
+                  <div className="session-info-panel-outcome-row fadein"><b className="session-info-panel-label fadein">Outcome:</b> <span className={session.outcome === 'VictoryBoss' ? 'session-info-panel-outcome-victory fadein' : session.outcome === 'Wipe' ? 'session-info-panel-outcome-wipe fadein' : 'session-info-panel-outcome-other fadein'}>{session.outcome}</span></div>
+                  <div className="session-info-panel-date-row fadein"><b className="session-info-panel-label fadein">Date:</b> <span className="session-info-panel-value fadein">{session.dayNumber}/{session.monthNumber}/{session.year}</span></div>
+                  <div className="session-info-panel-start-row fadein"><b className="session-info-panel-label fadein">Start:</b> <span className="session-info-panel-value fadein">{start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'N/A'}</span></div>
+                  <div className="session-info-panel-end-row fadein"><b className="session-info-panel-label fadein">End:</b> <span className="session-info-panel-value fadein">{end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'N/A'}</span></div>
+                  <div className="session-info-panel-duration-row fadein"><b className="session-info-panel-label fadein">Duration:</b> <span className="session-info-panel-value fadein">{durationSec} sec</span></div>
+                  <div className="session-info-panel-players-row fadein"><b className="session-info-panel-label fadein">Players:</b> <span className="session-info-panel-value fadein">{session.entitiesData.players.length}</span></div>
+                </div>
+                <div className="session-info-panel-section session-info-panel-playerstatus fadein">
+                  <b className="session-info-panel-label fadein">Player Status:</b>
+                  <ul className="session-info-panel-player-list fadein">
+                    {session.entitiesData.players.length === 0 ? (
+                      <li className="session-info-panel-player-none fadein">No players</li>
+                    ) : session.entitiesData.players.map((p, i) => (
+                      <li key={i} className={`session-info-panel-player-row fadein ${p.alive === false ? 'session-info-panel-player-dead' : 'session-info-panel-player-alive'}`}> 
+                        <span className="session-info-panel-player-name fadein">{p.name}</span>
+                        {p.alive === false ? (
+                          <>
+                            <span className="session-info-panel-player-dead fadein">&#10006; Dead</span>
+                            {p.diedAt ? (
+                              <span className="session-info-panel-player-status fadein">
+                                (at {(
+                                  p.diedAt.timeStamp && session.startTime
+                                    ? ((p.diedAt.timeStamp - session.startTime) / 1000).toFixed(1)
+                                    : 'N/A')
+                                }s)
+                              </span>
+                            ) : null}
+                          </>
+                        ) : <span className="session-info-panel-player-alive fadein">&#10004; Alive</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="session-info-panel-section fadein">
+                  <b className="session-info-panel-label fadein">Session Metadata:</b>
+                  <ul className="session-info-panel-meta-list fadein">
+                    <li className="fadein"><b className="session-info-panel-label fadein">Start Line:</b> <span className="session-info-panel-value fadein">{session.dataIndexStart}</span></li>
+                    <li className="fadein"><b className="session-info-panel-label fadein">End Line:</b> <span className="session-info-panel-value fadein">{session.dataIndexEnd}</span></li>
+                    <li className="fadein"><b className="session-info-panel-label fadein">Last Damage Line:</b> <span className="session-info-panel-value fadein">{session.lastDamageIndexAt}</span></li>
+                    <li className="fadein"><b className="session-info-panel-label fadein">Start Parse Event:</b> <span className="session-info-panel-value fadein">{session.startParse ? session.startParse.event?.join(' ') : 'N/A'}</span></li>
+                    <li className="fadein"><b className="session-info-panel-label fadein">End Parse Event:</b> <span className="session-info-panel-value fadein">{session.endParse ? session.endParse.event?.join(' ') : 'N/A'}</span></li>
+                  </ul>
+                </div>
+              </div>
+            </>
+          );
+        })() : <div className="session-info-panel-noselection fadein">No session selected</div>}
+      </div>
+      <div className="metricTable-title-wrapper fadein">
+      <h2 className="metricTable-title fadein">Preformance Metrics</h2>
+      </div>
+      <table className="metrics-table metrics-table-modern fadein">
+        <thead className="fadein">
+          <tr className="fadein">
+            <th className="metricTable-header-text metricTable-big-cell fadein">Name</th>
+            <th className="metricTable-header-text metricTable-small-cell fadein">DPS</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein">Damage Done</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein">Damage Taken</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein">Healing Taken</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein">Absorbed</th>
+            <th className="metricTable-header-text metricTable-small-cell fadein">HPS</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein">Healing Done</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein">Est. Absorb</th>
+            <th className="metricTable-header-text metricTable-small-cell fadein">Interrupts</th>
+            <th className="metricTable-header-text metricTable-small-cell fadein">Dispels</th>
+            <th className="metricTable-header-text metricTable-small-cell fadein">Purges</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="fadein">
           {players.length === 0 ? (
-            <tr>
-              <td colSpan={12} style={{ textAlign: 'center', color: '#888' }}>No player data available</td>
+            <tr className="fadein">
+              <td colSpan={12} className="metrics-table-nodata fadein">No player data available</td>
             </tr>
           ) : (
             (() => {
@@ -93,55 +152,24 @@ export default function PerformanceMetricsTable() {
                 // Calculate fill percent (0-1)
                 const percent = maxDamage === minDamage ? 1 : (player.totalDamage - minDamage) / (maxDamage - minDamage);
                 return (
-                  <tr key={idx}>
-                    <td className="metricTable-header-text">{player.name}</td>
-                    <td className="metricTable-header-text">{player.dps}</td>
-                    <td className="metricTable-header-text" style={{ padding: 0, height: '100%' }}>
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        position: 'relative',
-                        minWidth: 60,
-                        minHeight: 36,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxSizing: 'border-box',
-                        background: 'none'
-                      }}>
-                        <div style={{
-                          width: `${percent * 100}%`,
-                          height: '100%',
-                          background: '#43a047',
-                          borderRadius: 8, // Keep the fill bar rounded for visual appeal
-                          position: 'absolute',
-                          left: 0,
-                          top: 0,
-                          zIndex: 1,
-                          transition: 'width 0.4s cubic-bezier(.4,2,.6,1)'
-                        }}></div>
-                        <span style={{
-                          position: 'relative',
-                          zIndex: 2,
-                          color: '#23272f',
-                          fontWeight: 600,
-                          paddingLeft: 8,
-                          paddingRight: 8,
-                          width: '100%',
-                          textAlign: 'center',
-                          lineHeight: 1.2
-                        }}>{player.totalDamage}</span>
+                  <tr key={idx} className="fadein">
+                    <td className="metricTable-header-text fadein">{player.name}</td>
+                    <td className="metricTable-header-text fadein">{player.dps}</td>
+                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                      <div className="metricTable-damage-bar-wrap fadein">
+                        <div className="metricTable-damage-bar fadein" style={{ width: `${percent * 100}%` }}></div>
+                        <span className="metricTable-damage-bar-label fadein">{player.totalDamage}</span>
                       </div>
                     </td>
-                    <td className="metricTable-header-text">{player.damageTaken}</td>
-                    <td className="metricTable-header-text">{player.healingTaken}</td>
-                    <td className="metricTable-header-text">{player.absorbed}</td>
-                    <td className="metricTable-header-text">{player.hps}</td>
-                    <td className="metricTable-header-text">{player.healingDone}</td>
-                    <td className="metricTable-header-text">{player.estAbsorb}</td>
-                    <td className="metricTable-header-text">{player.interrupts}</td>
-                    <td className="metricTable-header-text">{player.dispels}</td>
-                    <td className="metricTable-header-text">{player.purges}</td>
+                    <td className="metricTable-header-text fadein">{player.damageTaken}</td>
+                    <td className="metricTable-header-text fadein">{player.healingTaken}</td>
+                    <td className="metricTable-header-text fadein">{player.absorbed}</td>
+                    <td className="metricTable-header-text fadein">{player.hps}</td>
+                    <td className="metricTable-header-text fadein">{player.healingDone}</td>
+                    <td className="metricTable-header-text fadein">{player.estAbsorb}</td>
+                    <td className="metricTable-header-text fadein">{player.interrupts}</td>
+                    <td className="metricTable-header-text fadein">{player.dispels}</td>
+                    <td className="metricTable-header-text fadein">{player.purges}</td>
                   </tr>
                 );
               });

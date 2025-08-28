@@ -1,4 +1,28 @@
 /* Modern, smooth metrics table styling */
+:root {
+  --primary-bg: #23272f;
+  --secondary-bg: #2d313a;
+  --accent-bg: #3a3f4b;
+  --primary: #5ad1e6;
+  --primary-light: #a7e9f7;
+  --secondary: #7e8fa3;
+  --success: #6ee7b7;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --text-main: #f3f4f6;
+  --text-secondary: #bfc7d5;
+  --border: #3a4152;
+  --shadow: 0 4px 24px 0 rgba(30,40,60,0.18), 0 1.5px 0 #23272f inset;
+}
+h2.metricTable-title{
+  color: #5ad1e6;
+  text-shadow: 0 2px 8px #000;
+  font-weight: 700;
+  letter-spacing: 1px;
+  user-select: none;
+  margin-bottom: 16px;
+  padding-left: 20px;
+}
 .metricTable-container {
   display: flex;
   flex-direction: column;
@@ -8,10 +32,98 @@
   max-width: 2500px;
   min-height: 40vh;
   padding: 32px 24px;
-  background: #fff;
+  background: var(--primary-bg);
+  color: var(--text-main);
   border-radius: 16px;
-  box-shadow: 0 4px 24px rgba(38, 144, 163, 0.08), 0 1.5px 6px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow);
   border: none;
+}
+.session-info-panel {
+  background: linear-gradient(135deg, var(--primary-bg) 60%, var(--secondary-bg) 100%);
+  color: var(--text-main);
+  box-shadow: var(--shadow);
+  margin: 20px 0;
+  max-width: 90vw;
+  width: 90vw;
+  font-size: 17px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  letter-spacing: 0.1px;
+  position: relative;
+  overflow: hidden;
+  min-width: 320px;
+}
+.session-info-panel-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+}
+.session-info-panel-section {
+  min-width: 240px;
+  background: var(--accent-bg);
+  border-radius: 10px;
+  padding: 18px;
+  box-shadow: 0 1px 8px #0008;
+  border: 1.5px solid var(--primary);
+  color: var(--text-main);
+}
+.session-info-panel-title {
+  margin: 0;
+  color: var(--primary-light);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-shadow: 0 2px 8px #000;
+}
+.session-info-panel-label {
+  color: var(--primary);
+  font-weight: 700;
+}
+.session-info-panel-value {
+  color: var(--text-main);
+}
+.session-info-panel-boss-trash {
+  color: var(--danger);
+}
+.session-info-panel-boss {
+  color: var(--primary-light);
+}
+.session-info-panel-outcome-victory {
+  color: var(--success);
+  font-weight: 600;
+}
+.session-info-panel-outcome-wipe {
+  color: var(--danger);
+  font-weight: 600;
+}
+.session-info-panel-outcome-other {
+  color: var(--warning);
+  font-weight: 600;
+}
+.session-info-panel-player-alive {
+  color: var(--success);
+  font-weight: 600;
+  margin-left: 4px;
+}
+.session-info-panel-player-dead {
+  color: var(--danger);
+  font-weight: 600;
+  margin-right: 6px;
+}
+.session-info-panel-player-name {
+  margin-right: 8px;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--text-main);
+}
+.session-info-panel-player-status {
+  font-weight: 400;
+  color: var(--primary-light);
+  margin-left: 4px;
+  font-size: 15px;
 }
 
 .metricTable-title-wrapper{
@@ -30,44 +142,38 @@
 }
 
 .metrics-table {
-  width: 100%;
+  width: 90vw;
   table-layout: fixed;
   border-collapse: separate;
   border-spacing: 0;
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(38,144,163,0.07);
-}
-.metrics-table {
-  
+  box-shadow: var(--shadow);
+  background: linear-gradient(135deg, var(--primary-bg) 60%, var(--secondary-bg) 100%);
+  border: 2.5px solid var(--primary);
+  color: var(--text-main);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
 }
 
-.metrics-table th.metricTable-big-cell {
-  width: 8.33%; /* 1/12 of table width for each big cell */
-}
-.metrics-table th.metricTable-small-cell {
-  width: 4.16%; /* half the width of big cell */
-}
-.metrics-table th {
-  padding: 16px 8px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #000000;
-  text-align: center;
-  border-right: 2px solid #2690a3;
-  overflow: hidden;
-  border-bottom: 2px solid #2690a3;
+.metrics-table th.metricTable-big-cell, .metrics-table th.metricTable-small-cell {
+  background: linear-gradient(90deg, var(--accent-bg) 60%, var(--primary) 100%);
+  color: var(--primary-light);
+  border-right: 2px solid var(--primary);
+  border-bottom: 2px solid var(--primary);
+  text-shadow: 0 2px 8px #000;
 }
 .metrics-table th:last-child {
-  border-right: 0px solid #2690a3;
+  border-right: 0px solid var(--primary);
 }
 
 .metrics-table td {
   padding: 14px 8px;
   font-size: 1rem;
-  color: #222;
+  color: var(--text-main);
   text-align: center;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border);
+  background: var(--accent-bg);
   transition: background 0.2s;
 }
 .metrics-table tr:last-child td {
@@ -77,32 +183,32 @@
 .metricTable-header-text {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #fff;
+  color: var(--primary-light);
   text-align: center;
-  background: #eafaf7;
+  background: none;
   user-select: none;
+  text-shadow: 0 1px 4px #000;
 }
 
 .metricTable-header-text:hover {
-  background-color: #48dd3a;
-}
-
-.metricTable-big-cell {
-  /* Optional: make big columns slightly wider */
+  background-color: #3a2e1a;
 }
 
 /* Session button bar styling */
 .session-buttons-bar {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   justify-content: flex-start;
-  align-items: center;
+  align-items: flex-start;
   overflow-x: auto;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   width: 100%;
-  padding: 16px;
-  min-height: 40px;
+  min-height: 36px;
+
+  padding: 8px 2px 8px 8px !important;
+  box-sizing: border-box;
+  border-radius: 12px;
 }
 
 .session-buttons-bar::-webkit-scrollbar {
@@ -120,47 +226,259 @@
     top: -100px;
 }
 
+/* WoW-inspired Session Button Design */
 .session-btn {
-  background: linear-gradient(90deg, #2690a3 0%, #4caf50 100%);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 28px;
+  background: linear-gradient(135deg, #23272f 85%, #2d313a 100%);
+  color: #ffe082;
+  border: 2px solid #a88b4a;
+  border-radius: 12px;
+  padding: 12px 25px 12px 12px;
   font-size: 1rem;
-  font-weight: 600;
-  user-select: none;
-  height: 50px;
-  box-shadow: 0 2px 8px rgba(38,144,163,0.07);
-  transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  font-family: 'Lora', 'Merriweather', 'Georgia', serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.22), 0 1px 0 #3a2e1a inset;
+  transition: background 0.18s, color 0.13s, border 0.13s, box-shadow 0.13s, transform 0.11s;
   white-space: nowrap;
   flex: 0 0 auto;
   max-width: 100%;
-  opacity: 0.5;
+  opacity: 0.97;
+  outline: none;
+  position: relative;
+  margin: 1px 0;
+  min-width: 90px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
-.session-btn:hover {
-  background: linear-gradient(90deg, #4caf50 0%, #2690a3 100%);
-  box-shadow: 0 4px 16px rgba(38,144,163,0.12);
-  transform: scale(1.05);
-  opacity: 1;
-  z-index: 100;
+.session-btn:hover, .session-btn:focus {
+  transform: scale(1.1) !important;
+
 }
 .session-btn.active {
-  background: #86b333;
-  color: #fff;
-  box-shadow: 0 4px 16px rgba(38,144,163,0.18);
-  scale: 1.05;
+  background: var(--primary-bg) !important;
+  color: var(--primary) !important;
+  border: 2px solid var(--primary-light) !important;
+  cursor: pointer;
+  transform: scale(1.1) !important;
   opacity: 1;
-  z-index: 99;
+  z-index: 2;
+  
+}
+.session-btn.active .session-btn-index {
+  color: #ffe082 !important;
+  background: none;
+  border-top: 2px solid #ffe082;
+  border-left: 2px solid #ffe082;
+}
+
+
+/* Outcome-based color overrides (lightened for modern look) */
+.session-btn.session-btn-trash {
+  background: linear-gradient(135deg, #ffe082 70%, #fbbf24 100%);
+  color: #23272f;
+  border: 2px solid #fbbf24 ;
+}
+.session-btn.session-btn-victoryboss {
+  background: linear-gradient(135deg, #b9fbc0 70%, #6ee7b7 100%);
+  color: #23272f;
+  border: 2px solid #6ee7b7 ;
+}
+.session-btn.session-btn-victorytrash {
+  background: linear-gradient(135deg, #e0ffcc 70%, #b9fbc0 100%);
+  color: #23272f;
+  border: 2px solid #b9fbc0 ;
+}
+.session-btn.session-btn-wipe {
+  background: linear-gradient(135deg, #fca5a5 70%, #f87171 100%);
+  color: #23272f;
+  border: 2px solid #f87171 ;
+}
+.session-btn.session-btn-timeout {
+  background: linear-gradient(135deg, #ffe082 70%, #fbbf24 100%);
+  color: #23272f;
+  border: 2px solid #fbbf24 ;
+}
+
+.session-btn-label {
+  flex: 1 1 auto;
+  text-align: left;
+  font-size: 1em;
+  font-weight: 700;
+  padding-right: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .session-btn-index {
   position: absolute;
-  right: 3px;
-  bottom: 3px;
-  font-size: 0.85rem;
-  color: #222;
+  top: 23px;
+  right: 0px;
+  font-size: 0.8rem;
+  color: #23272f;
+  padding: 2px;
   border-radius: 4px;
-  padding: 2px 6px;
-  font-weight: 700;
+  width: 20px;
+  font-weight: bold;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
   pointer-events: none;
+  box-shadow: 0 1px 4px #0005;
+  opacity: 0.93;
+  border-top: 2px solid #a88b4a;
+  border-left: 2px solid #a88b4a;
+  z-index: 4;
+}
+
+@media (max-width: 700px) {
+  .session-btn {
+    font-size: 0.92rem;
+    padding: 7px 7px 7px 10px;
+    min-width: 64px;
+    min-height: 26px;
+  }
+  .session-btn-index {
+    font-size: 0.7rem;
+    width: 16px;
+    height: 16px;
+    top: 2px;
+    right: 2px;
+  }
+}
+
+/* --- Session Info Panel --- */
+.session-info-panel-flex {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  width: 100%;
+  margin-top: 8px;
+}
+.session-info-panel-boss-row,
+.session-info-panel-outcome-row,
+.session-info-panel-date-row,
+.session-info-panel-start-row,
+.session-info-panel-end-row,
+.session-info-panel-duration-row,
+.session-info-panel-players-row {
+  margin-top: 8px;
+}
+.session-info-panel-section.session-info-panel-playerstatus {
+  flex: 1 1 260px;
+  min-width: 260px;
+}
+.session-info-panel-player-list {
+  margin: 10px 0 0 0;
+  padding: 0;
+  list-style: none;
+}
+.session-info-panel-player-row {
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  margin-bottom: 4px;
+  text-shadow: 0 1px 4px #000;
+  letter-spacing: 0.2px;
+}
+.session-info-panel-player-none {
+  color: #888;
+}
+.session-info-panel-meta-list {
+  margin: 10px 0 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+}
+.session-info-panel-noselection {
+  color: #888;
+}
+
+/* --- Metrics Table Modernization --- */
+.metrics-table-modern {
+  width: 90vw;
+  background: linear-gradient(135deg, #23272f 60%, #1a1d23 100%);
+  border-radius: 14px;
+  border: 2.5px solid #a88b4a;
+  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.45), 0 1.5px 0 #3a2e1a inset;
+  color: #e7cfa0;
+  margin: 24px 0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
+  overflow: hidden;
+  min-width: 320px;
+}
+.metrics-table-nodata {
+  text-align: center;
+  color: #888;
+}
+.metricTable-damage-cell {
+  padding: 0 !important;
+  height: 100%;
+}
+.metricTable-damage-bar-wrap {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  min-width: 60px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: none;
+}
+.metricTable-damage-bar {
+  height: 100%;
+  background: #43a047;
+  border-radius: 8px;
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 1;
+  transition: width 0.4s cubic-bezier(.4,2,.6,1);
+}
+.metricTable-damage-bar-label {
+  position: relative;
+  z-index: 2;
+  color: #23272f;
+  font-weight: 600;
+  padding-left: 8px;
+  padding-right: 8px;
+  width: 100%;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* --- Fade Animations (from flawless filedrop) --- */
+@keyframes fadein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fadeout {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+.metricTable-container,
+.session-buttons-bar,
+.session-info-panel,
+.metrics-table-modern,
+.session-info-panel-section,
+.session-btn,
+.session-btn-label,
+.session-btn-index,
+.session-info-panel-player-row,
+.metrics-table th,
+.metrics-table td {
+  animation: fadein 0.7s ease-in;
+}
+
+.fadeout {
+  animation: fadeout 0.5s ease-in forwards;
 }

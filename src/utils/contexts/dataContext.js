@@ -1,19 +1,16 @@
 import React, { createContext, useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 
-// Helpers and constants
+// Parsing helpers
 import { parseString, setGlobalYear, testArrayLength } from '../helpers/parseHelpers.js';
-import { BOSSNAMES, MultipleIdMonsters } from '../helpers/constants.js';
-
-// Redux actions
-import { startSession, endSession, addSessionMeta } from '../stores/sessionSlice.js';
+// Constants
+import { BOSSNAMES, MultipleIdMonsters, bannedNames } from '../helpers/constants.js';
 
 export const DataContext = createContext();
 
 // Define chunk size for file reading and progress tracking
 const CHUNK_SIZE = 50 * 1024;
 
-// DataContextProvider component to manage file reading and parsed data and meta data.
+// DataContextProvider component to manage file reading, parsed data and meta data.
 export const DataContextProvider = ({ children }) => {
 
     // UI states
@@ -29,12 +26,58 @@ export const DataContextProvider = ({ children }) => {
 
     // Parsed data state
     const [data, setData] = useState([]);
-    const dispatch = useDispatch();
-    
-    // Redux sessions states
-    const sessionState = useSelector(state => state.session);
-    const sessionActive = sessionState.sessionActive;
-    const currentSessionData = sessionState.currentSessionData;
+
+    // Initial session data template
+    const initialSessionData = {
+      // Variables declared on start or end of session
+      day: null,
+      month: null,
+      year: null,
+      startTime: null,
+      startHour: null,
+      startMinute: null,
+      startSecond: null,
+      startMillisecond: null,
+      endTime: null,
+      endHour: null,
+      endMinute: null,
+      endSecond: null,
+      endMillisecond: null,
+      encounterLengthMs: null,
+      encounterLengthSec: null,
+      dataIndexStart: null,
+      dataIndexEnd: null,
+      outcome: "Unknown",
+      startParse: null,
+      endParse: null,
+      // Variables updated during session
+      bossName: "Trash",
+      lastDamageTimestamp: null,
+      lastDamageIndexAt: null,
+      entitiesData: {
+        players: [],
+        friendlyPlayers: [],
+        pets: [],
+        enemyPlayers: [],
+        enemyNPCs: [],
+        friendlyNPCs: [],
+        neutralNPCs: [],
+        hostileNPCs: [],
+        unknowns: []
+      },
+    };
+
+    let metaData = {
+        sessions:[],
+        data: [],
+        invalidData: [],
+        dataIndexStart: null,
+        dataIndexEnd: null,
+        dataTimeLength: null,
+        dataTimeStampStart: null,
+        dataTimeStampEnd: null,
+        knownErrorsLogged: []
+    };
 
     // Current year or input year for correct date parsing
     useEffect(() => {
@@ -48,28 +91,20 @@ export const DataContextProvider = ({ children }) => {
         }
     }, [inputDamageTimeout]);
 
-    //Initialize reader and related valiables
+    //Initialize reader and related variables
     const reader = new FileReader();
     let offset = 0;
     let carryOver = '';
 
-    //Initialize or reset meta data and declared variables
-    let metaData = {
-        sessions:[],
-        data: [],
-        invalidData: [],
-        dataIndexStart: null,
-        dataIndexEnd: null,
-        dataTimeLength: null,
-        dataTimeStampStart: null,
-        dataTimeStampEnd: null,
-    };
-
-    // Line index and invalid data storage
+    // Line index and current parsed object
     let indexLine = 0;
-    let parsedObject = null;
+    let currentParsedObject = null;
 
-    // Main file reading and parsing function, executed when a new file is provided/dropped
+    // Local session state for parsing
+    let currentSession = {...initialSessionData}
+    let sessionActive = false;
+
+    // MAIN FILE for reading and storing parsed data, executed when a new file is provided/dropped
     function readNewFile(file) {
         // Reset all variables
         setData([]);
@@ -78,8 +113,26 @@ export const DataContextProvider = ({ children }) => {
         setProgress('Loadingstate');
         setProgressPercentage(0);
         setSessionCount(0);
-        // Reset Redux session state
-        dispatch({ type: 'session/resetSessionState' });
+        // Reset session context state
+
+        // Reset local session state
+        sessionActive = false;
+        currentSession = null;
+        metaData = {
+            sessions:[],
+            data: [],
+            invalidData: [],
+            dataIndexStart: null,
+            dataIndexEnd: null,
+            dataTimeLength: null,
+            dataTimeStampStart: null,
+            dataTimeStampEnd: null,
+        };
+        currentSession = {...initialSessionData};
+        indexLine = 0;
+        currentParsedObject = null;
+        offset = 0;
+        carryOver = '';
 
         reader.onload = (event) => {
             const text = carryOver + event.target.result;
@@ -95,85 +148,332 @@ export const DataContextProvider = ({ children }) => {
                 readNextChunk();
             } else {
                 metaData.dataIndexEnd = indexLine;
-                metaData.dataTimeStampEnd = parsedObject?.timeStamp;
+                metaData.dataTimeStampEnd = currentParsedObject?.timeStamp;
                 handleParse(carryOver);
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
                 metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
                 setData(metaData);
-                console.log(parsedObject)
-                console.log (" ");
-                console.log('----- File reading -----');
-                console.log(" ");
-                console.log('%cCompleted', 'color: green');
-                console.log(" ")
-                console.log(metaData)
-            }   
-                
+                // After parsing, update session context if needed
+                if (currentSession) {
+
+                }
+                // Optionally, add parsed sessions to context here
+                // metaData.sessions.forEach(sess => startSession(sess));
+            }
         }
 
-            const readNextChunk = () => {
-                const blob = file.slice(offset, offset + CHUNK_SIZE);
-                reader.readAsText(blob);
+        const readNextChunk = () => {
+            const blob = file.slice(offset, offset + CHUNK_SIZE);
+            reader.readAsText(blob);
+        };
+
+        // Function for parsing each line and handling sessions depending on the parsed line.
+        function handleParse(currentUnparsedLine){
+            currentParsedObject = parseString(currentUnparsedLine);
+            if (currentParsedObject) {
+                if (metaData.dataIndexStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
+                if (metaData.dataTimeStampStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
+
+                handleSession();
+                setValidLinesCount(prevCount => prevCount + 1);
+                metaData.data.push(currentParsedObject);
+                indexLine++;
+            }
+            if (currentUnparsedLine === "" || currentUnparsedLine === "\r") { return } // Skips all empty lines
+            if (currentParsedObject === false) {
+                setInvalidLinesCount(prevCount => prevCount + 1);
+                metaData.invalidData.push(currentUnparsedLine.replace(/\r/g, ''));
+                return;
+            }
+        }
+
+        // SESSION HANDLING (local, then context after parsing)
+        const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+        function handleSession() {
+            // Start session if not active and event is DAMAGE or MISSED
+            if (checkSessionStartCondition()) {
+                startSession();
+            }
+
+            if (sessionActive) {
+                // Add/update entity info
+                tryAddUniqueEntity(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID);
+                tryAddUniqueEntity(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID);
+                // Add action info if relevant fields exist
+                if (currentParsedObject.spellName && currentParsedObject.spellId) {
+                    tryAddEntityUniqueAction(
+                        currentParsedObject.sourceFlag,
+                        currentParsedObject.sourceName,
+                        currentParsedObject.sourceGUID,
+                        currentParsedObject.spellName,
+                        currentParsedObject.spellId,
+                        currentParsedObject.spellSchool,
+                        true, // is SourceEntity
+                    );
+                    tryAddEntityUniqueAction(
+                        currentParsedObject.destFlag,
+                        currentParsedObject.destName,
+                        currentParsedObject.destGUID,
+                        currentParsedObject.spellName,
+                        currentParsedObject.spellId,
+                        currentParsedObject.spellSchool,
+                        false // is not SourceEntity
+                    );
+                }
+                checkEntityAliveStatus();
+                // Update last damage timestamp on DAMAGE or MISSED events
+                if (["DAMAGE", "MISSED"].includes(currentParsedObject.event[1])) {
+                    if (currentSession) {
+                        currentSession.lastDamageTimestamp = currentParsedObject.timeStamp;
+                        currentSession.lastDamageIndexAt = indexLine;
+                    }
+                }
+                // Boss name logic
+                if ((currentSession?.bossName === "Trash") && BOSSNAMES.includes(currentParsedObject.sourceName) && currentParsedObject.sourceFlag === "enemyNPC") {
+                    currentSession.bossName = currentParsedObject.sourceName;
+                }
+                if ((currentSession?.bossName === "Trash") && BOSSNAMES.includes(currentParsedObject.destName) && currentParsedObject.destFlag === "enemyNPC") {
+                    currentSession.bossName = currentParsedObject.destName;
+                }
+                // End session if end condition is met
+                if (checkSessionEndCondition()) {
+                    endSession();
+                }
+            }
+        }
+
+
+        function checkSessionStartCondition () {
+            if (!sessionActive && ["DAMAGE", "MISSED"].includes(currentParsedObject.event[1])) {
+                return true
+            } else { return false }
+        }
+
+        function startSession () {
+            if (sessionActive) {
+                metaData.knownErrorsLogged.push(`Fail to start session at line ${indexLine}: session already active.`)
+                return
+            }
+            currentSession = JSON.parse(JSON.stringify(initialSessionData));
+            currentSession.day = WEEKDAYS[new Date(currentParsedObject.timeStamp).getDay()];
+            currentSession.dayNumber = new Date(currentParsedObject.timeStamp).getDate();
+            currentSession.month = MONTHS[new Date(currentParsedObject.timeStamp).getMonth()];
+            currentSession.monthNumber = new Date(currentParsedObject.timeStamp).getMonth() + 1;
+            currentSession.year = new Date(currentParsedObject.timeStamp).getFullYear();
+            currentSession.startTime = currentParsedObject ? currentParsedObject.timeStamp : null;
+            currentSession.startHour = new Date(currentParsedObject.timeStamp).getHours();
+            currentSession.startMinute = new Date(currentParsedObject.timeStamp).getMinutes();
+            currentSession.startSecond = new Date(currentParsedObject.timeStamp).getSeconds();
+            currentSession.startMillisecond = new Date(currentParsedObject.timeStamp).getMilliseconds();
+            currentSession.dataIndexStart = indexLine;
+            currentSession.startParse = currentParsedObject ? currentParsedObject : null;
+            currentSession.lastDamageTimestamp = currentParsedObject ? currentParsedObject.timeStamp : null;
+            currentSession.lastDamageIndexAt = indexLine;
+            sessionActive = true;
+            console.log("Session started");
+        }
+
+        const affiliationToList = {
+          player: 'players',
+          pet: 'pets',
+          enemyPlayer: 'enemyPlayers',
+          friendlyPlayer: 'friendlyPlayers',
+          friendlyNPC: 'friendlyNPCs',
+          enemyNPC: 'enemyNPCs',
+          neutralNPC: 'neutralNPCs',
+          unknown: 'unknowns'
+        };
+
+        function tryAddUniqueEntity(affiliation, name, id) {
+          if (name.includes(bannedNames)) return;
+          const byNameAffiliations = ['player', 'pet', 'enemyPlayer', 'friendlyPlayer'];
+          const byIdAffiliations = ['friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
+          let listName = affiliationToList[affiliation] || 'unknowns';
+
+          if (byNameAffiliations.includes(affiliation)) {
+            let entity = currentSession.entitiesData[listName].find(e => e.name === name);
+            if (!entity) {
+              entity = {
+                name,
+                ids: [id],
+                actions: { dealt: [], received: [] },
+                entityType: 'byName',
+                ...(listName === 'players' ? { alive: true } : {}),
+              };
+              currentSession.entitiesData[listName].push(entity);
+            } else {
+              if (!entity.ids.includes(id)) {
+                entity.ids.push(id);
+              }
+            }
+          } else if (byIdAffiliations.includes(affiliation)) {
+            let entity = currentSession.entitiesData[listName].find(e => e.id === id);
+            if (!entity) {
+              entity = {
+                id,
+                names: [name],
+                actions: { dealt: [], received: [] },
+                entityType: 'byId',
+                ...(listName === 'enemyNPCs' ? { alive: true } : {}),
+              };
+              currentSession.entitiesData[listName].push(entity);
+            } else {
+              if (!entity.names.includes(name)) {
+                entity.names.push(name);
+              }
+            }
+          } else {
+            let entity = currentSession.entitiesData['unknowns'].find(e => e.id === id);
+            if (!entity) {
+              entity = {
+                id,
+                names: [name],
+                actions: { dealt: [], received: [] },
+                entityType: 'byId',
+              };
+              currentSession.entitiesData['unknowns'].push(entity);
+            } else {
+              if (!entity.names.includes(name)) {
+                entity.names.push(name);
+              }
+            }
+          }
+        }
+
+        function tryAddEntityUniqueAction(affiliation, name, id, spellName, spellId, spellSchool, isSourceEntity) {
+          const byNameAffiliations = ['player', 'pet', 'enemyPlayer', 'friendlyPlayer'];
+          const byIdAffiliations = ['friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
+          let listName = affiliationToList[affiliation] || 'unknowns';
+
+          const entities = currentSession.entitiesData[listName].filter(e => {
+            if (e.entityType === 'byName') {
+              return e.name === name && Array.isArray(e.ids) && e.ids.includes(id);
+            } else if (e.entityType === 'byId') {
+              return e.id === id && Array.isArray(e.names) && e.names.includes(name);
+            } else {
+              return e.id === id && e.name === name;
+            }
+          });
+
+          entities.forEach(entity => {
+            const actionList = isSourceEntity ? entity.actions.dealt : entity.actions.received;
+            const exists = actionList.some(a => a.spellName === spellName && a.spellId === spellId);
+            if (!exists) {
+              actionList.push({ spellName, spellId, spellSchool });
+            }
+          });
+        }
+
+        function checkEntityAliveStatus() {
+            if (currentParsedObject.event[1] === "UNITDIED") {
+                // Check enemyNPCs (byId)
+                currentSession.entitiesData.enemyNPCs.forEach(entity => {
+                    if (
+                        entity.entityType === "byId" &&
+                        entity.id === currentParsedObject.destGUID &&
+                        entity.names.includes(currentParsedObject.destName)
+                    ) {
+                        entity.alive = false;
+                    }
+                });
+                // Check players (byName)
+                currentSession.entitiesData.players.forEach(entity => {
+                    if (
+                        entity.entityType === "byName" &&
+                        entity.name === currentParsedObject.destName &&
+                        entity.ids.includes(currentParsedObject.destGUID)
+                    ) {
+                        entity.alive = false;
+                        entity.diedAt = {
+                            timeStamp: currentParsedObject.timeStamp,
+                            indexLine: indexLine
+                        };
+                    }
+                });
+            }
+        }
+
+        function checkPlayerResurrected() {
+            // If the event is RESURRECT and both source and dest are players, set dest (resurrected) alive = true
+            if (
+                currentParsedObject.event[1] === "RESURRECT" &&
+                currentParsedObject.sourceFlag === "player" &&
+                currentParsedObject.destFlag === "player"
+            ) {
+                const resurrected = currentSession.entitiesData.players.find(
+                    e => e.name === currentParsedObject.destName && e.ids.includes(currentParsedObject.destGUID)
+                );
+                if (resurrected) {
+                    resurrected.alive = true;
+                } else {
+                    metaData.knownErrorsLogged.push(`RESURRECT event failed for unknown player ${currentParsedObject.destName} at line ${indexLine}.`);
+                }
+            }
+        }
+
+        function checkSessionEndCondition () {
+            if (sessionActive && (currentParsedObject.destName === currentSession?.bossName) && (currentParsedObject.event[1] === "UNITDIED")) {
+                currentSession.outcome = "VictoryBoss";        
+                return true;
+            } else if (
+                currentSession.bossName === "Trash" &&
+                Array.isArray(currentSession.entitiesData.enemyNPCs) &&
+                currentSession.entitiesData.enemyNPCs.length > 0 &&
+                currentSession.entitiesData.enemyNPCs.every(e => e.alive === false)
+            ) {
+                currentSession.outcome = "VictoryTrash";
+                return true;
+            } else if ((currentParsedObject.timeStamp - currentSession.lastDamageTimestamp) > (inputDamageTimeout * 1000)) {
+                currentSession.outcome = "Timeout";
+                return true;
+            } else if (
+                currentSession.entitiesData.players.length > 0 &&
+                currentSession.entitiesData.players.every(e => e.alive === false)
+            ) {
+                currentSession.outcome = "Wipe";
+                return true;
+            }
+            return false;
+        }
+
+        function endSession(payload) {
+            if (!sessionActive) {
+                metaData.knownErrorsLogged.push(`Fail to end session at line ${indexLine}: no session active.`);
+                return;
+            }
+            // Set end fields using currentParsedObject
+            currentSession = {
+                ...currentSession,
+                endTime: currentParsedObject ? currentParsedObject.timeStamp : null,
+                endHour: new Date(currentParsedObject.timeStamp).getHours(),
+                endMinute: new Date(currentParsedObject.timeStamp).getMinutes(),
+                endSecond: new Date(currentParsedObject.timeStamp).getSeconds(),
+                endMillisecond: new Date(currentParsedObject.timeStamp).getMilliseconds(),
+                dataIndexEnd: indexLine,
+                endParse: currentParsedObject ? currentParsedObject : null,
+                encounterLengthMs: currentParsedObject && currentSession.startTime ? currentParsedObject.timeStamp - currentSession.startTime : null,
+                encounterLengthSec: currentParsedObject && currentSession.startTime ? (currentParsedObject.timeStamp - currentSession.startTime) / 1000 : null,
+                ...payload
             };
+            sessionActive = false;
+            // Optionally, push to metaData.sessions here
+            metaData.sessions.push({ ...currentSession });
+            setSessionCount(prevCount => prevCount + 1);
+            console.log("Session ended", currentSession.bossName, currentSession.outcome, currentSession);
+        }
 
-            function handleParse(unparsedLine){
-                parsedObject = parseString(unparsedLine);
-                if (parsedObject) {
-                    if (metaData.dataTimeStampStart === 0) { metaData.dataTimeStampStart = parsedObject.timeStamp }
-                    handleSession();
-                    setValidLinesCount(prevCount => prevCount + 1);
-                    metaData.data.push(parsedObject);
-                    indexLine++;
-                }
-                if (unparsedLine === "" || unparsedLine === "\r") { return } // Skips all empty lines
-                if (parsedObject === false) {
-                    setInvalidLinesCount(prevCount => prevCount + 1);
-                    metaData.invalidData.push(unparsedLine.replace(/\r/g, ''));
-                    return;
-                }
-            }
 
-            // SESSION HANDLING (Redux)
-            function handleSession(){
-                if (!sessionActive && ["DAMAGE", "MISSED"].includes(parsedObject.event[1])) {
-                    dispatch(startSession({
-                        startParse: parsedObject,
-                        startTime: parsedObject.timeStamp,
-                        dataIndexStart: indexLine
-                    }));
-                }
-                if (sessionActive) {
-                    if (["DAMAGE", "MISSED"].includes(parsedObject.event[1])) {
 
-                    }
-                    // Boss name logic (Redux meta update)
-                    if ((currentSessionData?.bossName === "Trash") && BOSSNAMES.includes(parsedObject.sourceName) && parsedObject.sourceFlag === "enemyNPC") {
-                        dispatch(addSessionMeta({ bossName: parsedObject.sourceName }));
-                    }
-                    if ((currentSessionData?.bossName === "Trash") && BOSSNAMES.includes(parsedObject.destName) && parsedObject.destFlag === "enemyNPC") {
-                        dispatch(addSessionMeta({ bossName: parsedObject.destName }));
-                    }
-                    // ...existing code for entity/session data, refactor to use Redux if needed...
-                    if ((parsedObject.destName === currentSessionData?.bossName) && (parsedObject.event[1] === "UNITDIED")) {
-                        dispatch(addSessionMeta({ outcome: "Victory" }));
-                        dispatch(endSession());
-                    }
-                }
-            }
-            // ...existing code for helpers (lengthTest, etc)...
-            // Remove all local session mutations, use Redux actions/selectors only
-        
-    
+
         readNextChunk();
+    }
 
-}
-
-
-return (
-    <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout }}>
-        {children}
-    </DataContext.Provider>
-);
-
+    return (
+        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout }}>
+            {children}
+        </DataContext.Provider>
+    );
 }
