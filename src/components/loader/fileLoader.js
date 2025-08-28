@@ -5,24 +5,31 @@ import { DataContext } from '../../utils/contexts/dataContext';
 
 export default function FileLoader() {
     const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear, setInputDamageTimeout } = useContext(DataContext);
+    const [dragActive, setDragActive] = useState(false);
 
     function handleDrop(event) {
         event.preventDefault();
-        const file = event.dataTransfer.files[0];
-        if (file && file.type === 'text/plain') {
-            readNewFile(file);
-        } else {
-            alert('Please drop a .txt file.');
+        setDragActive(false);
+        const files = event.dataTransfer.files;
+        if (files && files.length > 0) {
+            readNewFile(files[0]);
         }
     }
 
+    const handleDragOver = (event) => {
+        event.preventDefault();
+        setDragActive(true);
+    };
+
+    const handleDragLeave = (event) => {
+        event.preventDefault();
+        setDragActive(false);
+    };
+
     const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        
-        if (file && file.type === 'text/plain') {
-            readNewFile(file);
-        } else {
-          alert('Please use a .txt file.');
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            readNewFile(files[0]);
         }
     };
 
@@ -59,13 +66,21 @@ export default function FileLoader() {
                 placeholder="Session Timeout (50) (range: 20-120)"
               />
             </div>
-            <div 
-              className="file-loader-dropzone wow-wotlk-dropzone"
-              onDrop={handleDrop} 
-              onDragOver={(event) => event.preventDefault()} 
+            <div
+              className={`file-loader-dropzone wow-wotlk-dropzone${dragActive ? ' dragover' : ''}`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
             >
-              <span className="file-loader-droptext wow-wotlk-droptext">Drop your .txt file here or select below</span>
-              <input className="file-loader-fileinput" type="file" onChange={handleFileChange} />
+              <span className="file-loader-droptext wow-wotlk-droptext">Drop your .txt file or folder here or select below</span>
+              <input
+                className="file-loader-fileinput"
+                type="file"
+                onChange={handleFileChange}
+                multiple
+                webkitdirectory="true"
+                directory="true"
+              />
             </div>
             <div className="file-loader-progress wow-wotlk-progress">
               <div>{progress}</div>

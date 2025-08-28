@@ -176,7 +176,16 @@ h2.metricTable-title{
   background: var(--accent-bg);
   transition: background 0.2s;
 }
+.metrics-table tr {
+  border-bottom: none;
+}
+.metrics-table td {
+  border-bottom: 1.5px solid #f3f4f6;
+}
 .metrics-table tr:last-child td {
+  border-bottom: none;
+}
+.metrics-table tr:last-child {
   border-bottom: none;
 }
 
@@ -198,15 +207,15 @@ h2.metricTable-title{
 .session-buttons-bar {
   display: flex;
   gap: 12px;
+  padding-left: 1px;
   margin-bottom: 18px;
   justify-content: flex-start;
   align-items: flex-start;
   overflow-x: auto;
+  overflow-y: hidden;
   flex-wrap: wrap;
-  width: 100%;
+  width: 90vw;
   min-height: 36px;
-
-  padding: 8px 2px 8px 8px !important;
   box-sizing: border-box;
   border-radius: 12px;
 }
@@ -434,12 +443,12 @@ h2.metricTable-title{
   background: none;
 }
 .metricTable-damage-bar {
-  height: 100%;
-  background: #43a047;
+  height: 70%;
+  background: #36a83b;
   border-radius: 8px;
   position: absolute;
   left: 0;
-  top: 0;
+  top: 15%;
   z-index: 1;
   transition: width 0.4s cubic-bezier(.4,2,.6,1);
 }

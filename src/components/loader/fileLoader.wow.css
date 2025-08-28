@@ -22,11 +22,11 @@ html, body {
   box-sizing: border-box;
 }
 .wow-wotlk-card {
-  background: linear-gradient(135deg, #23272f 80%, #2d313a 100%);
+  background: #23272f;
   border-radius: 18px;
-  border: 3px solid #a88b4a;
+  border: 2px solid #a88b4a;
   box-shadow: 0 8px 32px 0 rgba(0,0,0,0.65), 0 2px 0 #3a2e1a inset;
-  padding: 36px 32px 32px 32px;
+  padding: 15px;
   max-width: 420px;
   width: 100%;
   color: #e7cfa0;
@@ -73,7 +73,7 @@ html, body {
 }
 .wow-wotlk-dropzone {
   background: linear-gradient(90deg, #23272f 60%, #a88b4a 100%);
-  border: 2.5px dashed #a88b4a;
+  border: 2.5px solid #a88b4a;
   border-radius: 12px;
   padding: 24px 0 18px 0;
   margin: 18px 0 12px 0;
@@ -90,13 +90,16 @@ html, body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #00000000 0%, #ffe082 100%);
+  background: #ffe082a1;
   opacity: 0;
   transition: opacity 1.5s;
   z-index: 1;
   pointer-events: none;
 }
 .wow-wotlk-dropzone:hover::after {
+  opacity: 1;
+}
+.wow-wotlk-dropzone.dragover::after {
   opacity: 1;
 }
 .wow-wotlk-dropzone > * {
@@ -126,6 +129,7 @@ html, body {
   background: #23272f;
   border: 2px solid #a88b4a;
   accent-color: #5ad1e6;
+  margin-top: 5px;
   /* Remove gradient background, let the fill show */
 }
 
