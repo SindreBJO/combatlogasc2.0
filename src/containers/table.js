@@ -103,6 +103,37 @@ export default function PerformanceMetricsTable() {
                     ))}
                   </ul>
                 </div>
+                {/* Enemy Status Section */}
+                <div className="session-info-panel-section session-info-panel-playerstatus fadein">
+                  <b className="session-info-panel-label fadein">Enemy Status:</b>
+                  <ul className="session-info-panel-player-list fadein">
+                    {session.entitiesData.enemyNPCs && session.entitiesData.enemyNPCs.length === 0 ? (
+                      <li className="session-info-panel-player-none fadein">No enemies</li>
+                    ) : session.entitiesData.enemyNPCs && session.entitiesData.enemyNPCs.map((e, i) => (
+                      <li key={i} className={`session-info-panel-player-row fadein ${e.alive === false ? 'session-info-panel-player-dead' : 'session-info-panel-player-alive'}`}> 
+                        <span className="session-info-panel-player-name fadein">{
+                          Array.isArray(e.names) && e.names.length > 0
+                            ? e.names[0]
+                            : (e.name || e.npcName || e.displayName || '(unnamed)')
+                        }</span>
+                        {e.alive === false ? (
+                          <>
+                            <span className="session-info-panel-player-dead fadein">&#10006; Dead</span>
+                            {e.diedAt ? (
+                              <span className="session-info-panel-player-status fadein">
+                                (at {(
+                                  e.diedAt.timeStamp && session.startTime
+                                    ? ((e.diedAt.timeStamp - session.startTime) / 1000).toFixed(1)
+                                    : 'N/A')
+                                }s)
+                              </span>
+                            ) : null}
+                          </>
+                        ) : <span className="session-info-panel-player-alive fadein">&#10004; Alive</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
                 <div className="session-info-panel-section fadein">
                   <b className="session-info-panel-label fadein">Session Metadata:</b>
                   <ul className="session-info-panel-meta-list fadein">
@@ -124,18 +155,42 @@ export default function PerformanceMetricsTable() {
       <table className="metrics-table metrics-table-modern fadein">
         <thead className="fadein">
           <tr className="fadein">
-            <th className="metricTable-header-text metricTable-big-cell fadein">Name</th>
-            <th className="metricTable-header-text metricTable-small-cell fadein">DPS</th>
-            <th className="metricTable-header-text metricTable-big-cell fadein">Damage Done</th>
-            <th className="metricTable-header-text metricTable-big-cell fadein">Damage Taken</th>
-            <th className="metricTable-header-text metricTable-big-cell fadein">Healing Taken</th>
-            <th className="metricTable-header-text metricTable-big-cell fadein">Absorbed</th>
-            <th className="metricTable-header-text metricTable-small-cell fadein">HPS</th>
-            <th className="metricTable-header-text metricTable-big-cell fadein">Healing Done</th>
-            <th className="metricTable-header-text metricTable-big-cell fadein">Est. Absorb</th>
-            <th className="metricTable-header-text metricTable-small-cell fadein">Interrupts</th>
-            <th className="metricTable-header-text metricTable-small-cell fadein">Dispels</th>
-            <th className="metricTable-header-text metricTable-small-cell fadein">Purges</th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
+              <div className="metricTable-header-inner">Name</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dps" title="Damage Per Second">
+              <div className="metricTable-header-inner">DPS</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damage" title="Total Damage Done">
+              <div className="metricTable-header-inner">Damage Done</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damagetaken" title="Total Damage Taken">
+              <div className="metricTable-header-inner">Damage Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingtaken" title="Total Healing Taken">
+              <div className="metricTable-header-inner">Healing Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-absorbed" title="Total Absorbed">
+              <div className="metricTable-header-inner">Absorbed</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-hps" title="Healing Per Second">
+              <div className="metricTable-header-inner">HPS</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingdone" title="Total Healing Done">
+              <div className="metricTable-header-inner">HealingDone</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-estabsorb" title="Estimated Absorbs">
+              <div className="metricTable-header-inner">Est.Absorb</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-interrupts" title="Interrupts">
+              <div className="metricTable-header-inner">Interrupts</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dispels" title="Dispels">
+              <div className="metricTable-header-inner">Dispels</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-purges" title="Purges">
+              <div className="metricTable-header-inner">Purges</div>
+            </th>
           </tr>
         </thead>
         <tbody className="fadein">

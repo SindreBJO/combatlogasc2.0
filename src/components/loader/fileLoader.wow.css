@@ -9,7 +9,7 @@ html, body {
   min-width: 100vw;
   height: 100vh;
   width: 100vw;
-  background: url('https://cdn.mos.cms.futurecdn.net/Xbh76nmW744S57hozxMLtU.jpg');
+  background: url('../../assets/image2.png');
   background-size: cover;
   background-blend-mode: multiply;
   background-repeat: no-repeat;
@@ -50,6 +50,9 @@ html, body {
   margin: 0;
   padding: 12px 0 8px 0;
   text-align: center;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE10+/Edge */
 }
 .wow-wotlk-inputs {
   display: flex;
@@ -81,7 +84,10 @@ html, body {
   color: #ffe082;
   font-size: 1.1rem;
   font-weight: 700;
-  cursor: pointer;
+  cursor: normal;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE10+/Edge */
   transition: background 0.4s, color 0.2s, border 0.2s, box-shadow 0.2s, opacity 0.7s;
   position: relative;
   overflow: hidden;
@@ -107,8 +113,9 @@ html, body {
   z-index: 2;
 }
 .wow-wotlk-dropzone:hover {
-  border: 2.5px solid #ffe082;
+  border: 2.5px solid #ffe08265;
   color: #23272f;
+  cursor: normal;
 }
 .wow-wotlk-droptext {
   display: block;
@@ -121,6 +128,9 @@ html, body {
 .wow-wotlk-progress {
   margin: 18px 0 10px 0;
   color: #5ad1e6 ;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE10+/Edge */
 }
 .wow-wotlk-progressbar {
   width: 100%;
@@ -157,6 +167,9 @@ html, body {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE10+/Edge */
 }
 .wow-wotlk-stats {
   display: flex;
@@ -175,6 +188,36 @@ html, body {
     gap: 12px;
     margin-bottom: 18px;
     width: 100%;
+}
+.file-loader-stats{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin-top: 18px;
+    color: #ffe082;
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+.file-loader-fileinput {
+  color: #ffe082;
+  padding: 9px 14px;
+  font-size: 1.0rem;
+  font-family: 'Lora', 'Merriweather', 'Georgia', serif;
+  border-radius: 10px;
+  border: 2.5px solid #a88b4a;
+  width: 80%;
+  margin: 10px auto 0 auto;
+  display: block;
+  box-shadow: 0 1px 6px #0004;
+  outline: none;
+  transition: background 0.25s, color 0.18s, border 0.18s, box-shadow 0.18s;
+  cursor: pointer;
+
+}
+.file-loader-fileinput:hover, .file-loader-fileinput:focus {
+  border: 2.5px solid #23272f;
+  color: #23272f;
 }
 @media (max-width: 600px) {
   .wow-wotlk-card {

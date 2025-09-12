@@ -157,7 +157,8 @@ h2.metricTable-title{
 }
 
 .metrics-table th.metricTable-big-cell, .metrics-table th.metricTable-small-cell {
-  background: linear-gradient(90deg, var(--accent-bg) 60%, var(--primary) 100%);
+  background: var(--accent-bg);
+  height: 50px;
   color: var(--primary-light);
   border-right: 2px solid var(--primary);
   border-bottom: 2px solid var(--primary);
@@ -190,8 +191,7 @@ h2.metricTable-title{
 }
 
 .metricTable-header-text {
-  font-size: 1.1rem;
-  font-weight: 600;
+  font-size: 1rem;
   color: var(--primary-light);
   text-align: center;
   background: none;
@@ -211,8 +211,6 @@ h2.metricTable-title{
   margin-bottom: 18px;
   justify-content: flex-start;
   align-items: flex-start;
-  overflow-x: auto;
-  overflow-y: hidden;
   flex-wrap: wrap;
   width: 90vw;
   min-height: 36px;
@@ -246,7 +244,6 @@ h2.metricTable-title{
   font-family: 'Lora', 'Merriweather', 'Georgia', serif;
   font-weight: 700;
   letter-spacing: 1px;
-  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.22), 0 1px 0 #3a2e1a inset;
   transition: background 0.18s, color 0.13s, border 0.13s, box-shadow 0.13s, transform 0.11s;
   white-space: nowrap;
   flex: 0 0 auto;
@@ -267,7 +264,7 @@ h2.metricTable-title{
 
 }
 .session-btn.active {
-  background: var(--primary-bg) !important;
+  background: var(--secondary-bg) !important;
   color: var(--primary) !important;
   border: 2px solid var(--primary-light) !important;
   cursor: pointer;
@@ -448,6 +445,7 @@ h2.metricTable-title{
   border-radius: 8px;
   position: absolute;
   left: 0;
+  opacity: 0.5;
   top: 15%;
   z-index: 1;
   transition: width 0.4s cubic-bezier(.4,2,.6,1);

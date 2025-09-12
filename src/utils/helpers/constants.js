@@ -309,15 +309,32 @@ export const BOSSNAMES = [
   "Alythess",
   "High Commander Arynyes",
   "M'uru",
+  "Entropius",
   "Kil'jaeden",
 ]
 
-export const MultipleIdMonsters = [
-  "test",
-  "test2",
-  "Panda",
+//
+export const MultipleIdEnemyNPCs = [
+  "Kil'jaeden",
+]
+
+export const MultipleNameEnemyNPCs = [
+  ["M'uru", "Entropius"],
+]
+
+export const bypassEndByDIEDSessionCheckNames = [
+  "Apolyon",
+  "Archonisus",
+  "Agamath",
+  "Wild Volatile Imp",
 ]
 
 export const bannedNames = [
   "Shard of Gonk",
+  "Singularity",
+  "Outland Single Target Training Dummy",
+  "Dynamic Training Dummy",
+  "Outland AOE Training Dummy",
+  "Environment",
+  "Arcane Orb",
 ]

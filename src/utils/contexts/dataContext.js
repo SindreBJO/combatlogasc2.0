@@ -3,7 +3,7 @@ import React, { createContext, useEffect, useState } from 'react';
 // Parsing helpers
 import { parseString, setGlobalYear, testArrayLength } from '../helpers/parseHelpers.js';
 // Constants
-import { BOSSNAMES, MultipleIdMonsters, bannedNames } from '../helpers/constants.js';
+import { BOSSNAMES, MultipleIdEnemyNPCs, bannedNames, MultipleNameEnemyNPCs, bypassEndByDIEDSessionCheckNames } from '../helpers/constants.js';
 
 export const DataContext = createContext();
 
@@ -139,7 +139,7 @@ export const DataContextProvider = ({ children }) => {
             const newLines = text.split('\n');
             carryOver = newLines.pop();
             newLines.forEach(line => {
-                handleParse(line);
+                processParse(line);
             });
             offset += CHUNK_SIZE;
             setProgress(`Progress: ${(Math.min(offset, file.size) * 100 / file.size).toFixed(3)} %`);
@@ -149,7 +149,7 @@ export const DataContextProvider = ({ children }) => {
             } else {
                 metaData.dataIndexEnd = indexLine;
                 metaData.dataTimeStampEnd = currentParsedObject?.timeStamp;
-                handleParse(carryOver);
+                processParse(carryOver);
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
                 metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
@@ -169,13 +169,14 @@ export const DataContextProvider = ({ children }) => {
         };
 
         // Function for parsing each line and handling sessions depending on the parsed line.
-        function handleParse(currentUnparsedLine){
+        function processParse(currentUnparsedLine){
             currentParsedObject = parseString(currentUnparsedLine);
+            if (bannedNames.includes(currentParsedObject.sourceName) || bannedNames.includes(currentParsedObject.destName)) { return; }
             if (currentParsedObject) {
                 if (metaData.dataIndexStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
                 if (metaData.dataTimeStampStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
 
-                handleSession();
+                processSession();
                 setValidLinesCount(prevCount => prevCount + 1);
                 metaData.data.push(currentParsedObject);
                 indexLine++;
@@ -192,66 +193,40 @@ export const DataContextProvider = ({ children }) => {
         const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-        function handleSession() {
-            // Start session if not active and event is DAMAGE or MISSED
-            if (checkSessionStartCondition()) {
-                startSession();
-            }
-
+        function processSession() {
+            if (checkSessionStartCondition()) { startSession() }
             if (sessionActive) {
-                // Add/update entity info
                 tryAddUniqueEntity(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID);
                 tryAddUniqueEntity(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID);
-                // Add action info if relevant fields exist
-                if (currentParsedObject.spellName && currentParsedObject.spellId) {
-                    tryAddEntityUniqueAction(
-                        currentParsedObject.sourceFlag,
-                        currentParsedObject.sourceName,
-                        currentParsedObject.sourceGUID,
-                        currentParsedObject.spellName,
-                        currentParsedObject.spellId,
-                        currentParsedObject.spellSchool,
-                        true, // is SourceEntity
-                    );
-                    tryAddEntityUniqueAction(
-                        currentParsedObject.destFlag,
-                        currentParsedObject.destName,
-                        currentParsedObject.destGUID,
-                        currentParsedObject.spellName,
-                        currentParsedObject.spellId,
-                        currentParsedObject.spellSchool,
-                        false // is not SourceEntity
-                    );
-                }
+                tryAddEntityUniqueAction(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, true, /*is SourceEntity*/);
+                tryAddEntityUniqueAction(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, false /*is not SourceEntity*/);
+                checkPlayerResurrected();
                 checkEntityAliveStatus();
-                // Update last damage timestamp on DAMAGE or MISSED events
-                if (["DAMAGE", "MISSED"].includes(currentParsedObject.event[1])) {
-                    if (currentSession) {
-                        currentSession.lastDamageTimestamp = currentParsedObject.timeStamp;
-                        currentSession.lastDamageIndexAt = indexLine;
-                    }
-                }
-                // Boss name logic
-                if ((currentSession?.bossName === "Trash") && BOSSNAMES.includes(currentParsedObject.sourceName) && currentParsedObject.sourceFlag === "enemyNPC") {
-                    currentSession.bossName = currentParsedObject.sourceName;
-                }
-                if ((currentSession?.bossName === "Trash") && BOSSNAMES.includes(currentParsedObject.destName) && currentParsedObject.destFlag === "enemyNPC") {
-                    currentSession.bossName = currentParsedObject.destName;
-                }
-                // End session if end condition is met
+                checkBossName(currentParsedObject.sourceFlag, currentParsedObject.sourceName);
+                checkBossName(currentParsedObject.destFlag, currentParsedObject.destName);
+                if ( checkDamageAction() ) { updateLastDamageTimestampAndIndex() }
                 if (checkSessionEndCondition()) {
-                    endSession();
+                    endSession() 
                 }
             }
         }
-
-
+        function checkDamageAction() {
+            return ["DAMAGE", "MISSED"].includes(currentParsedObject.event[1]);
+        }
+        function updateLastDamageTimestampAndIndex() {
+                currentSession.lastDamageTimestamp = currentParsedObject.timeStamp;
+                currentSession.lastDamageIndexAt = indexLine;
+        }
         function checkSessionStartCondition () {
-            if (!sessionActive && ["DAMAGE", "MISSED"].includes(currentParsedObject.event[1])) {
+            if (!sessionActive && ["DAMAGE", "MISSED"].includes(currentParsedObject.event[1]) && currentParsedObject.event[0] !== "ENVIRONMENTAL" && ["player", "enemyNPC"].includes(currentParsedObject.sourceFlag) && ["player", "enemyNPC"].includes(currentParsedObject.destFlag) && (currentParsedObject.sourceName !== currentParsedObject.destName)) {
                 return true
             } else { return false }
         }
-
+        function checkBossName (affilication, name) {
+            if (sessionActive && currentSession?.bossName === "Trash" && BOSSNAMES.includes(name) && affilication === "enemyNPC") {
+                currentSession.bossName = name;
+            }
+        }
         function startSession () {
             if (sessionActive) {
                 metaData.knownErrorsLogged.push(`Fail to start session at line ${indexLine}: session already active.`)
@@ -288,12 +263,11 @@ export const DataContextProvider = ({ children }) => {
         };
 
         function tryAddUniqueEntity(affiliation, name, id) {
-          if (name.includes(bannedNames)) return;
           const byNameAffiliations = ['player', 'pet', 'enemyPlayer', 'friendlyPlayer'];
           const byIdAffiliations = ['friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
           let listName = affiliationToList[affiliation] || 'unknowns';
 
-          if (byNameAffiliations.includes(affiliation)) {
+          if (byNameAffiliations.includes(affiliation) || (MultipleIdEnemyNPCs.includes(name) && affiliation === 'enemyNPC')) {
             let entity = currentSession.entitiesData[listName].find(e => e.name === name);
             if (!entity) {
               entity = {
@@ -301,7 +275,7 @@ export const DataContextProvider = ({ children }) => {
                 ids: [id],
                 actions: { dealt: [], received: [] },
                 entityType: 'byName',
-                ...(listName === 'players' ? { alive: true } : {}),
+                ...(listName === 'players' || listName === 'enemyNPCs' ? { alive: true } : {}),
               };
               currentSession.entitiesData[listName].push(entity);
             } else {
@@ -371,14 +345,29 @@ export const DataContextProvider = ({ children }) => {
             if (currentParsedObject.event[1] === "UNITDIED") {
                 // Check enemyNPCs (byId)
                 currentSession.entitiesData.enemyNPCs.forEach(entity => {
-                    if (
-                        entity.entityType === "byId" &&
-                        entity.id === currentParsedObject.destGUID &&
-                        entity.names.includes(currentParsedObject.destName)
-                    ) {
-                        entity.alive = false;
-                    }
-                });
+                if (
+                    entity.entityType === "byId" &&
+                    entity.id === currentParsedObject.destGUID &&
+                    entity.names.includes(currentParsedObject.destName)
+                ) {
+                    entity.alive = false;
+                    entity.diedAt = {
+                            timeStamp: currentParsedObject.timeStamp,
+                            indexLine: indexLine
+                        };
+                }
+                // Also check byName for bosses in MultipleIdEnemyNPCs
+                if (
+                    entity.entityType === "byName" &&
+                    entity.name === currentParsedObject.destName
+                ) {
+                    entity.alive = false;
+                    entity.diedAt = {
+                            timeStamp: currentParsedObject.timeStamp,
+                            indexLine: indexLine
+                        };
+                }
+            });
                 // Check players (byName)
                 currentSession.entitiesData.players.forEach(entity => {
                     if (
@@ -414,15 +403,19 @@ export const DataContextProvider = ({ children }) => {
             }
         }
 
+        
         function checkSessionEndCondition () {
-            if (sessionActive && (currentParsedObject.destName === currentSession?.bossName) && (currentParsedObject.event[1] === "UNITDIED")) {
+            if (sessionActive && ((currentParsedObject.destName === currentSession?.bossName) || (MultipleNameEnemyNPCs[0].includes(currentSession?.bossName) && MultipleNameEnemyNPCs[0].includes(currentParsedObject.destName))) && (currentParsedObject.event[1] === "UNITDIED")) {
                 currentSession.outcome = "VictoryBoss";        
                 return true;
             } else if (
                 currentSession.bossName === "Trash" &&
                 Array.isArray(currentSession.entitiesData.enemyNPCs) &&
                 currentSession.entitiesData.enemyNPCs.length > 0 &&
-                currentSession.entitiesData.enemyNPCs.every(e => e.alive === false)
+                currentSession.entitiesData.enemyNPCs.every(e => e.alive === false) &&
+                !currentSession.entitiesData.enemyNPCs.some(e =>
+                  e.names?.some(name => bypassEndByDIEDSessionCheckNames.includes(name))
+                )
             ) {
                 currentSession.outcome = "VictoryTrash";
                 return true;
@@ -464,9 +457,6 @@ export const DataContextProvider = ({ children }) => {
             setSessionCount(prevCount => prevCount + 1);
             console.log("Session ended", currentSession.bossName, currentSession.outcome, currentSession);
         }
-
-
-
 
         readNextChunk();
     }
