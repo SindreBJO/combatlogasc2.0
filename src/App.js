@@ -7,7 +7,6 @@ import Error from './pages/error.js';
 import UserManual from "./pages/user-manual.js";
 import NewSession from "./pages/new-session.js";
 import CurrentSession from "./pages/current-session.js";
-import LayoutContainer from "./containers/layoutContainer/layoutContainer.js";
 
 
 export default function App() {
@@ -15,12 +14,10 @@ export default function App() {
   return (
       <div className='app'>
         <Header/>
-        <LayoutContainer/>
         <Routes>
-          <Route path="/" element={<NewSession/>}/>
-          <Route path="/Filedrop" element={<NewSession/>}/>
-          <Route path="/Table" element={<CurrentSession/>}/>
-          <Route path="/Graph" element={<UserManual/>}/>
+          <Route path="/" element={<Home/>}/>
+          <Route path="/session" element={<NewSession/>}/>
+          <Route path="/table" element={<CurrentSession/>}/>
           <Route path="/*" element={<Error/>}/>
         </Routes>
       </div>

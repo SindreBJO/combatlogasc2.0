@@ -6,7 +6,7 @@ export default function NavButton({ type, page }) {
 
   return (
     <Link className='nav-button' to={`/${page}`}>
-      {type}
+      <span>{type}</span>
     </Link>
   );
 }

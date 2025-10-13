@@ -6,13 +6,13 @@ export default function Header() {
 
     return (
         <header>
-            <h1 className="header-title">Combatlog.Asc</h1>
+            <h1 className="header-title">Combatlog 3.3.5</h1>
             <nav className="nav">
                 <ul className="nav-list">
                     <li className="nav-element"><NavButton type={"Home"} page={""}/></li>
-                    <li className="nav-element"><NavButton type={"File Drop"} page={"NewSession"}/></li>
-                    <li className="nav-element"><NavButton type={"Analysation"} page={"CurrentSession"}/></li>
+                    <li className="nav-element"><NavButton type={"Session"} page={"session"}/></li>
                     <li className="nav-element"><NavButton type={"User Manual"} page={"UserManual"}/></li>
+
                 </ul>
             </nav>
         </header>

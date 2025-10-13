@@ -1,29 +1,59 @@
 .nav-button {
+  position: relative;
+  display: inline-block; /* ✅ ensures scaling affects the element box properly */
+  overflow: hidden;
   padding: 12px 28px;
   font-size: 1.1rem;
-  background: linear-gradient(90deg, #a88b4a 0%, #ffe082 100%);
   color: #23272f;
   border: none;
   border-radius: 8px;
-  box-shadow: 0 2px 8px #000a;
   cursor: pointer;
   font-family: 'Lora', 'Merriweather', 'Georgia', serif;
   font-weight: 700;
   letter-spacing: 1px;
-  transition: background 0.2s, box-shadow 0.2s, color 0.2s, transform 0.15s;
   text-decoration: none;
+  box-shadow: 0 2px 8px #000a;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  transform-origin: center; /* ✅ ensures scaling happens from the center */
+  z-index: 0;
 }
 
-.nav-button:hover,
-.nav-button:focus {
+/* --- Gradient layers --- */
+.nav-button::before,
+.nav-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 0;
+  transition: opacity 0.6s ease;
+}
+
+/* Base gradient */
+.nav-button::before {
+  background: linear-gradient(90deg, #a88b4a 0%, #ffe082 100%);
+  opacity: 1;
+}
+
+/* Hover gradient */
+.nav-button::after {
   background: linear-gradient(90deg, #6ee7b7 0%, #5ad1e6 100%);
-  box-shadow: 0 4px 16px #a88b4a55;
-  transform: translateY(-1px) scale(1.03);
-  outline: none;
+  opacity: 0;
 }
 
-.nav-button:active {
-  background: #a88b4a;
-  color: #fff;
-  transform: scale(0.98);
+/* Fade between gradients */
+.nav-button:hover::after {
+  opacity: 1;
+}
+
+/* ✅ Hover scaling + shadow */
+.nav-button:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 16px #a88b4a55;
+}
+
+/* Keep text above gradients */
+.nav-button span {
+  position: relative;
+  z-index: 1;
 }

@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+
 header {
   width: 100vw;
   display: flex;
@@ -10,12 +12,13 @@ header {
   box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.65), 0 2px 0 #3a2e1a inset;
   min-height: 72px;
   position: relative;
+  transition: all 0.3s ease-in-out;
 }
 
 .header-title {
-  font-family: 'Lora', 'Merriweather', 'Georgia', serif;
+  font-family: 'Inter', 'Merriweather', 'Georgia', serif;
   color: #ffe082;
-  font-size: 2.2rem;
+  font-size: 2.8rem;
   font-weight: 900;
   letter-spacing: 2px;
   text-shadow: 0 2px 8px #a88b4a99, 0 1px 0 #fff;
@@ -49,15 +52,14 @@ header {
   gap: 24px;
 }
 
-.nav-element {
-  border-radius: 8px;
-  transition: background 0.2s, box-shadow 0.2s;
-  box-shadow: 0 2px 8px #000a;
-}
-
-.nav-element:hover {
-  background: linear-gradient(90deg, #a88b4a 0%, #ffe082 100%);
-  box-shadow: 0 4px 16px #a88b4a55;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    background-color: transparent;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 700px) {

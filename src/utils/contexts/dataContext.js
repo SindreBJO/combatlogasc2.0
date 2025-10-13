@@ -19,6 +19,7 @@ export const DataContextProvider = ({ children }) => {
     const [sessionCount, setSessionCount] = useState(0);
     const [validLinesCount, setValidLinesCount] = useState(0);
     const [invalidLinesCount, setInvalidLinesCount] = useState(0);
+    const [finishedParsing, setFinishedParsing ] = useState(false);
 
     // Input states
     const [inputYear, setInputYear] = useState();
@@ -456,13 +457,14 @@ export const DataContextProvider = ({ children }) => {
             metaData.sessions.push({ ...currentSession });
             setSessionCount(prevCount => prevCount + 1);
             console.log("Session ended", currentSession.bossName, currentSession.outcome, currentSession);
+            setFinishedParsing(true);
         }
 
         readNextChunk();
     }
 
     return (
-        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout }}>
+        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout, finishedParsing, setFinishedParsing }}>
             {children}
         </DataContext.Provider>
     );
