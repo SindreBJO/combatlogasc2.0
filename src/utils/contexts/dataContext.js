@@ -20,6 +20,7 @@ export const DataContextProvider = ({ children }) => {
     const [validLinesCount, setValidLinesCount] = useState(0);
     const [invalidLinesCount, setInvalidLinesCount] = useState(0);
     const [finishedParsing, setFinishedParsing ] = useState(false);
+    const [startNewSession, setStartNewSession ] = useState(false);
 
     // Input states
     const [inputYear, setInputYear] = useState();
@@ -114,6 +115,7 @@ export const DataContextProvider = ({ children }) => {
         setProgress('Loadingstate');
         setProgressPercentage(0);
         setSessionCount(0);
+        setStartNewSession(false);
         // Reset session context state
 
         // Reset local session state
@@ -155,6 +157,8 @@ export const DataContextProvider = ({ children }) => {
                 setProgressPercentage(100);
                 metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
                 setData(metaData);
+                console.log("Finished parsing file. MetaData:", metaData);
+                setFinishedParsing(true);
                 // After parsing, update session context if needed
                 if (currentSession) {
 
@@ -249,7 +253,6 @@ export const DataContextProvider = ({ children }) => {
             currentSession.lastDamageTimestamp = currentParsedObject ? currentParsedObject.timeStamp : null;
             currentSession.lastDamageIndexAt = indexLine;
             sessionActive = true;
-            console.log("Session started");
         }
 
         const affiliationToList = {
@@ -275,7 +278,9 @@ export const DataContextProvider = ({ children }) => {
                 name,
                 ids: [id],
                 actions: { dealt: [], received: [] },
-                entityType: 'byName',
+                processType: 'byName',
+                entityType: affiliation,
+                
                 ...(listName === 'players' || listName === 'enemyNPCs' ? { alive: true } : {}),
               };
               currentSession.entitiesData[listName].push(entity);
@@ -291,7 +296,8 @@ export const DataContextProvider = ({ children }) => {
                 id,
                 names: [name],
                 actions: { dealt: [], received: [] },
-                entityType: 'byId',
+                processType: 'byId',
+                entityType: affiliation,
                 ...(listName === 'enemyNPCs' ? { alive: true } : {}),
               };
               currentSession.entitiesData[listName].push(entity);
@@ -307,7 +313,8 @@ export const DataContextProvider = ({ children }) => {
                 id,
                 names: [name],
                 actions: { dealt: [], received: [] },
-                entityType: 'byId',
+                processType: 'byId',
+                entityType: affiliation,
               };
               currentSession.entitiesData['unknowns'].push(entity);
             } else {
@@ -324,9 +331,9 @@ export const DataContextProvider = ({ children }) => {
           let listName = affiliationToList[affiliation] || 'unknowns';
 
           const entities = currentSession.entitiesData[listName].filter(e => {
-            if (e.entityType === 'byName') {
+            if (e.processType === 'byName') {
               return e.name === name && Array.isArray(e.ids) && e.ids.includes(id);
-            } else if (e.entityType === 'byId') {
+            } else if (e.processType === 'byId') {
               return e.id === id && Array.isArray(e.names) && e.names.includes(name);
             } else {
               return e.id === id && e.name === name;
@@ -347,7 +354,7 @@ export const DataContextProvider = ({ children }) => {
                 // Check enemyNPCs (byId)
                 currentSession.entitiesData.enemyNPCs.forEach(entity => {
                 if (
-                    entity.entityType === "byId" &&
+                    entity.processType === "byId" &&
                     entity.id === currentParsedObject.destGUID &&
                     entity.names.includes(currentParsedObject.destName)
                 ) {
@@ -359,7 +366,7 @@ export const DataContextProvider = ({ children }) => {
                 }
                 // Also check byName for bosses in MultipleIdEnemyNPCs
                 if (
-                    entity.entityType === "byName" &&
+                    entity.processType === "byName" &&
                     entity.name === currentParsedObject.destName
                 ) {
                     entity.alive = false;
@@ -372,7 +379,7 @@ export const DataContextProvider = ({ children }) => {
                 // Check players (byName)
                 currentSession.entitiesData.players.forEach(entity => {
                     if (
-                        entity.entityType === "byName" &&
+                        entity.processType === "byName" &&
                         entity.name === currentParsedObject.destName &&
                         entity.ids.includes(currentParsedObject.destGUID)
                     ) {
@@ -456,15 +463,13 @@ export const DataContextProvider = ({ children }) => {
             // Optionally, push to metaData.sessions here
             metaData.sessions.push({ ...currentSession });
             setSessionCount(prevCount => prevCount + 1);
-            console.log("Session ended", currentSession.bossName, currentSession.outcome, currentSession);
-            setFinishedParsing(true);
         }
 
         readNextChunk();
     }
 
     return (
-        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout, finishedParsing, setFinishedParsing }}>
+        <DataContext.Provider value={{ readNewFile, data, progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, inputYear, setInputYear, setInputDamageTimeout, finishedParsing, setFinishedParsing, startNewSession, setStartNewSession }}>
             {children}
         </DataContext.Provider>
     );

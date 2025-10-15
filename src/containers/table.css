@@ -191,12 +191,13 @@ h2.metricTable-title{
 }
 
 .metricTable-header-text {
-  font-size: 1rem;
+  font-size: 1.1rem;
   color: var(--primary-light);
   text-align: center;
   background: none;
   user-select: none;
-  text-shadow: 0 1px 4px #000;
+  text-shadow: 0 0px 1px #ffffff;
+  letter-spacing: 1px;
 }
 
 .metricTable-header-text:hover {
@@ -450,10 +451,21 @@ h2.metricTable-title{
   z-index: 1;
   transition: width 0.4s cubic-bezier(.4,2,.6,1);
 }
+.metricTable-damageTaken-bar {
+  height: 70%;
+  background: #94440e;
+  border-radius: 8px;
+  position: absolute;
+  left: 0;
+  opacity: 0.5;
+  top: 15%;
+  z-index: 1;
+  transition: width 0.4s cubic-bezier(.4,2,.6,1);
+}
 .metricTable-damage-bar-label {
   position: relative;
   z-index: 2;
-  color: #23272f;
+  color: #ffffff;
   font-weight: 600;
   padding-left: 8px;
   padding-right: 8px;
@@ -488,4 +500,27 @@ h2.metricTable-title{
 
 .fadeout {
   animation: fadeout 0.5s ease-in forwards;
+}
+
+.session-info-panel-player-alive-status{
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-direction: row;;
+}
+
+.alive-text {
+  color: var(--success);
+  font-weight: 600;
+  margin-left: 4px;
+  font-size: 16px;
+  padding: 0;
+  margin: 0;
+}
+.dead-text {
+  color: var(--danger);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 0;
+  margin: 0;
 }

@@ -1,4 +1,5 @@
 import NavButton from "../buttons/navButton.js";
+import { Link } from "react-router-dom";
 import "./header.css";
 
 export default function Header() {
@@ -6,7 +7,7 @@ export default function Header() {
 
     return (
         <header>
-            <h1 className="header-title">Combatlog 3.3.5</h1>
+            <Link to="/" className="header-title"><h1>Combatlog 3.3.5</h1></Link>
             <nav className="nav">
                 <ul className="nav-list">
                     <li className="nav-element"><NavButton type={"Home"} page={""}/></li>

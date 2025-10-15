@@ -10,12 +10,20 @@ header {
   background: linear-gradient(90deg, #23272f 80%, #2d313a 100%);
   border-bottom: 4px solid #a88b4a;
   box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.65), 0 2px 0 #3a2e1a inset;
-  min-height: 72px;
+  min-height: 80px;
   position: relative;
   transition: all 0.3s ease-in-out;
 }
-
-.header-title {
+.header-title{
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+}
+.header-title *:hover{
+  transform: scale(1.02);
+  margin-left: 2px;
+  text-shadow: 0 2px 8px #ffe082bb, 0 1px 0 #fff;
+}
+.header-title h1{
   font-family: 'Inter', 'Merriweather', 'Georgia', serif;
   color: #ffe082;
   font-size: 2.8rem;
@@ -29,7 +37,14 @@ header {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   padding-left: 20px;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE10+/Edge */
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.4s ease-in-out;
 }
+
 
 .nav {
   display: flex;
@@ -46,10 +61,11 @@ header {
   display: flex;
   flex-direction: row;
   width: auto;
-  padding: 0;
+  padding-right: 10px;
   margin: 0;
   list-style-type: none;
-  gap: 24px;
+  gap: 15px;
+
 }
 
 @keyframes fadeIn {

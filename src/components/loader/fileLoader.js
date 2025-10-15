@@ -4,8 +4,8 @@ import { DataContext } from '../../utils/contexts/dataContext';
 
 
 export default function FileLoader() {
-    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear, setInputDamageTimeout } = useContext(DataContext);
-    const [dragActive, setDragActive] = useState(false);
+    const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear, setInputDamageTimeout, setFinishedParsing, data, finishedParsing, setStartNewSession, startNewSession } = useContext(DataContext);
+    const [ dragActive, setDragActive ] = useState(false);
 
     function handleDrop(event) {
         event.preventDefault();
@@ -32,6 +32,10 @@ export default function FileLoader() {
             readNewFile(files[0]);
         }
     };
+
+      const toggleCurrentNewSession = () => {
+        setFinishedParsing(true);
+      }
 
     return (
         <div className="file-loader-container wow-wotlk-bg">
@@ -92,6 +96,7 @@ export default function FileLoader() {
               <div>Sessions: <span>{sessionCount}</span></div>
             </div>
           </div>
+          {(startNewSession && sessionCount > 0) && <button className="nav-button" onClick={toggleCurrentNewSession}><span>Previous Session</span></button>}
         </div>
     );
 }
