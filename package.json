@@ -1,8 +1,8 @@
 {
   "name": "combatlog",
   "version": "0.1.0",
-  "homepage": "",
   "private": true,
+  "homepage": "https://SindreBJO.github.io/combatlogasc2.0",
   "dependencies": {
     "@reduxjs/toolkit": "^2.8.2",
     "@testing-library/jest-dom": "^5.17.0",
