@@ -49,7 +49,7 @@
 /* ✅ Hover scaling + shadow */
 .nav-button:hover {
   transform: scale(1.03);
-  box-shadow: 0 4px 16px #a88b4a55;
+  box-shadow: 0 2px 16px #a88b4a55;
 }
 
 /* Keep text above gradients */

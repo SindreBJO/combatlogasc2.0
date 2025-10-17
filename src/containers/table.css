@@ -1,55 +1,33 @@
+
+
 /* Modern, smooth metrics table styling */
-:root {
-  --primary-bg: #23272f;
-  --secondary-bg: #2d313a;
-  --accent-bg: #3a3f4b;
-  --primary: #5ad1e6;
-  --primary-light: #a7e9f7;
-  --secondary: #7e8fa3;
-  --success: #6ee7b7;
-  --danger: #f87171;
-  --warning: #fbbf24;
-  --text-main: #f3f4f6;
-  --text-secondary: #bfc7d5;
-  --border: #3a4152;
-  --shadow: 0 4px 24px 0 rgba(30,40,60,0.18), 0 1.5px 0 #23272f inset;
-}
-h2.metricTable-title{
+.table-section-title{
   color: #5ad1e6;
-  text-shadow: 0 2px 8px #000;
+  text-shadow: 0 0 2px #ffffff42;
   font-weight: 700;
   letter-spacing: 1px;
   user-select: none;
-  margin-bottom: 16px;
-  padding-left: 20px;
 }
 .metricTable-container {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  width: 97%;
   max-width: 2500px;
   min-height: 40vh;
-  padding: 32px 24px;
-  background: var(--primary-bg);
+  padding: 40px 60px;
   color: var(--text-main);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
   border: none;
+  gap: 25px;
 }
 .session-info-panel {
-  background: linear-gradient(135deg, var(--primary-bg) 60%, var(--secondary-bg) 100%);
   color: var(--text-main);
-  box-shadow: var(--shadow);
-  margin: 20px 0;
   max-width: 90vw;
   width: 90vw;
   font-size: 17px;
   font-family: 'Segoe UI', Arial, sans-serif;
   letter-spacing: 0.1px;
   position: relative;
-  overflow: hidden;
   min-width: 320px;
 }
 .session-info-panel-topbar {
@@ -58,25 +36,34 @@ h2.metricTable-title{
   left: 0;
   width: 100%;
   height: 8px;
-  background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
   border-top-left-radius: 16px;
   border-top-right-radius: 16px;
 }
 .session-info-panel-section {
-  min-width: 240px;
-  background: var(--accent-bg);
+  min-width: 200px;
+  background: rgb(233, 221, 221);
   border-radius: 10px;
   padding: 18px;
   box-shadow: 0 1px 8px #0008;
   border: 1.5px solid var(--primary);
   color: var(--text-main);
 }
+.session-info-panel-section-sessionData{
+  margin: 4px 0;
+  font-size: 20px;
+  font-weight: 600;
+  text-shadow: 0 2px 6px #0000003d;
+}
+.session-info-panel-section p{
+  margin: 4px 0;
+  font-size: 15px;
+}
 .session-info-panel-title {
   margin: 0;
   color: var(--primary-light);
   font-weight: 700;
   letter-spacing: 0.5px;
-  text-shadow: 0 2px 8px #000;
+  text-shadow: 0 2px 6px #0000003d;
 }
 .session-info-panel-label {
   color: var(--primary);
@@ -126,17 +113,18 @@ h2.metricTable-title{
   font-size: 15px;
 }
 
-.metricTable-title-wrapper{
+.table-section-title-wrapper{
   display: flex;
   width: 100%;
   user-select: none;
+  padding: 0;
+  margin: 0;
 }
 
 .metricTable-title {
   font-size: 1.8rem;
   font-weight: 700;
   color: #222;
-  margin-bottom: 16px;
   justify-self: left;
   text-align: center;
 }
@@ -160,9 +148,11 @@ h2.metricTable-title{
   background: var(--accent-bg);
   height: 50px;
   color: var(--primary-light);
-  border-right: 2px solid var(--primary);
-  border-bottom: 2px solid var(--primary);
   text-shadow: 0 2px 8px #000;
+  font-weight: 600;
+  border-bottom: 2px solid #a88b4a;
+  transition: all 0.3s ease;
+  overflow: hidden;
 }
 .metrics-table th:last-child {
   border-right: 0px solid var(--primary);
@@ -173,15 +163,23 @@ h2.metricTable-title{
   font-size: 1rem;
   color: var(--text-main);
   text-align: center;
-  border-bottom: 1px solid var(--border);
   background: var(--accent-bg);
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  border-bottom: 1.5px solid #f3f4f64b;
+  overflow: hidden;
+}
+.metrics-table td:hover {
+  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.247), 0 0px 5px #a88b4a inset;
 }
 .metrics-table tr {
   border-bottom: none;
+  overflow: hidden;
 }
-.metrics-table td {
-  border-bottom: 1.5px solid #f3f4f6;
+.metrics-table tr:hover {
+  border-bottom: 3px solid white;
+}
+.metrics-table th:hover {
+  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.226), 0 0px 5px #a88b4a inset;
 }
 .metrics-table tr:last-child td {
   border-bottom: none;
@@ -189,19 +187,39 @@ h2.metricTable-title{
 .metrics-table tr:last-child {
   border-bottom: none;
 }
-
+.metricTable-header-inner{
+  font-size: 1rem;
+}
 .metricTable-header-text {
   font-size: 1.1rem;
   color: var(--primary-light);
   text-align: center;
   background: none;
   user-select: none;
-  text-shadow: 0 0px 1px #ffffff;
+  text-shadow: 0 0px 1px #00ccff;
   letter-spacing: 1px;
 }
 
-.metricTable-header-text:hover {
-  background-color: #3a2e1a;
+.metricTable-cell-name{
+  font-size: 1rem;
+  color: #0099ff1c !important;
+  text-align: left;
+  padding-left: 12px;
+  background: none;
+  user-select: none;
+  text-shadow: 0 0px 1px #00ccff;
+  letter-spacing: 1px;
+}
+
+.metricTable-cell-text {
+  font-size: 1rem;
+  color: var(--primary-light);
+  text-align: center;
+  background: none;
+  user-select: none;
+  text-shadow: 0 0px 1px #000000;
+  letter-spacing: -0.2px;
+  z-index: 2;
 }
 
 /* Session button bar styling */
@@ -209,7 +227,6 @@ h2.metricTable-title{
   display: flex;
   gap: 12px;
   padding-left: 1px;
-  margin-bottom: 18px;
   justify-content: flex-start;
   align-items: flex-start;
   flex-wrap: wrap;
@@ -245,7 +262,7 @@ h2.metricTable-title{
   font-family: 'Lora', 'Merriweather', 'Georgia', serif;
   font-weight: 700;
   letter-spacing: 1px;
-  transition: background 0.18s, color 0.13s, border 0.13s, box-shadow 0.13s, transform 0.11s;
+  transition: all 0.3s ease;
   white-space: nowrap;
   flex: 0 0 auto;
   max-width: 100%;
@@ -261,24 +278,21 @@ h2.metricTable-title{
   overflow: hidden;
 }
 .session-btn:hover, .session-btn:focus {
-  transform: scale(1.1) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 0 4px rgb(0, 0, 0) inset, 1px 1px 4px #00000088;
+    z-index: 2;
 
 }
 .session-btn.active {
-  background: var(--secondary-bg) !important;
-  color: var(--primary) !important;
-  border: 2px solid var(--primary-light) !important;
-  cursor: pointer;
-  transform: scale(1.1) !important;
+  box-shadow: 0 0 8px rgb(0, 0, 0) inset, 1px 1px 4px #00000088;
   opacity: 1;
-  z-index: 2;
-  
+  transform: scale(1.10) !important;
 }
 .session-btn.active .session-btn-index {
-  color: #ffe082 !important;
   background: none;
-  border-top: 2px solid #ffe082;
-  border-left: 2px solid #ffe082;
+  border-top: 2px solid #00000063;
+  border-left: 2px solid #00000063;
+  z-index: 2;
 }
 
 
@@ -365,7 +379,6 @@ h2.metricTable-title{
   flex-wrap: wrap;
   gap: 24px;
   width: 100%;
-  margin-top: 8px;
 }
 .session-info-panel-boss-row,
 .session-info-panel-outcome-row,
@@ -414,7 +427,6 @@ h2.metricTable-title{
   border: 2.5px solid #a88b4a;
   box-shadow: 0 4px 24px 0 rgba(0,0,0,0.45), 0 1.5px 0 #3a2e1a inset;
   color: #e7cfa0;
-  margin: 24px 0;
   font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 16px;
   overflow: hidden;
@@ -428,7 +440,8 @@ h2.metricTable-title{
   padding: 0 !important;
   height: 100%;
 }
-.metricTable-damage-bar-wrap {
+.metricTable-percent-bar-wrap {
+  display: flex;
   width: 100%;
   height: 100%;
   position: relative;
@@ -437,41 +450,47 @@ h2.metricTable-title{
   display: flex;
   align-items: center;
   justify-content: center;
-  box-sizing: border-box;
   background: none;
 }
-.metricTable-damage-bar {
-  height: 70%;
-  background: #36a83b;
+.metricTable-percent-bar {
+  height: 80%;
   border-radius: 8px;
   position: absolute;
-  left: 0;
+  left: 2%;
   opacity: 0.5;
-  top: 15%;
+  top: 10%;
   z-index: 1;
   transition: width 0.4s cubic-bezier(.4,2,.6,1);
 }
-.metricTable-damageTaken-bar {
-  height: 70%;
-  background: #94440e;
-  border-radius: 8px;
-  position: absolute;
-  left: 0;
-  opacity: 0.5;
-  top: 15%;
-  z-index: 1;
-  transition: width 0.4s cubic-bezier(.4,2,.6,1);
+.metricTable-percent-damageDone-color{
+  background: linear-gradient(90deg, #f87171 0%, #ff0000 100%);
+  z-index: 0;
+  box-shadow: 0 0 4px #ffffff2f;
 }
-.metricTable-damage-bar-label {
-  position: relative;
-  z-index: 2;
-  color: #ffffff;
-  font-weight: 600;
-  padding-left: 8px;
-  padding-right: 8px;
-  width: 100%;
-  text-align: center;
-  line-height: 1.2;
+.metricTable-percent-damageTaken-color{
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  z-index: 0;
+  box-shadow: 0 0 4px #ffffff2f;
+}
+.metricTable-percent-healingTaken-color{
+  background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+  z-index: 0;
+  box-shadow: 0 0 4px #ffffff2f;
+}
+.metricTable-percent-absorbTaken-color{
+  background: linear-gradient(90deg, #ffffff 70%, #fffde0 100%);
+  z-index: 0;
+  box-shadow: 0 0 3px #ffffff7e;
+}
+.metricTable-percent-hps-color{
+  background: linear-gradient(90deg, #09ff00 0%, #0b640f 100%);
+  z-index: 0;
+  box-shadow: 0 0 4px #ffffff2f;
+}
+
+.metricTable-damage-bar-label{
+  color: rgb(255, 244, 244);
+  text-shadow: 0 0 2px #00f7ff28 !important;
 }
 
 /* --- Fade Animations (from flawless filedrop) --- */

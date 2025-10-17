@@ -5,22 +5,7 @@ export default function Home(){
 
   return (
     <div className="main">
-    <video 
-      autoPlay 
-      muted 
-      loop 
-      style={{ 
-        top: "80px", 
-        left: 0, 
-        width: "100vw", 
-        height: "90vh", 
-        objectFit: "cover", 
-        zIndex: 0
-      }}
-    >
-      <source src="/homePageBanner.mp4" type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
+      <h1 style={{color: "#a88b4a", margin: "30vh 30vw"}} cla>Welcome to Home Page! Click Session top right to start!</h1>
   </div>
   )
 }

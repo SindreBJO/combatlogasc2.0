@@ -44,6 +44,7 @@ export const DataContextProvider = ({ children }) => {
       endHour: null,
       endMinute: null,
       endSecond: null,
+      ressurections: [],
       endMillisecond: null,
       encounterLengthMs: null,
       encounterLengthSec: null,
@@ -145,8 +146,8 @@ export const DataContextProvider = ({ children }) => {
                 processParse(line);
             });
             offset += CHUNK_SIZE;
-            setProgress(`Progress: ${(Math.min(offset, file.size) * 100 / file.size).toFixed(3)} %`);
-            setProgressPercentage((offset / file.size) * 100);
+            setProgress(`Progress: ${(Math.min(offset, file.size) * 100 / file.size).toFixed(2)} %`);
+            setProgressPercentage(((offset / file.size) * 100));
             if (offset < file.size) {
                 readNextChunk();
             } else {
@@ -405,6 +406,12 @@ export const DataContextProvider = ({ children }) => {
                 );
                 if (resurrected) {
                     resurrected.alive = true;
+                    currentSession.ressurections.push({
+                        name: resurrected.name,
+                        id: resurrected.ids[0],
+                        timeStamp: currentParsedObject.timeStamp,
+                        indexLine: indexLine
+                    });
                 } else {
                     metaData.knownErrorsLogged.push(`RESURRECT event failed for unknown player ${currentParsedObject.destName} at line ${indexLine}.`);
                 }
@@ -440,12 +447,11 @@ export const DataContextProvider = ({ children }) => {
             return false;
         }
 
-        function endSession(payload) {
+        function endSession() {
             if (!sessionActive) {
                 metaData.knownErrorsLogged.push(`Fail to end session at line ${indexLine}: no session active.`);
                 return;
             }
-            // Set end fields using currentParsedObject
             currentSession = {
                 ...currentSession,
                 endTime: currentParsedObject ? currentParsedObject.timeStamp : null,
@@ -457,10 +463,8 @@ export const DataContextProvider = ({ children }) => {
                 endParse: currentParsedObject ? currentParsedObject : null,
                 encounterLengthMs: currentParsedObject && currentSession.startTime ? currentParsedObject.timeStamp - currentSession.startTime : null,
                 encounterLengthSec: currentParsedObject && currentSession.startTime ? (currentParsedObject.timeStamp - currentSession.startTime) / 1000 : null,
-                ...payload
             };
             sessionActive = false;
-            // Optionally, push to metaData.sessions here
             metaData.sessions.push({ ...currentSession });
             setSessionCount(prevCount => prevCount + 1);
         }

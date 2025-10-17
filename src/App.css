@@ -1,14 +1,231 @@
-.main{
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Merriweather:wght@400;700&family=Fira+Code:wght@400;600&family=Raleway:wght@300;400;600&family=Roboto:wght@300;400;500;700&display=swap');
+
+:root {
+  /*Fonts*/
+  --font-sans: "Inter", "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Merriweather", Georgia, serif;
+  --font-mono: "Fira Code", monospace;
+  --font-heading: "Raleway", "Helvetica Neue", sans-serif;
+  --font-body: "Roboto", "Helvetica Neue", Arial, sans-serif;
+  /*Colors*/
+  --color-primary: #1C1C1C;
+  --color-secondary: #2C2C2C;
+  --color-tertiary: #D4AF37;
+
+  --color-damage: #D32F2F;
+  --color-healing: #388E3C;
+  --color-mitigation: #1976D2;
+  --color-standard: #FBC02D;
+
+  --color-accent-2: #C0C0C0;
+  --color-text: #FFFFFF;
+  --color-text-secondary: #D3D3D3;
+  --color-border: #444444;
+  --primary-color-dim: #6e7d32;
+  --primary-bg: linear-gradient(90deg, #2e7d32, #4caf50);
+  --reverse-primary-bg: linear-gradient(90deg, #2e7d32, #1f4620);
+  --title-color: #F2F2F2;
+  --text-color: white;
+}
+
+html {
+  font-size: 18px;
+}
+
+*{
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-body);
+  border: none;
+}
+
+input:-webkit-autofill,
+textarea:-webkit-autofill { /* Chrome */
+  background-color: transparent !important; 
+  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
+  box-shadow: 0 0 0 1000px transparent inset !important; 
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+input:-moz-autofill,
+textarea:-moz-autofill { /* Firefox */
+  background-color: var(--primary-color-dim) !important; 
+  color: white !important; 
+  border: 1px solid transparent !important;
+}
+input:-ms-autofill,
+textarea:-ms-autofill { /* Edge */
+  background-color: var(--primary-color-dim) !important;
+  color: white !important; 
+  border: 1px solid transparent !important;
+}
+
+
+
+
+::-webkit-scrollbar {
+  width: 16px; 
+}
+::-webkit-scrollbar-track {
+  background-color: rgba(20, 20, 20, 0.8); 
+  border-radius: 15px; 
+  border: 2px solid rgba(30, 30, 30, 0.9);;
+  box-sizing: border-box; 
+  cursor: default;
+}
+::-webkit-scrollbar-thumb {
+  background-color: var(--primary-color-dim); 
+  border-radius: 15px; 
+  border: 2px solid rgba(30, 30, 30, 0.9);; 
+  box-sizing: border-box; 
+}
+::-webkit-scrollbar-thumb:hover { 
+  cursor: default;
+}
+
+
+
+
+:root {
+  --primary-color: #D4AF37; /* Metallic Gold */
+  --secondary-color: #C0C0C0; /* Metallic Silver */
+  --tertiary-color: #CD7F32; /* Metallic Bronze */
+  --background-color: #1C1C1C; /* Dark background for contrast */
+  --glass-background-color: rgba(255, 255, 255, 0.1); /* Frosted glass effect */
+  --primary-background-gradient: linear-gradient(90deg, #2e7d32, #4caf50);
+  --reverse-primary-background-gradient: linear-gradient(90deg, #2e7d32, #1f4620);
+  --title-color: #F2F2F2;
+  --text-color: white;
+  --description-color: #D3D3D3;
+}
+
+
+
+
+
+.hide-on-mobile{
+  display: none !important;
+}
+.show-on-mobile{
+  display: flex !important;
+}
+@media (min-width: 480px){
+  .hide-on-mobile{
+    display: flex !important;
+  }
+  .show-on-mobile{
+    display: none !important;
+  }
+}
+
+
+
+
+.zoom-on-hover-5{
+  transition: transform 0.2s ease;
+}
+.zoom-on-hover-5:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.zoom-on-hover-2{
+  transition: transform 0.2s ease;
+}
+.zoom-on-hover-2:hover {
+  transform: scale(1.02);
+  transition: transform 0.2s ease;
+}
+body{
+    background: var(--background-color);
+    overflow-x: hidden;
+}
+
+#root{
+  display: flex;
+  justify-content: center;
+  width: 100vw;
+  min-height: 100vh;
+}
+
+.App{
+  overflow-x: hidden !important;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+}
+
+.main-content{
+  flex: 1 0 auto; /* Grow to fill space, shrink if needed */
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
-  background-color: #282c34;
+  max-width: 1200px;
 }
-.App {
-  text-align: center;
-  width: 100%;
-  height: 100%;
-  background-color: #1c1f26;
+
+
+
+
+
+
+
+
+
+
+
+
+
+.container {
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2); /* Stronger shadow for depth */
+    background: linear-gradient(90deg, rgba(76, 175, 80, 0.6), rgba(129, 199, 132, 0.6)); /* Green gradient with transparency */
+    backdrop-filter: blur(15px) brightness(1.1); /* Enhanced frosted glass effect */
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+    overflow: hidden; /* Ensures no child elements overflow */
+    transition: all 0.3s ease-in-out;
+}
+
+.horizontal-container-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap; /* Allows items to wrap to the next line */
+
+}
+.vertical-container-center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+.horizontal-container-left {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap; /* Allows items to wrap to the next line */
+
+}
+.vertical-container-left {
+    display: flex;
+    justify-content: center;
+    align-items: start;
+    flex-direction: column;
+}
+
+.padding-5{
+    padding: 5px;
+}
+.padding-10{
+    padding: 10px;
+}
+.padding-15{
+    padding: 15px;
+}
+.padding-20{
+    padding: 20px;
 }

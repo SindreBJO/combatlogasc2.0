@@ -1,9 +1,6 @@
 // --- Primary Entity Table Data Builder ---
 export function getEntityTableData(entityObj, sessionData, sessionDuration) {
   if (!sessionData || !entityObj) return null;
-  console.log("Building table data for entity:", entityObj);
-  console.log("Using session data:", sessionData);
-  console.log("entityType:", entityObj.entityType);
 
   const sessionDurationSec = sessionDuration || 1;
 
@@ -24,15 +21,14 @@ export function getEntityTableData(entityObj, sessionData, sessionDuration) {
   const getDPS = () => {
     const damageData = entityDealtData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
     const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
-    return (totalDamage / sessionDurationSec)
-    .toFixed(0) // one decimal place
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    return (totalDamage / sessionDurationSec).toFixed(0);
   }
 
   const getDamageDone = () => {
     const damageData = entityDealtData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
     const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
     return totalDamage
+    .toFixed(0) // one decimal place
   }
 
   const getDamageTaken = () => {
@@ -58,6 +54,23 @@ export function getEntityTableData(entityObj, sessionData, sessionDuration) {
     return totalHealing
   }
 
+  const getHps = () => {
+    const healingData = entityDealtData.filter((obj) => obj.event && obj.event.includes("HEAL"));
+    const totalHealing = healingData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
+    return (totalHealing / sessionDurationSec)
+    .toFixed(0);
+  }
+  const getInterrupts = () => {
+    let interruptcastData;
+    let interruptSuccessData;
+    let returnArray = entityDealtData.filter(
+      (obj) =>
+        obj.event &&
+        (( obj.event.includes("INTERRUPT") || obj.event.includes("SPELL") && obj.event.includes("CAST")))
+    );
+    console.log("returnArray:", returnArray);
+  }
+
     const tableData = {
       identity: {
         name: entityObj.name || "Error", //Done
@@ -68,17 +81,16 @@ export function getEntityTableData(entityObj, sessionData, sessionDuration) {
 
     combatStats: {
         dps: getDPS(),
-        hps: entityObj.hps ?? 0,
+        hps: getHps(),
         totalDamage: getDamageDone(),
         totalHealingDone: getHealingDone(),
         totalAbsorbedTaken: getAbsorbed(),
-        totalEstAbsorb: entityObj.totalEstAbsorb ?? entityObj.estAbsorb ?? 0,
         damageTaken: getDamageTaken(),
         healingTaken: getHealingTaken(),
       },
 
     utility: {
-        interrupts: entityObj.interrupts ?? 0,
+        interrupts: getInterrupts() || 0,
         dispels: entityObj.dispels ?? 0,
         purges: entityObj.purges ?? 0,
         cleanses: entityObj.cleanses ?? 0,
