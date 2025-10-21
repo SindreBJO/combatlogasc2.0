@@ -7,7 +7,7 @@ export default function Header() {
 
     return (
         <header>
-            <Link to="/" className="header-title"><h1>Combatlog 3.3.5</h1></Link>
+            <Link to="/combatlogasc2.0/" className="header-title"><h1>Combatlog 3.3.5</h1></Link>
             <nav className="nav">
                 <ul className="nav-list">
                     <li className="nav-element"><NavButton type={"Home"} page={""}/></li>
