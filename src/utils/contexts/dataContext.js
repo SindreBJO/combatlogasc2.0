@@ -3,7 +3,7 @@ import React, { createContext, useEffect, useState } from 'react';
 // Parsing helpers
 import { parseString, setGlobalYear, testArrayLength } from '../helpers/parseHelpers.js';
 // Constants
-import { BOSSNAMES, MultipleIdEnemyNPCs, bannedNames, MultipleNameEnemyNPCs, bypassEndByDIEDSessionCheckNames } from '../helpers/constants.js';
+import { BOSSNAMES, MultipleIdEnemyNPCs, bannedNames, MultipleNameEnemyNPCs, bypassEndByDIEDSessionCheckNames, bannedPetNames, clutterMobsOrMultipleBossNames } from '../helpers/constants.js';
 
 export const DataContext = createContext();
 
@@ -268,6 +268,44 @@ export const DataContextProvider = ({ children }) => {
         };
 
         function tryAddUniqueEntity(affiliation, name, id) {
+          if (name === undefined || name === null) { return; }
+          name = String(name);
+          if (
+              (name.includes("Unknown") || name.includes("unknown")) &&
+              ["player", "pet"].includes(affiliation)
+            ) {
+              return;
+            }
+          if (
+              typeof name === "string" &&
+              bannedPetNames.some(keyword => name.toLowerCase().includes(keyword)) &&
+              affiliation === "pet"
+            ) {
+              return; // skip banned pets
+            }
+          if (
+            clutterMobsOrMultipleBossNames.some(([mobName]) => mobName.includes(name)) &&
+            !["player", "pet"].includes(affiliation)
+          ) {
+            const match = clutterMobsOrMultipleBossNames.find(([mobName]) => mobName.includes(name));
+            if (match) {
+              const [, matchedId] = match; // destructure to get ID
+
+              if (name === currentParsedObject.sourceName && affiliation === currentParsedObject.sourceFlag) {
+                currentParsedObject.sourceGUID= matchedId;
+                id = matchedId;
+              }
+          
+              if (name === currentParsedObject.destName && affiliation === currentParsedObject.destFlag) {
+                currentParsedObject.destGUID = matchedId;
+                id = matchedId;
+              }
+            
+            }
+          }
+
+
+
           const byNameAffiliations = ['player', 'pet', 'enemyPlayer', 'friendlyPlayer'];
           const byIdAffiliations = ['friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
           let listName = affiliationToList[affiliation] || 'unknowns';
@@ -281,7 +319,8 @@ export const DataContextProvider = ({ children }) => {
                 actions: { dealt: [], received: [] },
                 processType: 'byName',
                 entityType: affiliation,
-                
+                diedAt: [],
+                ressurectedAt: [],
                 ...(listName === 'players' || listName === 'enemyNPCs' ? { alive: true } : {}),
               };
               currentSession.entitiesData[listName].push(entity);
@@ -299,6 +338,8 @@ export const DataContextProvider = ({ children }) => {
                 actions: { dealt: [], received: [] },
                 processType: 'byId',
                 entityType: affiliation,
+                diedAt: [],
+                ressurectedAt: [],
                 ...(listName === 'enemyNPCs' ? { alive: true } : {}),
               };
               currentSession.entitiesData[listName].push(entity);
@@ -316,6 +357,8 @@ export const DataContextProvider = ({ children }) => {
                 actions: { dealt: [], received: [] },
                 processType: 'byId',
                 entityType: affiliation,
+                diedAt: [],
+                ressurectedAt: []
               };
               currentSession.entitiesData['unknowns'].push(entity);
             } else {
@@ -360,10 +403,10 @@ export const DataContextProvider = ({ children }) => {
                     entity.names.includes(currentParsedObject.destName)
                 ) {
                     entity.alive = false;
-                    entity.diedAt = {
-                            timeStamp: currentParsedObject.timeStamp,
-                            indexLine: indexLine
-                        };
+                    entity.diedAt.push({
+                        timeStamp: currentParsedObject.timeStamp,
+                        indexLine: indexLine
+                    });
                 }
                 // Also check byName for bosses in MultipleIdEnemyNPCs
                 if (
@@ -371,10 +414,10 @@ export const DataContextProvider = ({ children }) => {
                     entity.name === currentParsedObject.destName
                 ) {
                     entity.alive = false;
-                    entity.diedAt = {
-                            timeStamp: currentParsedObject.timeStamp,
-                            indexLine: indexLine
-                        };
+                    entity.diedAt.push({
+                        timeStamp: currentParsedObject.timeStamp,
+                        indexLine: indexLine
+                    });
                 }
             });
                 // Check players (byName)
@@ -385,17 +428,16 @@ export const DataContextProvider = ({ children }) => {
                         entity.ids.includes(currentParsedObject.destGUID)
                     ) {
                         entity.alive = false;
-                        entity.diedAt = {
+                        entity.diedAt.push({
                             timeStamp: currentParsedObject.timeStamp,
                             indexLine: indexLine
-                        };
+                        });
                     }
                 });
             }
         }
 
         function checkPlayerResurrected() {
-            // If the event is RESURRECT and both source and dest are players, set dest (resurrected) alive = true
             if (
                 currentParsedObject.event[1] === "RESURRECT" &&
                 currentParsedObject.sourceFlag === "player" &&
@@ -406,7 +448,7 @@ export const DataContextProvider = ({ children }) => {
                 );
                 if (resurrected) {
                     resurrected.alive = true;
-                    currentSession.ressurections.push({
+                    resurrected.ressurectedAt.push({
                         name: resurrected.name,
                         id: resurrected.ids[0],
                         timeStamp: currentParsedObject.timeStamp,

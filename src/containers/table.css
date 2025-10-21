@@ -61,9 +61,13 @@
 .session-info-panel-title {
   margin: 0;
   color: var(--primary-light);
-  font-weight: 700;
+  font-weight: bold;
   letter-spacing: 0.5px;
+  font-size: 24px;
   text-shadow: 0 2px 6px #0000003d;
+}
+.session-info-panel-title-spacer {
+  margin-bottom: 12px;
 }
 .session-info-panel-label {
   color: var(--primary);

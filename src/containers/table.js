@@ -1,8 +1,9 @@
 import React, { useContext, useEffect, useState } from "react";
 import "./table.css";
 import { DataContext } from "../utils/contexts/dataContext";
-import { getEntityTableData } from "../utils/helpers/analaysisHelpers";
+import { getEntityTableData, mergeDamageGraphsFromMeta } from "../utils/helpers/analaysisHelpers";
 import { timeBetweenMsInSeconds } from "../utils/helpers/helpers.js";
+import SimpleGraph from "./graph/graph.js";
 
 
 export default function PerformanceMetricsTable() {
@@ -23,6 +24,8 @@ export default function PerformanceMetricsTable() {
   const [expandedNames, setExpandedNames] = useState({});
 
   const [players, setPlayers] = useState([]);
+  const [pets, setPets] = useState([]);
+  const [enemies, setEnemies] = useState([]);
 
   useEffect(() => {
     console.log("%c-- INITIATING VERIFYING --", "color: green");
@@ -39,13 +42,30 @@ export default function PerformanceMetricsTable() {
   
     const playerRows = session.entitiesData.players
       .map((playerObj) => {
-        const tableData = getEntityTableData(playerObj, sessionData, session.encounterLengthSec);
+        const tableData = getEntityTableData(playerObj, sessionData, session);
+        return tableData;
+      })
+      .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
+
+    const petRows = session.entitiesData.pets
+      .map((petObj) => {
+        const tableData = getEntityTableData(petObj, sessionData, session);
+        return tableData;
+      })
+      .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
+
+    const enemyRows = session.entitiesData.enemyNPCs
+      .map((enemyObj) => {
+        const tableData = getEntityTableData(enemyObj, sessionData, session);
         return tableData;
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
     
     console.log("Player rows:", playerRows);
     setPlayers(playerRows);
+    setPets(petRows);
+    setEnemies(enemyRows);
+
   }, [data, selectedSessionIdx]);
 
   const toggleCurrentNewSession = () => {
@@ -114,13 +134,16 @@ export default function PerformanceMetricsTable() {
       <div className="session-info-panel-flex fadein">
         {/* General */}
         <div className="session-info-panel-section fadein">
-          <h3 className="session-info-panel-title fadein">Session #{selectedSessionIdx + 1}</h3>
-          <div className="session-info-panel-section-sessionData"><b>Boss:</b> {session.bossName || 'Trash'}</div>
+          <h3 className="session-info-panel-title fadein">Session {selectedSessionIdx + 1}</h3>
+          <div className="session-info-panel-title ">{session.bossName || 'Trash'}</div>
           <div className="session-info-panel-section-sessionData"><b>Outcome:</b> {session.outcome}</div>
           <div className="session-info-panel-section-sessionData"><b>Date:</b> {session.dayNumber}/{session.monthNumber}/{session.year}</div>
           <div className="session-info-panel-section-sessionData"><b>Start:</b> {start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'N/A'}</div>
           <div className="session-info-panel-section-sessionData"><b>End:</b> {end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'N/A'}</div>
-          <div className="session-info-panel-section-sessionData"><b>Duration:</b> {durationSec} sec</div>
+          <div className="session-info-panel-section-sessionData"><b>Duration:</b></div>
+          <div className="session-info-panel-section-sessionData"> {`${Math.floor(durationSec / 60)}:${(durationSec % 60).toFixed(1).toString().padStart(2, '0')}`} min</div>
+          <div className="session-info-panel-section-sessionData"> {durationSec.toFixed(1)} sec</div>
+
           <div className="session-info-panel-section-sessionData"><b>Players:</b> {session.entitiesData.players.length}</div>
         </div>
 
@@ -212,7 +235,7 @@ export default function PerformanceMetricsTable() {
     );
   })() : <div className="session-info-panel-noselection fadein">No session selected</div>}
 </div>
-
+       
       <div className="table-section-title-wrapper fadein">
       <h2 className="table-section-title fadein">Preformance Metrics</h2>
       </div>
@@ -220,7 +243,7 @@ export default function PerformanceMetricsTable() {
         <thead className="fadein">
           <tr className="fadein">
             <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
-              <div className="metricTable-header-inner">Name</div>
+              <div className="metricTable-header-inner">Players</div>
             </th>
             <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dps" title="Damage Per Second">
               <div className="metricTable-header-inner">DPS</div>
@@ -254,7 +277,57 @@ export default function PerformanceMetricsTable() {
             </th>
           </tr>
         </thead>
+         <SimpleGraph data={mergeDamageGraphsFromMeta(players)} />
         <tbody className="fadein">
+            {(() => {
+              const raidData = {
+                identity: players.length > 5 ? "Raid" : "Party",
+                combatStats: {
+                  dps: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.dps) || 0), 0),
+                totalDamage: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalDamage) || 0), 0),
+                damageTaken: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.damageTaken) || 0), 0),
+                healingTaken: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.healingTaken) || 0), 0),
+                absorbedTaken: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalAbsorbedTaken) || 0), 0),
+                hps: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.hps) || 0), 0),
+                totalHealingDone: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalHealingDone) || 0), 0),
+
+                },
+                utility: {},
+                meta: {},
+              };
+            
+              return (
+                <tr key={999} className="fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
+                  <td className="metricTable-cell-name fadein">
+                    {raidData.identity}
+                  </td>
+                  <td>
+                    {raidData.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.absorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                </tr>
+              );
+            })()}
           {players.length === 0 ? (
             <tr className="fadein">
               <td colSpan={12} className="metrics-table-nodata fadein">No player data available</td>
@@ -263,18 +336,16 @@ export default function PerformanceMetricsTable() {
             (() => {
               // Find min and max totalDamage for bar scaling
               if (players.length === 0) return null;
-              const maxDamageDone = Math.max(...players.map(p => p.combatStats.totalDamage || 0));
-              const minDamageDone = Math.min(...players.map(p => p.combatStats.totalDamage || 0));
-              const maxDamageTaken = Math.max(...players.map(p => p.combatStats.damageTaken || 0));
-              const minDamageTaken = Math.min(...players.map(p => p.combatStats.damageTaken || 0));
-              const maxAbsorbDone = Math.max(...players.map(p => p.combatStats.totalAbsorbedTaken || 0));
-              const minAbsorbDone = Math.min(...players.map(p => p.combatStats.totalAbsorbedTaken || 0));
-              const minHealingTaken = Math.min(...players.map(p => p.combatStats.healingTaken || 0));
-              const maxHealingTaken = Math.max(...players.map(p => p.combatStats.healingTaken || 0));
-              const minHealingDone = Math.min(...players.map(p => p.combatStats.totalHealingDone || 0));
-              const maxHealingDone = Math.max(...players.map(p => p.combatStats.totalHealingDone || 0));
-              const minHpsDone = Math.min(...players.map(p => p.combatStats.hps || 0));
-              const maxHpsDone = Math.max(...players.map(p => p.combatStats.hps || 0));
+              const maxDamageDone = Math.max(...players.map(p => p.combatStats.totalDamage));
+              const minDamageDone = 0;
+              const maxDamageTaken = Math.max(...players.map(p => p.combatStats.damageTaken));
+              const minDamageTaken = 0;
+              const maxAbsorbDone = Math.max(...players.map(p => p.combatStats.totalAbsorbedTaken));
+              const minAbsorbDone = 0;
+              const minHealingTaken = 0;
+              const maxHealingTaken = Math.max(...players.map(p => p.combatStats.healingTaken));
+              const minHealingDone = Math.min(...players.map(p => p.combatStats.totalHealingDone));
+              const maxHealingDone = Math.max(...players.map(p => p.combatStats.totalHealingDone));
 
               return players.map((player, idx) => {
                 // Calculate fill percent (0-1)
@@ -283,7 +354,6 @@ export default function PerformanceMetricsTable() {
                 const AbsorbDonepercent = maxAbsorbDone === minAbsorbDone ? 1 : (player.combatStats.totalAbsorbedTaken - minAbsorbDone) / (maxAbsorbDone - minAbsorbDone);
                 const HealingTakenpercent = minHealingTaken === maxHealingTaken ? 1 : (player.combatStats.healingTaken - minHealingTaken) / (maxHealingTaken - minHealingTaken);
                 const HealingDonepercent = minHealingDone === maxHealingDone ? 1 : (player.combatStats.totalHealingDone - minHealingDone) / (maxHealingDone - minHealingDone);
-                const HpsDonepercent = minHpsDone === maxHpsDone ? 1 : (player.combatStats.hps - minHpsDone) / (maxHpsDone - minHpsDone);
                 
                 return (
                   <tr key={idx} className="fadein">
@@ -362,6 +432,397 @@ export default function PerformanceMetricsTable() {
                     <td className="metricTable-header-text fadein">{player.interrupts ? player.interrupts : "-"}</td>
                     <td className="metricTable-header-text fadein">{player.dispels ? player.dispels : "-"}</td>
                     <td className="metricTable-header-text fadein">{player.purges ? player.purges : "-"}</td>
+                  </tr>
+                );
+              });
+            })()
+          )}
+        </tbody>
+      </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <table className="metrics-table metrics-table-modern fadein">
+        <thead className="fadein">
+          <tr className="fadein">
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
+              <div className="metricTable-header-inner">Pets</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dps" title="Damage Per Second">
+              <div className="metricTable-header-inner">DPS</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damage" title="Total Damage Done">
+              <div className="metricTable-header-inner">Damage Done</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damagetaken" title="Total Damage Taken">
+              <div className="metricTable-header-inner">Damage Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingtaken" title="Total Healing Taken">
+              <div className="metricTable-header-inner">Healing Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-absorbed" title="Total Absorbed">
+              <div className="metricTable-header-inner">Absorb Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-hps" title="Healing Per Second">
+              <div className="metricTable-header-inner">HPS</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingdone" title="Total Healing Done">
+              <div className="metricTable-header-inner">HealingDone</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-interrupts" title="Interrupts">
+              <div className="metricTable-header-inner">Interrupts</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dispels" title="Dispels">
+              <div className="metricTable-header-inner">Raid Dispels</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-purges" title="Purges">
+              <div className="metricTable-header-inner">Enemy Dispels</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="fadein">
+            {(() => {
+              const raidData = {
+                identity: pets.length > 5 ? "Raid" : "Party",
+                combatStats: {
+                  dps: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.dps) || 0), 0),
+                totalDamage: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalDamage) || 0), 0),
+                damageTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.damageTaken) || 0), 0),
+                healingTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.healingTaken) || 0), 0),
+                absorbedTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalAbsorbedTaken) || 0), 0),
+                hps: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.hps) || 0), 0),
+                totalHealingDone: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalHealingDone) || 0), 0),
+
+                },
+                utility: {},
+                meta: {},
+              };
+            
+              return (
+                <tr key={999} className="fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
+                  <td className="metricTable-cell-name fadein">
+                    {raidData.identity}
+                  </td>
+                  <td>
+                    {raidData.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.absorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>
+                    {raidData.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
+                  </td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                </tr>
+              );
+            })()}
+          {pets.length === 0 ? (
+            <tr className="fadein">
+              <td colSpan={12} className="metrics-table-nodata fadein">No player data available</td>
+            </tr>
+          ) : (
+            (() => {
+              // Find min and max totalDamage for bar scaling
+              if (pets.length === 0) return null;
+              const maxDamageDone = Math.max(...pets.map(p => p.combatStats.totalDamage));
+              const minDamageDone = 0;
+              const maxDamageTaken = Math.max(...pets.map(p => p.combatStats.damageTaken));
+              const minDamageTaken = 0;
+              const maxAbsorbDone = Math.max(...pets.map(p => p.combatStats.totalAbsorbedTaken));
+              const minAbsorbDone = 0;
+              const minHealingTaken = 0;
+              const maxHealingTaken = Math.max(...pets.map(p => p.combatStats.healingTaken));
+              const minHealingDone = Math.min(...pets.map(p => p.combatStats.totalHealingDone));
+              const maxHealingDone = Math.max(...pets.map(p => p.combatStats.totalHealingDone));
+
+              return pets.map((pet, idx) => {
+                // Calculate fill percent (0-1)
+                const DmgDonepercent = maxDamageDone === minDamageDone ? 1 : (pet.combatStats.totalDamage - minDamageDone) / (maxDamageDone - minDamageDone);
+                const DmgTakenpercent = maxDamageTaken === minDamageTaken ? 1 : (pet.combatStats.damageTaken - minDamageTaken) / (maxDamageTaken - minDamageTaken);
+                const AbsorbDonepercent = maxAbsorbDone === minAbsorbDone ? 1 : (pet.combatStats.totalAbsorbedTaken - minAbsorbDone) / (maxAbsorbDone - minAbsorbDone);
+                const HealingTakenpercent = minHealingTaken === maxHealingTaken ? 1 : (pet.combatStats.healingTaken - minHealingTaken) / (maxHealingTaken - minHealingTaken);
+                const HealingDonepercent = minHealingDone === maxHealingDone ? 1 : (pet.combatStats.totalHealingDone - minHealingDone) / (maxHealingDone - minHealingDone);
+                
+                return (
+                  <tr key={idx} className="fadein">
+                    <td className="metricTable-cell-name fadein" 
+                      name={pet.identity.name}
+                      id={pet.identity.id}
+                      processtype={pet.identity.processType}
+                      entitytype={pet.identity.entityType}
+                    >
+                      {pet.identity.name ? pet.identity.name : "-"}
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-damageDone-color fadein"  
+                        style={
+                          pet.combatStats.dps !== "0"
+                            ? { width: `${Math.max(DmgDonepercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{pet.combatStats.dps && pet.combatStats.dps !== "0"  ? pet.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                    
+                        
+                        <span className="metricTable-cell-text">{pet.combatStats.totalDamage && pet.combatStats.totalDamage !== "0" ? pet.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                     
+                    </td>
+                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-damageTaken-color fadein"   
+                        style={
+                          pet.combatStats.damageTaken !== 0
+                            ? { width: `${Math.max(DmgTakenpercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-cell-text fadein">{pet.combatStats.damageTaken ? pet.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-healingTaken-color fadein"  
+                        style={
+                          pet.combatStats.healingTaken !== 0
+                            ? { width: `${Math.max(HealingTakenpercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-cell-text fadein">{pet.combatStats.healingTaken ? pet.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-absorbTaken-color fadein"    
+                        style={
+                          pet.combatStats.totalAbsorbedTaken !== 0
+                            ? { width: `${Math.max(AbsorbDonepercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span  className="metricTable-cell-text fadein">{pet.combatStats.totalAbsorbedTaken ? pet.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-hps-color fadein"  
+                        style={
+                          pet.combatStats.hps !== "0"
+                            ? { width: `${Math.max(HealingDonepercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{pet.combatStats.hps && pet.combatStats.hps !== "0" ? pet.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                        <span className="metricTable-cell-text fadein">{pet.combatStats.totalHealingDone ? pet.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                    </td>
+                    <td className="metricTable-header-text fadein">{pet.interrupts ? pet.interrupts : "-"}</td>
+                    <td className="metricTable-header-text fadein">{pet.dispels ? pet.dispels : "-"}</td>
+                    <td className="metricTable-header-text fadein">{pet.purges ? pet.purges : "-"}</td>
+                  </tr>
+                );
+              });
+            })()
+          )}
+        </tbody>
+      </table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      <table className="metrics-table metrics-table-modern fadein">
+        <thead className="fadein">
+          <tr className="fadein">
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
+              <div className="metricTable-header-inner">Enemies</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dps" title="Damage Per Second">
+              <div className="metricTable-header-inner">DPS</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damage" title="Total Damage Done">
+              <div className="metricTable-header-inner">Damage Done</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damagetaken" title="Total Damage Taken">
+              <div className="metricTable-header-inner">Damage Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingtaken" title="Total Healing Taken">
+              <div className="metricTable-header-inner">Healing Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-absorbed" title="Total Absorbed">
+              <div className="metricTable-header-inner">Absorb Taken</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-hps" title="Healing Per Second">
+              <div className="metricTable-header-inner">HPS</div>
+            </th>
+            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingdone" title="Total Healing Done">
+              <div className="metricTable-header-inner">HealingDone</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-interrupts" title="Interrupts">
+              <div className="metricTable-header-inner">Interrupts</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dispels" title="Dispels">
+              <div className="metricTable-header-inner">Raid Dispels</div>
+            </th>
+            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-purges" title="Purges">
+              <div className="metricTable-header-inner">Enemy Dispels</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="fadein">
+          {enemies.length === 0 ? (
+            <tr className="fadein">
+              <td colSpan={12} className="metrics-table-nodata fadein">No player data available</td>
+            </tr>
+          ) : (
+            (() => {
+              // Find min and max totalDamage for bar scaling
+              if (enemies.length === 0) return null;
+              const maxDamageDone = Math.max(...enemies.map(p => p.combatStats.totalDamage));
+              const minDamageDone = 0;
+              const maxDamageTaken = Math.max(...enemies.map(p => p.combatStats.damageTaken));
+              const minDamageTaken = 0;
+              const maxAbsorbDone = Math.max(...enemies.map(p => p.combatStats.totalAbsorbedTaken));
+              const minAbsorbDone = 0;
+              const minHealingTaken = 0;
+              const maxHealingTaken = Math.max(...enemies.map(p => p.combatStats.healingTaken));
+              const minHealingDone = Math.min(...enemies.map(p => p.combatStats.totalHealingDone));
+              const maxHealingDone = Math.max(...enemies.map(p => p.combatStats.totalHealingDone));
+
+              return enemies.map((enemy, idx) => {
+                // Calculate fill percent (0-1)
+                const DmgDonepercent = maxDamageDone === minDamageDone ? 1 : (enemy.combatStats.totalDamage - minDamageDone) / (maxDamageDone - minDamageDone);
+                const DmgTakenpercent = maxDamageTaken === minDamageTaken ? 1 : (enemy.combatStats.damageTaken - minDamageTaken) / (maxDamageTaken - minDamageTaken);
+                const AbsorbDonepercent = maxAbsorbDone === minAbsorbDone ? 1 : (enemy.combatStats.totalAbsorbedTaken - minAbsorbDone) / (maxAbsorbDone - minAbsorbDone);
+                const HealingTakenpercent = minHealingTaken === maxHealingTaken ? 1 : (enemy.combatStats.healingTaken - minHealingTaken) / (maxHealingTaken - minHealingTaken);
+                const HealingDonepercent = minHealingDone === maxHealingDone ? 1 : (enemy.combatStats.totalHealingDone - minHealingDone) / (maxHealingDone - minHealingDone);
+                
+                return (
+                  <tr key={idx} className="fadein">
+                    <td className="metricTable-cell-name fadein" 
+                      name={enemy.identity.name}
+                      id={enemy.identity.id}
+                      processtype={enemy.identity.processType}
+                      entitytype={enemy.identity.entityType}
+                    >
+                      {enemy.identity.name ? enemy.identity.name : "-"}
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-damageDone-color fadein"  
+                        style={
+                          enemy.combatStats.dps !== "0"
+                            ? { width: `${Math.max(DmgDonepercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{enemy.combatStats.dps && enemy.combatStats.dps !== "0"  ? enemy.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                    
+                        
+                        <span className="metricTable-cell-text">{enemy.combatStats.totalDamage && enemy.combatStats.totalDamage !== "0" ? enemy.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                     
+                    </td>
+                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-damageTaken-color fadein"   
+                        style={
+                          enemy.combatStats.damageTaken !== 0
+                            ? { width: `${Math.max(DmgTakenpercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-cell-text fadein">{enemy.combatStats.damageTaken ? enemy.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-healingTaken-color fadein"  
+                        style={
+                          enemy.combatStats.healingTaken !== 0
+                            ? { width: `${Math.max(HealingTakenpercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-cell-text fadein">{enemy.combatStats.healingTaken ? enemy.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-absorbTaken-color fadein"    
+                        style={
+                          enemy.combatStats.totalAbsorbedTaken !== 0
+                            ? { width: `${Math.max(AbsorbDonepercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span  className="metricTable-cell-text fadein">{enemy.combatStats.totalAbsorbedTaken ? enemy.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                      <div className="metricTable-percent-bar-wrap fadein">
+                        <div className="metricTable-percent-bar metricTable-percent-hps-color fadein"  
+                        style={
+                          enemy.combatStats.hps !== "0"
+                            ? { width: `${Math.max(HealingDonepercent * 95, 7)}%` }
+                            : {}
+                        }></div>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{enemy.combatStats.hps && enemy.combatStats.hps !== "0" ? enemy.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                      </div>
+                    </td>
+                    <td className="metricTable-header-text fadein">
+                        <span className="metricTable-cell-text fadein">{enemy.combatStats.totalHealingDone ? enemy.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                    </td>
+                    <td className="metricTable-header-text fadein">{enemy.interrupts ? enemy.interrupts : "-"}</td>
+                    <td className="metricTable-header-text fadein">{enemy.dispels ? enemy.dispels : "-"}</td>
+                    <td className="metricTable-header-text fadein">{enemy.purges ? enemy.purges : "-"}</td>
                   </tr>
                 );
               });

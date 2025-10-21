@@ -338,3 +338,17 @@ export const bannedNames = [
   "Environment",
   "Arcane Orb",
 ]
+
+export const bannedPetNames = [
+  "totem",
+  "unknown",
+  "angelic feather",
+  "healing rain", 
+  "eliza narsingway",
+]
+
+export const clutterMobsOrMultipleBossNames = [
+  ["Felmyst", 1],
+  ["Unyielding Dead", 2],
+  ["Sinister Reflection", 3]
+]

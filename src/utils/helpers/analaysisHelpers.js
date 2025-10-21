@@ -1,44 +1,103 @@
 // --- Primary Entity Table Data Builder ---
-export function getEntityTableData(entityObj, sessionData, sessionDuration) {
+export function getEntityTableData(entityObj, sessionData, sessionMetaData) {
   if (!sessionData || !entityObj) return null;
-
-  const sessionDurationSec = sessionDuration || 1;
 
   const entityDealtData = sessionData.filter(obj => (
     (entityObj.processType === "byName" &&
       entityObj.name === obj.sourceName &&
       entityObj.entityType === obj.sourceFlag) ||
-    (entityObj.processType === "ByID" && obj.sourceGUID === entityObj.GUID)
+    (entityObj.processType === "byId" && obj.sourceGUID === entityObj.id)
   ));
   
   const entityReceivedData = sessionData.filter(obj => (
     (entityObj.processType === "byName" &&
       entityObj.name === obj.destName &&
       entityObj.entityType === obj.destFlag) ||
-    (entityObj.processType === "ByID" && obj.targetGUID === entityObj.GUID)
+    (entityObj.processType === "byId" && obj.destGUID === entityObj.id)
   ));
+
+const timeInterval = 5000; // 5 seconds
+
+function getDamageGraphPoints() {
+  // Filter valid events and sort by timestamp
+  const damageEvents = entityDealtData
+    .filter(obj => obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"))
+
+  const graphPoints = [];
+
+  const start = sessionMetaData.startTime;
+  const end = sessionMetaData.endTime;
+
+  let eventIndex = 0;
+
+  // Loop through every 5-second bin from start → end
+  for (let binStart = start; binStart <= end; binStart += timeInterval) {
+    const binEnd = binStart + timeInterval;
+    let sumAmount = 0;
+
+    // Add up all damage events within this 5 s window
+    while (
+      eventIndex < damageEvents.length &&
+      damageEvents[eventIndex].timeStamp < binEnd
+    ) {
+      const e = damageEvents[eventIndex];
+      const dmg = (e.amount || 0) - (e.overkill || 0);
+      sumAmount += dmg;
+      eventIndex++;
+    }
+
+    // Always push a bin — even if sumAmount is 0
+    graphPoints.push({
+      time: binStart,
+      totalDamage: sumAmount
+    });
+  }
+
+  return graphPoints;
+}
+
+
+  const overKillList = [];
+  const buffList = [];
+
+  entityReceivedData.forEach((obj) => {
+    if (obj.overkill && obj.overkill > obj.amount) {
+      overKillList.push(obj);
+    }
+  });
+  entityReceivedData.forEach((obj) => {
+    if (obj.spellName === "Ardent defender") {
+      buffList.push(obj);
+    }
+  });
 
   const getDPS = () => {
     const damageData = entityDealtData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
-    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
-    return (totalDamage / sessionDurationSec).toFixed(0);
+    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount - obj.overkill || 0), 0);
+    return (totalDamage / sessionMetaData.encounterLengthSec).toFixed(0);
   }
 
   const getDamageDone = () => {
     const damageData = entityDealtData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
-    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
+    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount - obj.overkill || 0), 0);
     return totalDamage
     .toFixed(0) // one decimal place
   }
 
   const getDamageTaken = () => {
     const damageData = entityReceivedData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
-    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
+    const totalDamage = damageData.reduce((sum, obj) => {
+      const overkill = Math.min(obj.overkill || 0, obj.amount || 0);
+      const absorbed = obj.absorbed || 0;
+      const amount = obj.amount || 0;
+      return sum + (amount + absorbed);
+    }, 0);
     return totalDamage
   }
+
   const getHealingTaken = () => {
     const damageData = entityReceivedData.filter((obj) => obj.event && obj.event.includes("HEAL"));
-    const totalHealing = damageData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
+    const totalHealing = damageData.reduce((sum, obj) => sum + (obj.amount - obj.overhealing || 0), 0);
     return totalHealing
   }
 
@@ -50,14 +109,14 @@ export function getEntityTableData(entityObj, sessionData, sessionDuration) {
 
   const getHealingDone = () => {
     const healingData = entityDealtData.filter((obj) => obj.event && obj.event.includes("HEAL"));
-    const totalHealing = healingData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
+    const totalHealing = healingData.reduce((sum, obj) => sum + (obj.amount - obj.overhealing || 0), 0);
     return totalHealing
   }
 
   const getHps = () => {
     const healingData = entityDealtData.filter((obj) => obj.event && obj.event.includes("HEAL"));
-    const totalHealing = healingData.reduce((sum, obj) => sum + (obj.amount || 0), 0);
-    return (totalHealing / sessionDurationSec)
+    const totalHealing = healingData.reduce((sum, obj) => sum + (obj.amount - obj.overhealing || 0), 0);
+    return (totalHealing / sessionMetaData.encounterLengthSec)
     .toFixed(0);
   }
   const getInterrupts = () => {
@@ -68,13 +127,12 @@ export function getEntityTableData(entityObj, sessionData, sessionDuration) {
         obj.event &&
         (( obj.event.includes("INTERRUPT") || obj.event.includes("SPELL") && obj.event.includes("CAST")))
     );
-    console.log("returnArray:", returnArray);
   }
 
     const tableData = {
       identity: {
-        name: entityObj.name || "Error", //Done
-        id: entityObj.id || "Error", //Done
+        name: entityObj.name || entityObj.names || "Error", //Done
+        id: entityObj.id || entityObj.id || "Error", //Done
         processType: entityObj.processType || "Error", //Done
         entityType: entityObj.entityType || "Error", //Done
       },
@@ -99,16 +157,32 @@ export function getEntityTableData(entityObj, sessionData, sessionDuration) {
       },
 
     meta: {
-        source: entityObj.source || "Unknown",
-        timestamp: entityObj.timestamp || Date.now(),
-        duration: entityObj.duration || 0,
-        encounterId: entityObj.encounterId || null,
+        aliveStatus: entityObj.alive || "Error", //Done
+        damageGraphData: getDamageGraphPoints(), //Done
       },
   };
 
   return tableData;
 
 }
+
+export function mergeDamageGraphsFromMeta(entities) {
+  const mergedMap = new Map();
+
+  for (const entity of entities) {
+    const graphData = entity.meta?.damageGraphData || [];
+    for (const { time, totalDamage } of graphData) {
+      mergedMap.set(time, (mergedMap.get(time) || 0) + totalDamage);
+    }
+  }
+
+  const mergedPoints = Array.from(mergedMap.entries())
+    .map(([time, totalDamage]) => ({ time, totalDamage }))
+    .sort((a, b) => a.time - b.time);
+  console.log("Merged Points:", mergedPoints);
+  return mergedPoints;
+}
+
 /*
   // Parse metrics
   const damageDealt = getDamageDoneWithSpells(entityInteractionsDealt);
