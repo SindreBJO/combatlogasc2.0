@@ -157,7 +157,8 @@ function getDamageGraphPoints() {
       },
 
     meta: {
-        aliveStatus: entityObj.alive || "Error", //Done
+        aliveStatus: entityObj.alive , //Done
+        ressurectedStatus: entityObj.ressurectedAt.length > 0 , //Done
         damageGraphData: getDamageGraphPoints(), //Done
       },
   };

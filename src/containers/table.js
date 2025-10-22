@@ -4,6 +4,8 @@ import { DataContext } from "../utils/contexts/dataContext";
 import { getEntityTableData, mergeDamageGraphsFromMeta } from "../utils/helpers/analaysisHelpers";
 import { timeBetweenMsInSeconds } from "../utils/helpers/helpers.js";
 import SimpleGraph from "./graph/graph.js";
+import skillIcon from "../assets/tableicons/skullIcon.png";
+import rebirthIcon from "../assets/tableicons/rebirth.png";
 
 
 export default function PerformanceMetricsTable() {
@@ -277,7 +279,6 @@ export default function PerformanceMetricsTable() {
             </th>
           </tr>
         </thead>
-         <SimpleGraph data={mergeDamageGraphsFromMeta(players)} />
         <tbody className="fadein">
             {(() => {
               const raidData = {
@@ -299,32 +300,32 @@ export default function PerformanceMetricsTable() {
               return (
                 <tr key={999} className="fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
                   <td className="metricTable-cell-name fadein">
-                    {raidData.identity}
+                    <p className={session.outcome === "Wipe" ? "deadText" : ""}>{raidData.identity}</p>
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.absorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>-</td>
+                  <td className="metricTable-cell-overall">-</td>
+                  <td className="metricTable-cell-overall">-</td>
+                  <td className="metricTable-cell-overall">-</td>
                 </tr>
               );
             })()}
@@ -363,7 +364,9 @@ export default function PerformanceMetricsTable() {
                       processtype={player.identity.processType}
                       entitytype={player.identity.entityType}
                     >
-                      {player.identity.name ? player.identity.name : "-"}
+                      <div className="metricTable-cell-name-inner">
+                        {player.meta.ressurectedStatus && <img src={rebirthIcon} className="ressed-icon-img"/>}{!player.meta.aliveStatus && <img src={skillIcon} className="death-icon-img"/>}<p  className={player.meta.aliveStatus ? "" : "deadText"}>{player.identity.name ? player.identity.name : "-"}</p>
+                      </div>
                     </td>
                     <td className="metricTable-header-text fadein">
                       <div className="metricTable-percent-bar-wrap fadein">

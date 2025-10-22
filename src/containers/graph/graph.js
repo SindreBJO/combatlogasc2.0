@@ -31,10 +31,11 @@ export default function SimpleGraph({ data, height = 60, width }) {
         borderRadius: "0px",
         overflow: "visible",
       }}
+      
     >
       {/* Fill under the line */}
       <polygon
-        fill="#00ffcc"
+        fill="#ff0000ff"
         opacity="0.2"
         points={fillPoints}
       />
@@ -42,7 +43,7 @@ export default function SimpleGraph({ data, height = 60, width }) {
       {/* Line */}
       <polyline
         fill="none"
-        stroke="#00ffcc"
+        stroke="#ff0000ff"
         strokeWidth="2"
         points={points}
       />

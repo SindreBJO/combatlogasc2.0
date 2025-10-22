@@ -142,7 +142,6 @@
   overflow: hidden;
   box-shadow: var(--shadow);
   background: linear-gradient(135deg, var(--primary-bg) 60%, var(--secondary-bg) 100%);
-  border: 2.5px solid var(--primary);
   color: var(--text-main);
   font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 16px;
@@ -161,9 +160,11 @@
 .metrics-table th:last-child {
   border-right: 0px solid var(--primary);
 }
-
+.metricTable-cell-overall{
+  padding: 10px 3px !important;
+}
 .metrics-table td {
-  padding: 14px 8px;
+  padding: 4px 3px;
   font-size: 1rem;
   color: var(--text-main);
   text-align: center;
@@ -192,10 +193,9 @@
   border-bottom: none;
 }
 .metricTable-header-inner{
-  font-size: 1rem;
+  font-size: 0.9rem;
 }
 .metricTable-header-text {
-  font-size: 1.1rem;
   color: var(--primary-light);
   text-align: center;
   background: none;
@@ -204,8 +204,19 @@
   letter-spacing: 1px;
 }
 
+.death-icon-img {
+  width: 15px;
+  height: 15px;
+  padding-right: 5px;
+}
+.ressed-icon-img {
+  width: 15px;
+  height: 15px;
+  padding-right: 5px;
+}
+
 .metricTable-cell-name{
-  font-size: 1rem;
+  font-size: 0.9rem !important;
   color: #0099ff1c !important;
   text-align: left;
   padding-left: 12px;
@@ -216,12 +227,12 @@
 }
 
 .metricTable-cell-text {
-  font-size: 1rem;
+  font-size: 0.9rem;
   color: var(--primary-light);
   text-align: center;
   background: none;
   user-select: none;
-  text-shadow: 0 0px 1px #000000;
+  text-shadow: 0 0px 1px #ffffffab;
   letter-spacing: -0.2px;
   z-index: 2;
 }
@@ -429,7 +440,7 @@
   background: linear-gradient(135deg, #23272f 60%, #1a1d23 100%);
   border-radius: 14px;
   border: 2.5px solid #a88b4a;
-  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.45), 0 1.5px 0 #3a2e1a inset;
+  box-shadow: 0 0 30px 0 rgba(255, 255, 255, 0.075);
   color: #e7cfa0;
   font-family: 'Segoe UI', Arial, sans-serif;
   font-size: 16px;
@@ -467,34 +478,45 @@
   transition: width 0.4s cubic-bezier(.4,2,.6,1);
 }
 .metricTable-percent-damageDone-color{
-  background: linear-gradient(90deg, #f87171 0%, #ff0000 100%);
+  background: linear-gradient(90deg, #ff3c00 0%, #ff0000 100%);
   z-index: 0;
-  box-shadow: 0 0 4px #ffffff2f;
+  box-shadow: 0 0 3px #0000007c inset;
 }
 .metricTable-percent-damageTaken-color{
-  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(90deg, #0084ff 0%, #0051ff 100%);
   z-index: 0;
-  box-shadow: 0 0 4px #ffffff2f;
+box-shadow: 0 0 3px #0000007c inset;
 }
 .metricTable-percent-healingTaken-color{
-  background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+  background: linear-gradient(90deg, #00ff15 0%, #00ff80 100%);
   z-index: 0;
-  box-shadow: 0 0 4px #ffffff2f;
+box-shadow: 0 0 3px #0000007c inset;
 }
 .metricTable-percent-absorbTaken-color{
-  background: linear-gradient(90deg, #ffffff 70%, #fffde0 100%);
+  background: linear-gradient(90deg, #ffffff 0%, #ffffff 100%);
   z-index: 0;
   box-shadow: 0 0 3px #ffffff7e;
 }
 .metricTable-percent-hps-color{
-  background: linear-gradient(90deg, #09ff00 0%, #0b640f 100%);
+  background: linear-gradient(90deg, #88ff00 0%, #00ff0d 100%);
   z-index: 0;
-  box-shadow: 0 0 4px #ffffff2f;
+box-shadow: 0 0 3px #0000007c inset;
 }
 
 .metricTable-damage-bar-label{
   color: rgb(255, 244, 244);
   text-shadow: 0 0 2px #00f7ff28 !important;
+}
+.metricTable-cell-name-inner{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deadText{
+  color: rgb(255, 0, 0) !important;
+  text-shadow: none;
+  padding: 0;
+  margin: 0;
 }
 
 /* --- Fade Animations (from flawless filedrop) --- */

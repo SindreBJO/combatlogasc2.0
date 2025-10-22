@@ -1,0 +1,124 @@
+.hero-banner {
+  position: relative;
+  color: #fff;
+  text-align: center;
+  padding: 120px 30px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  margin-top: 40px;
+  fill: cover;
+}
+
+/* Optional faint background image */
+.hero-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.1;
+  z-index: 0;
+}
+
+/* Slide-in animation */
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(70vw);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 1500px;
+  margin: 0 auto;
+  opacity: 0;
+}
+.hero-content-img {
+  max-width: 1500px;
+  width: 100%;
+  height: auto;
+  margin-bottom: 30px;
+  border-radius: 15px;
+  box-shadow: 0 0 35px 0 rgba(255, 255, 255, 0.048);
+}
+
+/* Trigger animation once when the page loads */
+.slide-in-one {
+  animation: slideInRight 1s ease-out forwards;
+}
+
+.hero-title {
+  position: absolute;
+  top: 10%;
+  left: 25%;
+  max-width: 50%;
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  text-shadow: 0 0 25px rgba(255, 215, 0, 0.3);
+}
+
+.hero-subtitle {
+  position: absolute;
+  top: 80%;
+  left: 25%;
+  font-size: 1.25rem;
+  color: #cccccc;
+  margin: 0 auto 40px;
+  line-height: 1.6;
+  max-width: 50%;
+}
+
+.hero-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  opacity: 0;
+  animation: slideInRight 0.8s ease-out 0.3s forwards; /* delayed for stagger effect */
+}
+
+.btn {
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 15px 30px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background-color: #ffb800;
+  color: #000;
+  border: none;
+}
+
+.btn-primary:hover {
+  background-color: #ffd84a;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 2px solid #ffb800;
+  color: #ffb800;
+}
+
+.btn-secondary:hover {
+  background-color: #ffb800;
+  color: #000;
+}
+
+
+
+@media (max-width: 1400px) {
+  .hero-content-img {
+  width: 100%;
+  height: auto;
+  margin-bottom: 30px;
+  border-radius: 15px;
+  box-shadow: 0 8px 100px 0 rgba(0,0,0,0.65), 0 2px 50px #000 inset;
+}
+}

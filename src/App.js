@@ -15,10 +15,10 @@ export default function App() {
       <div className='app'>
         <Header/>
         <Routes>
-          <Route path="/combatlogasc2.0/" element={<Home/>}/>
-          <Route path="/combatlogasc2.0/session" element={<NewSession/>}/>
-          <Route path="/combatlogasc2.0/table" element={<CurrentSession/>}/>
-          <Route path="/combatlogasc2.0/*" element={<Error/>}/>
+          <Route path="/" element={<Home/>}/>
+          <Route path="/session" element={<NewSession/>}/>
+          <Route path="/table" element={<CurrentSession/>}/>
+          <Route path="/*" element={<Error/>}/>
         </Routes>
       </div>
   );
