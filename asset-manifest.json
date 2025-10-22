@@ -1,16 +1,17 @@
 {
   "files": {
-    "main.css": "/combatlogasc2.0/static/css/main.dd96c6df.css",
-    "main.js": "/combatlogasc2.0/static/js/main.3b5f8e9c.js",
-    "static/js/453.bc992338.chunk.js": "/combatlogasc2.0/static/js/453.bc992338.chunk.js",
-    "static/media/image6.png": "/combatlogasc2.0/static/media/image6.9e54ff6e0dc7554eeca9.png",
-    "index.html": "/combatlogasc2.0/index.html",
-    "main.dd96c6df.css.map": "/combatlogasc2.0/static/css/main.dd96c6df.css.map",
-    "main.3b5f8e9c.js.map": "/combatlogasc2.0/static/js/main.3b5f8e9c.js.map",
-    "453.bc992338.chunk.js.map": "/combatlogasc2.0/static/js/453.bc992338.chunk.js.map"
+    "main.css": "/static/css/main.94b9917d.css",
+    "main.js": "/static/js/main.c00670a8.js",
+    "static/js/453.bc992338.chunk.js": "/static/js/453.bc992338.chunk.js",
+    "static/media/image2.png": "/static/media/image2.834b56e35b02d8f90af1.png",
+    "static/media/image6.png": "/static/media/image6.9e54ff6e0dc7554eeca9.png",
+    "index.html": "/index.html",
+    "main.94b9917d.css.map": "/static/css/main.94b9917d.css.map",
+    "main.c00670a8.js.map": "/static/js/main.c00670a8.js.map",
+    "453.bc992338.chunk.js.map": "/static/js/453.bc992338.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.dd96c6df.css",
-    "static/js/main.3b5f8e9c.js"
+    "static/css/main.94b9917d.css",
+    "static/js/main.c00670a8.js"
   ]
 }
