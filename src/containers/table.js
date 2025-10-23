@@ -1,11 +1,10 @@
 import React, { useContext, useEffect, useState } from "react";
 import "./table.css";
 import { DataContext } from "../utils/contexts/dataContext";
-import { getEntityTableData, mergeDamageGraphsFromMeta } from "../utils/helpers/analaysisHelpers";
-import { timeBetweenMsInSeconds } from "../utils/helpers/helpers.js";
-import SimpleGraph from "./graph/graph.js";
+import { getEntityTableData, getRaidDamageGraphPoints} from "../utils/helpers/analaysisHelpers";
 import skillIcon from "../assets/tableicons/skullIcon.png";
 import rebirthIcon from "../assets/tableicons/rebirth.png";
+import ColoredAreaChart from "./graph/graph";
 
 
 export default function PerformanceMetricsTable() {
@@ -13,17 +12,21 @@ export default function PerformanceMetricsTable() {
   // Contexts
   const {data, setFinishedParsing, setStartNewSession} = useContext(DataContext);
   const [selectedSessionIdx, setSelectedSessionIdx] = useState(0);
+  const [session, setSession] = useState(data.sessions[selectedSessionIdx] || {});
+  const [sessionRaidGraphPoints, setSessionRaidGraphPoints] = useState([{time: 0, amount: 0}, {time: 1, amount: 0}, {time: 2, amount: 0}]);
 
   // Session info
-  const session = data.sessions[selectedSessionIdx];
-  const start = session.startTime ? new Date(session.startTime) : null;
-  const end = session.endTime ? new Date(session.endTime) : null;
-  const durationSec = session.encounterLengthSec ? session.encounterLengthSec : 'N/A';
+  const [sessionPrint, setSessionPrint ] = useState({});
+  const [start , setStart ] = useState(session.startTime ? new Date(session.startTime) : null);
+  const [end , setEnd ] = useState(session.endTime ? new Date(session.endTime) : null);
+  const [durationSec , setDurationSec ] = useState(session.encounterLengthSec ? session.encounterLengthSec : 'N/A');
+
 
   // UI state
   const [showMeta, setShowMeta] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
   const [expandedNames, setExpandedNames] = useState({});
+
 
   const [players, setPlayers] = useState([]);
   const [pets, setPets] = useState([]);
@@ -32,9 +35,11 @@ export default function PerformanceMetricsTable() {
   useEffect(() => {
     console.log("%c-- INITIATING VERIFYING --", "color: green");
     if (!data.sessions || !data.sessions[selectedSessionIdx]) return;
-    
     console.log("%c-- INITIATING TABLE DATA --", "color: green");
     const session = data.sessions[selectedSessionIdx];
+    setSession(session);
+    const { entitiesData, ...filteredSession } = session;
+    setSessionPrint(filteredSession);
     const sessionData = data.data.filter(
       (line, index) =>
         index >= session.dataIndexStart && index <= session.dataIndexEnd
@@ -62,11 +67,17 @@ export default function PerformanceMetricsTable() {
         return tableData;
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
+
+    const sessionDamageDonePoints = getRaidDamageGraphPoints(sessionData, session);
+    setSessionRaidGraphPoints(sessionDamageDonePoints);
     
     console.log("Player rows:", playerRows);
     setPlayers(playerRows);
     setPets(petRows);
     setEnemies(enemyRows);
+    setStart(session.startTime ? new Date(session.startTime) : null);
+    setEnd(session.endTime ? new Date(session.endTime) : null);
+    setDurationSec(session.encounterLengthSec ? session.encounterLengthSec : 'N/A');
 
   }, [data, selectedSessionIdx]);
 
@@ -229,7 +240,7 @@ export default function PerformanceMetricsTable() {
           </button>
           {showDevInfo && (
             <pre style={{ background: '#111', color: '#9f9', padding: '10px', borderRadius: '8px', fontSize: '0.8rem', maxHeight: '300px', overflow: 'auto' }}>
-              {JSON.stringify(session, null, 2)}
+              {JSON.stringify(sessionPrint, null, 2)}
             </pre>
           )}
         </div>
@@ -242,7 +253,7 @@ export default function PerformanceMetricsTable() {
       <h2 className="table-section-title fadein">Preformance Metrics</h2>
       </div>
       <table className="metrics-table metrics-table-modern fadein">
-        <thead className="fadein">
+        <thead className="fadein">      
           <tr className="fadein">
             <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
               <div className="metricTable-header-inner">Players</div>
@@ -329,10 +340,14 @@ export default function PerformanceMetricsTable() {
                 </tr>
               );
             })()}
+            <tr>
+              <td colSpan={11}><ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} /></td>
+            </tr>
           {players.length === 0 ? (
             <tr className="fadein">
-              <td colSpan={12} className="metrics-table-nodata fadein">No player data available</td>
+              <td colSpan={11} className="metrics-table-nodata fadein">No player data available</td>
             </tr>
+            
           ) : (
             (() => {
               // Find min and max totalDamage for bar scaling

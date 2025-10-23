@@ -128,6 +128,8 @@ function getDamageGraphPoints() {
         (( obj.event.includes("INTERRUPT") || obj.event.includes("SPELL") && obj.event.includes("CAST")))
     );
   }
+  const playerCheck = entityObj.entityType === "player" || entityObj.entityType === "pet";
+  const graphPoints = playerCheck ? getDamageGraphPoints() : [];
 
     const tableData = {
       identity: {
@@ -159,7 +161,7 @@ function getDamageGraphPoints() {
     meta: {
         aliveStatus: entityObj.alive , //Done
         ressurectedStatus: entityObj.ressurectedAt.length > 0 , //Done
-        damageGraphData: getDamageGraphPoints(), //Done
+        damageGraphData: graphPoints, //Done
       },
   };
 
@@ -167,21 +169,59 @@ function getDamageGraphPoints() {
 
 }
 
-export function mergeDamageGraphsFromMeta(entities) {
-  const mergedMap = new Map();
-
-  for (const entity of entities) {
-    const graphData = entity.meta?.damageGraphData || [];
-    for (const { time, totalDamage } of graphData) {
-      mergedMap.set(time, (mergedMap.get(time) || 0) + totalDamage);
-    }
+export function getRaidDamageGraphPoints(sessionData, sessionMetaData) {
+  if (!sessionMetaData?.entitiesData?.players) {
+    console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
+    return [];
   }
 
-  const mergedPoints = Array.from(mergedMap.entries())
-    .map(([time, totalDamage]) => ({ time, totalDamage }))
-    .sort((a, b) => a.time - b.time);
-  console.log("Merged Points:", mergedPoints);
-  return mergedPoints;
+  const players = sessionMetaData.entitiesData.players;
+
+  // Step 1: Filter relevant damage events
+  const entityDealtData = sessionData.filter(({ sourceName, sourceFlag, event }) => {
+    if (sourceFlag !== "player") return false;
+    if (!event.includes("DAMAGE") || event.includes("MISSED")) return false;
+
+    return players.some(({ name }) => name === sourceName);
+  });
+
+  // Step 2: Map to simplified graph-friendly data
+  const graphPointsdata = entityDealtData.map(({ timeStamp, amount, overkill}) => ({
+    timeStamp: timeStamp - sessionMetaData.startTime,
+    amount: amount - (overkill || 0),
+  }));
+
+  const timeInterval = 5000;
+  const start = 0;
+  const end = sessionMetaData.endTime - sessionMetaData.startTime;
+
+  const graphPoints = [];
+  let eventIndex = 0;
+
+  // Loop through every 5-second bin from start → end
+  for (let binStart = start; binStart <= end; binStart += timeInterval) {
+    const binEnd = binStart + timeInterval;
+    let sumAmount = 0;
+
+    // Add up all damage events within this 5 s window
+    while (
+      eventIndex < graphPointsdata.length &&
+      graphPointsdata[eventIndex].timeStamp < binEnd
+    ) {
+      const e = graphPointsdata[eventIndex];
+      const dmg = (e.amount || 0) - (e.overkill || 0);
+      sumAmount += dmg;
+      eventIndex++;
+    }
+
+    // Always push a bin — even if sumAmount is 0
+    graphPoints.push({
+      time: binStart/1000,
+      amount: sumAmount/5
+    });
+  }
+  console.log("Raid Damage Graph Points:", graphPoints);
+  return graphPoints;
 }
 
 /*

@@ -161,10 +161,10 @@
   border-right: 0px solid var(--primary);
 }
 .metricTable-cell-overall{
-  padding: 10px 3px !important;
+  padding: 7px 3px !important;
+  font-size: 0.9rem !important;
 }
 .metrics-table td {
-  padding: 4px 3px;
   font-size: 1rem;
   color: var(--text-main);
   text-align: center;
@@ -452,8 +452,9 @@
   color: #888;
 }
 .metricTable-damage-cell {
-  padding: 0 !important;
+  padding: 3px 0px;
   height: 100%;
+  width: 100%;
 }
 .metricTable-percent-bar-wrap {
   display: flex;

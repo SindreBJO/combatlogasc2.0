@@ -1,52 +1,79 @@
-import React, { useMemo } from "react";
+import React from 'react';
+import { Chart } from 'react-charts';
+import './graph.css';
 
-export default function SimpleGraph({ data, height = 60, width }) {
-  // Convert data objects → numeric values
-  const values = useMemo(() => data.map(d => d.totalDamage || 0), [data]);
+export default function ColoredAreaChart({ dataPoints = [] }) {
+  const safeData = dataPoints.filter(
+    d => d && !isNaN(d.time) && !isNaN(d.amount)
+  );
 
-  const svgWidth = width || window.innerWidth * 0.9;
-  const maxValue = Math.max(...values);
-  const minValue = 0;
-  const range = maxValue - minValue || 1; // prevent divide-by-zero
-  const step = svgWidth / (values.length - 1 || 1);
-  const padding = 10;
-  const usableHeight = height - padding * 2;
+  const data = React.useMemo(() => {
+    if (!safeData.length) {
+      return [
+        {
+          label: 'Amounts',
+          data: [{ primary: 0, secondary: 0 }],
+        },
+        
+      ];
+    }
 
-  const points = values
-    .map((value, i) => {
-      const x = i * step;
-      const y = height - padding - ((value - minValue) / range) * usableHeight;
-      return `${x},${y}`;
-    })
-    .join(" ");
+    return [
+      {
+        label: 'Amounts',
+        data: safeData.map(d => ({
+          primary: Number(d.time),
+          secondary: Number(d.amount),
+        })),
+      },
+    ];
+  }, [safeData]);
 
-  const fillPoints = `0,${height} ${points} ${svgWidth},${height}`;
+  const primaryAxis = React.useMemo(
+    () => ({
+      getValue: d => d.primary,
+      scaleType: 'linear',
+      label: 'Time (sec)',
+      formatters: {
+        scale: v => `${v} sec`,
+        tooltip: v => `${v} sec`,
+      },
+    }),
+    []
+  );
+
+  const secondaryAxes = React.useMemo(
+    () => [
+      {
+        getValue: d => d.secondary,
+        elementType: 'area',
+        label: 'Amount',
+        showDatumElements: false,
+      },
+    ],
+    []
+  );
+
+const options = React.useMemo(
+  () => ({
+    data,
+    primaryAxis,
+    secondaryAxes,
+    dark: true,
+    getSeriesStyle: series => ({
+      stroke: series.originalSeries.color || '#ff0000', // line color
+      fill: series.originalSeries.color || '#ff0000',   // area color
+      fillOpacity: 0.3,
+    }),
+    tooltip: { show: true },
+  }),
+  [data, primaryAxis, secondaryAxes]
+);
 
   return (
-    <svg
-      width={svgWidth}
-      height={height}
-      style={{
-        background: "#111",
-        borderRadius: "0px",
-        overflow: "visible",
-      }}
-      
+    <div className='graph-container'
     >
-      {/* Fill under the line */}
-      <polygon
-        fill="#ff0000ff"
-        opacity="0.2"
-        points={fillPoints}
-      />
-
-      {/* Line */}
-      <polyline
-        fill="none"
-        stroke="#ff0000ff"
-        strokeWidth="2"
-        points={points}
-      />
-    </svg>
+      <Chart options={options} />
+    </div>
   );
 }
