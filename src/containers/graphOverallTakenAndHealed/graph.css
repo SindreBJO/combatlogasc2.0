@@ -1,10 +1,10 @@
 /* Chart container */
 .graph-container {
   width: 100%;
-  height: 200px;
+  height: 250px;
   background-color: #000000; /* dark background */
+  padding: 1rem;
   box-sizing: border-box;
-  padding: 2rem 1rem 1rem 1rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   display: flex;
   align-items: center;

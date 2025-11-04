@@ -138,11 +138,19 @@ export const DataContextProvider = ({ children }) => {
         offset = 0;
         carryOver = '';
 
+        let fullTimer = 0;
+        let parseTimer = 0;
+        let fullSessionTimer = 0;
+        let uniqueEntityTimer = 0;
+        let uniqueActionTimer = 0;
+
+        const fullTimerStart = performance.now();
+
         reader.onload = (event) => {
             const text = carryOver + event.target.result;
             const newLines = text.split('\n');
             carryOver = newLines.pop();
-            newLines.forEach(line => {
+            newLines.forEach(line => { 
                 processParse(line);
             });
             offset += CHUNK_SIZE;
@@ -156,6 +164,13 @@ export const DataContextProvider = ({ children }) => {
                 processParse(carryOver);
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
+                const fullTimerEnd = performance.now();
+                fullTimer += fullTimerEnd - fullTimerStart
+                console.log("Full Rundown Time:", fullTimer, "ms", metaData.data.length + metaData.invalidData.length, "lines");
+                console.log("Parsing Time:", parseTimer, "ms ", ((parseTimer / fullTimer) * 100).toFixed(2), "% of total");
+                console.log("Full Session Handling Time:", fullSessionTimer, "ms ", ((fullSessionTimer / fullTimer) * 100).toFixed(2), "% of total");
+                console.log("Unique Entity Handling Time:", uniqueEntityTimer, "ms ", ((uniqueEntityTimer / fullTimer) * 100).toFixed(2), "% of total");
+                console.log("Unique Action Handling Time:", uniqueActionTimer, "ms ", ((uniqueActionTimer / fullTimer) * 100).toFixed(2), "% of total");
                 metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
                 setData(metaData);
                 console.log("Finished parsing file. MetaData:", metaData);
@@ -176,7 +191,10 @@ export const DataContextProvider = ({ children }) => {
 
         // Function for parsing each line and handling sessions depending on the parsed line.
         function processParse(currentUnparsedLine){
+          const parseTimerStart = performance.now();
             currentParsedObject = parseString(currentUnparsedLine);
+            const parseTimerEnd = performance.now();
+                parseTimer += parseTimerEnd - parseTimerStart
             if (bannedNames.includes(currentParsedObject.sourceName) || bannedNames.includes(currentParsedObject.destName)) { return; }
             if (currentParsedObject) {
                 if (metaData.dataIndexStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
@@ -199,13 +217,24 @@ export const DataContextProvider = ({ children }) => {
         const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
         const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
+        
+
+        
+
         function processSession() {
+          const fullSessionTimerStart = performance.now();
             if (checkSessionStartCondition()) { startSession() }
             if (sessionActive) {
+              const uniqueEntityTimerStart = performance.now();
                 tryAddUniqueEntity(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID);
                 tryAddUniqueEntity(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID);
+              const uniqueEntityTimerEnd = performance.now();
+              uniqueEntityTimer += uniqueEntityTimerEnd - uniqueEntityTimerStart
+              const uniqueActionTimerStart = performance.now();
                 tryAddEntityUniqueAction(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, true, /*is SourceEntity*/);
                 tryAddEntityUniqueAction(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, false /*is not SourceEntity*/);
+              const uniqueActionTimerEnd = performance.now();
+              uniqueActionTimer += uniqueActionTimerEnd - uniqueActionTimerStart
                 checkPlayerResurrected();
                 checkEntityAliveStatus();
                 checkBossName(currentParsedObject.sourceFlag, currentParsedObject.sourceName);
@@ -215,6 +244,8 @@ export const DataContextProvider = ({ children }) => {
                     endSession() 
                 }
             }
+          const fullSessionTimerEnd = performance.now();
+          fullSessionTimer += fullSessionTimerEnd - fullSessionTimerStart
         }
         function checkDamageAction() {
             return ["DAMAGE", "MISSED"].includes(currentParsedObject.event[1]);

@@ -1,4 +1,20 @@
-// --- Primary Entity Table Data Builder ---
+import { BOSSNAMES } from "./constants";
+import { MultipleNameEnemyNPCs } from "./constants";
+
+function getActualHit(amount, overkill) {
+  // Defensive: ensure inputs are numbers
+  amount = amount || 0;
+  overkill = overkill || 0;
+
+  // If overkill is smaller than the hit, subtract it normally.
+  // If it's bigger (massive overkill case), ignore it.
+  if (overkill < amount) {
+    return amount - overkill;
+  }
+
+  return 0;
+}
+
 export function getEntityTableData(entityObj, sessionData, sessionMetaData) {
   if (!sessionData || !entityObj) return null;
 
@@ -41,7 +57,7 @@ function getDamageGraphPoints() {
       damageEvents[eventIndex].timeStamp < binEnd
     ) {
       const e = damageEvents[eventIndex];
-      const dmg = (e.amount || 0) - (e.overkill || 0);
+      const dmg = getActualHit(e.amount, e.overkill);
       sumAmount += dmg;
       eventIndex++;
     }
@@ -56,30 +72,15 @@ function getDamageGraphPoints() {
   return graphPoints;
 }
 
-
-  const overKillList = [];
-  const buffList = [];
-
-  entityReceivedData.forEach((obj) => {
-    if (obj.overkill && obj.overkill > obj.amount) {
-      overKillList.push(obj);
-    }
-  });
-  entityReceivedData.forEach((obj) => {
-    if (obj.spellName === "Ardent defender") {
-      buffList.push(obj);
-    }
-  });
-
   const getDPS = () => {
     const damageData = entityDealtData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
-    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount - obj.overkill || 0), 0);
+    const totalDamage = damageData.reduce((sum, obj) => sum + getActualHit(obj.amount, obj.overkill), 0);
     return (totalDamage / sessionMetaData.encounterLengthSec).toFixed(0);
   }
 
   const getDamageDone = () => {
     const damageData = entityDealtData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
-    const totalDamage = damageData.reduce((sum, obj) => sum + (obj.amount - obj.overkill || 0), 0);
+    const totalDamage = damageData.reduce((sum, obj) => sum + getActualHit(obj.amount, obj.overkill), 0);
     return totalDamage
     .toFixed(0) // one decimal place
   }
@@ -87,10 +88,7 @@ function getDamageGraphPoints() {
   const getDamageTaken = () => {
     const damageData = entityReceivedData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
     const totalDamage = damageData.reduce((sum, obj) => {
-      const overkill = Math.min(obj.overkill || 0, obj.amount || 0);
-      const absorbed = obj.absorbed || 0;
-      const amount = obj.amount || 0;
-      return sum + (amount + absorbed);
+      return sum + (obj.amount + obj.absorbed);
     }, 0);
     return totalDamage
   }
@@ -154,14 +152,14 @@ function getDamageGraphPoints() {
         dispels: entityObj.dispels ?? 0,
         purges: entityObj.purges ?? 0,
         cleanses: entityObj.cleanses ?? 0,
-        ress: entityObj.ress ?? 0, // resurrections if applicable
+        ress: entityObj.ress ?? 0,
         ccBreaks: entityObj.ccBreaks ?? 0,
       },
 
     meta: {
-        aliveStatus: entityObj.alive , //Done
-        ressurectedStatus: entityObj.ressurectedAt.length > 0 , //Done
-        damageGraphData: graphPoints, //Done
+        aliveStatus: entityObj.alive,
+        ressurectedStatus: entityObj.ressurectedAt.length > 0,
+        damageGraphData: graphPoints,
       },
   };
 
@@ -169,59 +167,181 @@ function getDamageGraphPoints() {
 
 }
 
-export function getRaidDamageGraphPoints(sessionData, sessionMetaData) {
+export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 100) {
+  if (sessionMetaData.encounterLengthMs <= 1000) {return [[], []];}
+  if (!sessionMetaData?.entitiesData?.players || !sessionMetaData?.entitiesData?.pets) {
+    console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
+    return [[], []];
+  }
+
+  const entities = [...sessionMetaData.entitiesData.players, ...sessionMetaData.entitiesData.pets];
+
+  // 🔹 Helper to check multi-name boss groups
+  const isMultiNameBossHit = (bossName, destName) => {
+    if (!bossName || !destName) return false;
+    const group = MultipleNameEnemyNPCs.find(names => names.includes(bossName));
+    if (!group) return false;
+    return group.some(name => destName.includes(name));
+  };
+
+  // Filter player damage events
+  const entityDealtData = sessionData.filter(({ sourceName, sourceFlag, event }) => {
+    if (sourceFlag !== "player") return false;
+    if (!event.includes("DAMAGE") || event.includes("MISSED")) return false;
+    return entities.some(({ name }) => name === sourceName);
+  });
+
+  // Simplify for graph use
+  const graphAllDamagePointsData = entityDealtData.map(
+    ({ timeStamp, amount, overkill = 0, destName }) => ({
+      timeStamp: timeStamp - sessionMetaData.startTime,
+      amount: getActualHit(amount, overkill),
+      destName,
+    })
+  );
+
+  const start = 0;
+  const end = sessionMetaData.endTime - sessionMetaData.startTime;
+
+  const graphAllDamagePoints = [{ time: 0, amount: 0 }];
+  const graphBossDamagePoints = [{ time: 0, amount: 0 }];
+
+  let eventIndex = 0;
+
+  for (let binStart = start; binStart < end; binStart += inputInterval) {
+    const binEnd = Math.min(binStart + inputInterval, end);
+    const actualDuration = (binEnd - binStart) / 1000;
+
+    let sumAmount = 0;
+    let bossSumAmount = 0;
+
+    while (
+      eventIndex < graphAllDamagePointsData.length &&
+      graphAllDamagePointsData[eventIndex].timeStamp < binEnd
+    ) {
+      const e = graphAllDamagePointsData[eventIndex];
+      const dmg = e.amount || 0;
+
+      // 🔹 Boss match check
+      const bossName = sessionMetaData.bossName;
+      const isBossTarget =
+        e.destName === bossName || isMultiNameBossHit(bossName, e.destName);
+
+      if (isBossTarget) bossSumAmount += dmg;
+      else sumAmount += dmg;
+
+      eventIndex++;
+    }
+
+    graphAllDamagePoints.push({
+      time: binEnd / 1000,
+      amount: sumAmount / actualDuration,
+    });
+
+    graphBossDamagePoints.push({
+      time: binEnd / 1000,
+      amount: bossSumAmount / actualDuration,
+    });
+  }
+  console.log("Raid Damage Graph Points:", graphAllDamagePoints, graphBossDamagePoints);
+  return [graphAllDamagePoints, graphBossDamagePoints];
+}
+
+
+export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 100) {
   if (!sessionMetaData?.entitiesData?.players) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
     return [];
   }
 
-  const players = sessionMetaData.entitiesData.players;
+  // --- Build datasets ---
+  const entityHealingTakenData = sessionData
+    .filter(({ destFlag, event }) =>
+      destFlag === "player" && event.includes("HEAL")
+    )
+    .map(({ timeStamp, amount, overhealing }) => ({
+      time: (timeStamp - sessionMetaData.startTime) / 1000,
+      amount: Math.max(0, (amount || 0) - (overhealing || 0)),
+    }));
 
-  // Step 1: Filter relevant damage events
-  const entityDealtData = sessionData.filter(({ sourceName, sourceFlag, event }) => {
-    if (sourceFlag !== "player") return false;
-    if (!event.includes("DAMAGE") || event.includes("MISSED")) return false;
+  const entityAbsorbedTakenData = sessionData
+    .filter(({ destFlag, event, absorbed }) =>
+      destFlag === "player" &&
+      event.includes("DAMAGE") &&
+      !event.includes("MISSED") &&
+      absorbed > 0
+    )
+    .map(({ timeStamp, absorbed }) => ({
+      time: (timeStamp - sessionMetaData.startTime) / 1000,
+      amount: absorbed || 0,
+    }));
 
-    return players.some(({ name }) => name === sourceName);
-  });
+  const entityDamageTakenData = sessionData
+    .filter(({ destFlag, event }) =>
+      destFlag === "player" &&
+      event.includes("DAMAGE") &&
+      !event.includes("MISSED")
+    )
+    .map(({ timeStamp, amount, overkill }) => ({
+      time: (timeStamp - sessionMetaData.startTime) / 1000,
+      amount: getActualHit(amount, overkill),
+    }));
 
-  // Step 2: Map to simplified graph-friendly data
-  const graphPointsdata = entityDealtData.map(({ timeStamp, amount, overkill}) => ({
-    timeStamp: timeStamp - sessionMetaData.startTime,
-    amount: amount - (overkill || 0),
-  }));
-
-  const timeInterval = 5000;
+  // --- Time binning ---
   const start = 0;
-  const end = sessionMetaData.endTime - sessionMetaData.startTime;
+  const end = (sessionMetaData.endTime - sessionMetaData.startTime) / 1000;
 
-  const graphPoints = [];
-  let eventIndex = 0;
+  const graphHealingFallPoints = [{ time: 0, amount: 0 }];
+  const graphAbsorbTakenPoints = [{ time: 0, amount: 0 }];
+  const graphDamageTakenPoints = [{ time: 0, amount: 0 }];
 
-  // Loop through every 5-second bin from start → end
-  for (let binStart = start; binStart <= end; binStart += timeInterval) {
-    const binEnd = binStart + timeInterval;
-    let sumAmount = 0;
+  let healIndex = 0;
+  let absorbIndex = 0;
+  let dmgIndex = 0;
+  let healthNotHealedSum = 0;
 
-    // Add up all damage events within this 5 s window
-    while (
-      eventIndex < graphPointsdata.length &&
-      graphPointsdata[eventIndex].timeStamp < binEnd
-    ) {
-      const e = graphPointsdata[eventIndex];
-      const dmg = (e.amount || 0) - (e.overkill || 0);
-      sumAmount += dmg;
-      eventIndex++;
+  for (let binStart = start; binStart < end; binStart += inputInterval / 1000) {
+    const binEnd = Math.min(binStart + inputInterval / 1000, end);
+    const duration = binEnd - binStart;
+
+    let healingSum = 0;
+    let absorbSum = 0;
+    let damageSum = 0;
+
+    while (healIndex < entityHealingTakenData.length && entityHealingTakenData[healIndex].time < binEnd) {
+      healingSum += entityHealingTakenData[healIndex].amount;
+      healIndex++;
     }
 
-    // Always push a bin — even if sumAmount is 0
-    graphPoints.push({
-      time: binStart/1000,
-      amount: sumAmount/5
+    while (absorbIndex < entityAbsorbedTakenData.length && entityAbsorbedTakenData[absorbIndex].time < binEnd) {
+      absorbSum += entityAbsorbedTakenData[absorbIndex].amount;
+      absorbIndex++;
+    }
+
+    while (dmgIndex < entityDamageTakenData.length && entityDamageTakenData[dmgIndex].time < binEnd) {
+      damageSum += entityDamageTakenData[dmgIndex].amount;
+      dmgIndex++;
+    }
+
+    healthNotHealedSum += damageSum - healingSum;
+
+    graphHealingFallPoints.push({
+      time: binEnd,
+      amount: (healingSum) / duration,
+    });
+
+    graphAbsorbTakenPoints.push({
+      time: binEnd,
+      amount: absorbSum / duration,
+    });
+
+    graphDamageTakenPoints.push({
+      time: binEnd,
+      amount: healthNotHealedSum < 0 ? 0 : healthNotHealedSum / duration,
     });
   }
-  console.log("Raid Damage Graph Points:", graphPoints);
-  return graphPoints;
+
+  return [graphDamageTakenPoints, graphHealingFallPoints, graphAbsorbTakenPoints];
 }
 
 /*

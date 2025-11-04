@@ -8,6 +8,19 @@
   letter-spacing: 1px;
   user-select: none;
 }
+.metricTable-wrapper{
+  background-color: #a88b4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  border: 2px solid #a88b4a;
+  border-radius: 14px;
+  overflow: hidden;
+  gap: 2px;
+  animation: fadeinslow 1s ease-in;
+}
+
 .metricTable-container {
   display: flex;
   flex-direction: column;
@@ -136,15 +149,13 @@
 .metrics-table {
   width: 90vw;
   table-layout: fixed;
-  border-collapse: separate;
   border-spacing: 0;
-  border-radius: 14px;
   overflow: hidden;
   box-shadow: var(--shadow);
   background: linear-gradient(135deg, var(--primary-bg) 60%, var(--secondary-bg) 100%);
   color: var(--text-main);
   font-family: 'Segoe UI', Arial, sans-serif;
-  font-size: 16px;
+
 }
 
 .metrics-table th.metricTable-big-cell, .metrics-table th.metricTable-small-cell {
@@ -153,7 +164,6 @@
   color: var(--primary-light);
   text-shadow: 0 2px 8px #000;
   font-weight: 600;
-  border-bottom: 2px solid #a88b4a;
   transition: all 0.3s ease;
   overflow: hidden;
 }
@@ -161,8 +171,13 @@
   border-right: 0px solid var(--primary);
 }
 .metricTable-cell-overall{
-  padding: 7px 3px !important;
-  font-size: 0.9rem !important;
+  padding: 10px 3px !important;
+  font-size: 1rem !important;
+  cursor: default !important;
+  user-select: none;
+}
+.overall-row{
+  box-shadow:  0 0px 5px #ffffff31 inset;
 }
 .metrics-table td {
   font-size: 1rem;
@@ -170,7 +185,7 @@
   text-align: center;
   background: var(--accent-bg);
   transition: all 0.3s ease;
-  border-bottom: 1.5px solid #f3f4f64b;
+  border-bottom: 1px solid #ffffff85;
   overflow: hidden;
 }
 .metrics-table td:hover {
@@ -203,6 +218,11 @@
   text-shadow: 0 0px 1px #00ccff;
   letter-spacing: 1px;
 }
+.metricTable-graph-header{
+  padding: 8px !important;
+  align-self: left;
+  text-align: left;
+}
 
 .death-icon-img {
   width: 15px;
@@ -219,7 +239,6 @@
   font-size: 0.9rem !important;
   color: #0099ff1c !important;
   text-align: left;
-  padding-left: 12px;
   background: none;
   user-select: none;
   text-shadow: 0 0px 1px #00ccff;
@@ -438,8 +457,6 @@
 .metrics-table-modern {
   width: 90vw;
   background: linear-gradient(135deg, #23272f 60%, #1a1d23 100%);
-  border-radius: 14px;
-  border: 2.5px solid #a88b4a;
   box-shadow: 0 0 30px 0 rgba(255, 255, 255, 0.075);
   color: #e7cfa0;
   font-family: 'Segoe UI', Arial, sans-serif;
@@ -523,6 +540,11 @@ box-shadow: 0 0 3px #0000007c inset;
 /* --- Fade Animations (from flawless filedrop) --- */
 @keyframes fadein {
   from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes fadeinslow {
+  from { opacity: 0; }
+  50% { opacity: 0; }
   to   { opacity: 1; }
 }
 @keyframes fadeout {

@@ -320,6 +320,7 @@ export const MultipleIdEnemyNPCs = [
 
 export const MultipleNameEnemyNPCs = [
   ["M'uru", "Entropius"],
+
 ]
 
 export const bypassEndByDIEDSessionCheckNames = [

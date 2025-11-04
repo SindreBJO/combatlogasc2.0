@@ -1,10 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import "./table.css";
 import { DataContext } from "../utils/contexts/dataContext";
-import { getEntityTableData, getRaidDamageGraphPoints} from "../utils/helpers/analaysisHelpers";
+import { getEntityTableData, getRaidDamageGraphPoints, getRaidDamageTakenGraphPoints} from "../utils/helpers/analaysisHelpers";
 import skillIcon from "../assets/tableicons/skullIcon.png";
 import rebirthIcon from "../assets/tableicons/rebirth.png";
 import ColoredAreaChart from "./graph/graph";
+import ColoredAreaChartDamageTaken from "./graphOverallTakenAndHealed/graph";
 
 
 export default function PerformanceMetricsTable() {
@@ -13,7 +14,8 @@ export default function PerformanceMetricsTable() {
   const {data, setFinishedParsing, setStartNewSession} = useContext(DataContext);
   const [selectedSessionIdx, setSelectedSessionIdx] = useState(0);
   const [session, setSession] = useState(data.sessions[selectedSessionIdx] || {});
-  const [sessionRaidGraphPoints, setSessionRaidGraphPoints] = useState([{time: 0, amount: 0}, {time: 1, amount: 0}, {time: 2, amount: 0}]);
+  const [sessionRaidGraphPoints, setSessionRaidGraphPoints] = useState();
+  const [sessionRaidGraphPointsDamageTaken, setSessionRaidGraphPointsDamageTaken] = useState();
 
   // Session info
   const [sessionPrint, setSessionPrint ] = useState({});
@@ -70,6 +72,8 @@ export default function PerformanceMetricsTable() {
 
     const sessionDamageDonePoints = getRaidDamageGraphPoints(sessionData, session);
     setSessionRaidGraphPoints(sessionDamageDonePoints);
+    const sessionDamageTakenPoints = getRaidDamageTakenGraphPoints(sessionData, session);
+    setSessionRaidGraphPointsDamageTaken(sessionDamageTakenPoints);
     
     console.log("Player rows:", playerRows);
     setPlayers(playerRows);
@@ -125,8 +129,6 @@ export default function PerformanceMetricsTable() {
       {/* Session Status/Data Panel */}
       <div className="session-info-panel fadein">
   {data.sessions && data.sessions[selectedSessionIdx] ? (() => {
-
-    // 
     const groupByName = (entities) => {
       const groups = {};
       if (!entities) return groups;
@@ -145,93 +147,7 @@ export default function PerformanceMetricsTable() {
 
     return (
       <div className="session-info-panel-flex fadein">
-        {/* General */}
-        <div className="session-info-panel-section fadein">
-          <h3 className="session-info-panel-title fadein">Session {selectedSessionIdx + 1}</h3>
-          <div className="session-info-panel-title ">{session.bossName || 'Trash'}</div>
-          <div className="session-info-panel-section-sessionData"><b>Outcome:</b> {session.outcome}</div>
-          <div className="session-info-panel-section-sessionData"><b>Date:</b> {session.dayNumber}/{session.monthNumber}/{session.year}</div>
-          <div className="session-info-panel-section-sessionData"><b>Start:</b> {start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'N/A'}</div>
-          <div className="session-info-panel-section-sessionData"><b>End:</b> {end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }) : 'N/A'}</div>
-          <div className="session-info-panel-section-sessionData"><b>Duration:</b></div>
-          <div className="session-info-panel-section-sessionData"> {`${Math.floor(durationSec / 60)}:${(durationSec % 60).toFixed(1).toString().padStart(2, '0')}`} min</div>
-          <div className="session-info-panel-section-sessionData"> {durationSec.toFixed(1)} sec</div>
 
-          <div className="session-info-panel-section-sessionData"><b>Players:</b> {session.entitiesData.players.length}</div>
-        </div>
-
-        {/* Players */}
-        <div className="session-info-panel-section fadein">
-          <b>Player Status:</b>
-          <ul className="session-info-panel-player-list fadein">
-            {Object.entries(playerGroups).length === 0 ? (
-              <li>No players</li>
-            ) : Object.entries(playerGroups).map(([name, group], i) => (
-              <li key={i}>
-                {group.length > 1 ? (
-                  <>
-                    <button onClick={() => toggleGroup(name)}>
-                      {expandedNames[name] ? `Hide ${name} (${group.length})` : `${name} (${group.length})`}
-                    </button>
-                    {expandedNames[name] && group.map((p, j) => (
-                      <div key={j} className="session-info-panel-player-alive-status">
-                        {p.name} {p.alive ? <p className="alive-text">✔ Alive</p> : <p className="dead-text">✖ Dead</p>}
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <div className="session-info-panel-player-alive-status">
-                  {name} {group[0].alive ? <p className="alive-text">✔ Alive</p>  : <p className="dead-text">✖ Dead</p>}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-        {/* Enemies */}
-        <div className="session-info-panel-section fadein">
-          <b>Enemy Status:</b>
-          <ul className="session-info-panel-player-list fadein">
-            {Object.entries(enemyGroups).length === 0 ? (
-              <li>No enemies</li>
-            ) : Object.entries(enemyGroups).map(([name, group], i) => (
-              <li key={i}>
-                {group.length > 1 ? (
-                  <>
-                    <button onClick={() => toggleGroup(name)}>
-                      {expandedNames[name] ? `Hide ${name} (${group.length})` : `${name} (${group.length})`}
-                    </button>
-                    {expandedNames[name] && group.map((e, j) => (
-                      <div key={j} className="session-info-panel-player-alive-status">
-                        {name} {e.alive ? <p className="alive-text">✔ Alive</p> : <p className="dead-text">✖ Dead</p>}
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <div className="session-info-panel-player-alive-status">
-                    {name} {group[0].alive ? <p className="alive-text">✔ Alive</p> : <p className="dead-text">✖ Dead</p>}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Metadata toggle */}
-        <div className="session-info-panel-section fadein">
-          <button onClick={() => setShowMeta(!showMeta)}>
-            {showMeta ? 'Hide Metadata' : 'Show Metadata'}
-          </button>
-          {showMeta && (
-            <ul>
-              <li><b>Start Line:</b> {session.dataIndexStart}</li>
-              <li><b>End Line:</b> {session.dataIndexEnd}</li>
-              <li><b>Last Damage Line:</b> {session.lastDamageIndexAt}</li>
-              <li><b>Start Parse Event:</b> {session.startParse?.event?.join(' ') || 'N/A'}</li>
-              <li><b>End Parse Event:</b> {session.endParse?.event?.join(' ') || 'N/A'}</li>
-            </ul>
-          )}
-        </div>
 
         {/* Dev Info toggle */}
         <div className="session-info-panel-section fadein">
@@ -252,11 +168,30 @@ export default function PerformanceMetricsTable() {
       <div className="table-section-title-wrapper fadein">
       <h2 className="table-section-title fadein">Preformance Metrics</h2>
       </div>
+      <div className="metricTable-wrapper">
+              <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
+              <ColoredAreaChartDamageTaken shadows={false} dataPoints={sessionRaidGraphPointsDamageTaken} color="#00ff00" />
       <table className="metrics-table metrics-table-modern fadein">
-        <thead className="fadein">      
+        <thead className="fadein">    
+          <tr class="metricTable-header-text ">
+            <td colSpan={2} className="metricTable-graph-header">{ selectedSessionIdx + 1 + ". " +session.bossName || 'Trash'}</td>
+            <td colSpan={1} className="metricTable-graph-header">{session.outcome}</td>
+            <td colSpan={1} className="metricTable-graph-header">{session.encounterLengthSec
+              ? (() => {
+                  const totalMs = session.encounterLengthSec * 1000;
+                  const minutes = Math.floor(totalMs / 60000);
+                  const seconds = Math.floor((totalMs % 60000) / 1000);
+                  const milliseconds = ((totalMs % 1000) / 1000).toFixed(1).slice(2);
+                  return `${minutes}:${seconds.toString().padStart(2, '0')},${milliseconds} min`;
+                })()
+              : ''}</td>
+            <td colSpan={1} className="metricTable-graph-header">{session.dayNumber}/{session.monthNumber}/{session.year}</td>
+            <td colSpan={1} className="metricTable-graph-header">{session.entitiesData.players.length} man</td>
+            <td colSpan={5} className="metricTable-graph-header"></td>
+          </tr>
           <tr className="fadein">
             <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
-              <div className="metricTable-header-inner">Players</div>
+              <div className="metricTable-header-inner">Entity</div>
             </th>
             <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dps" title="Damage Per Second">
               <div className="metricTable-header-inner">DPS</div>
@@ -286,7 +221,6 @@ export default function PerformanceMetricsTable() {
               <div className="metricTable-header-inner">Raid Dispels</div>
             </th>
             <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-purges" title="Purges">
-              <div className="metricTable-header-inner">Enemy Dispels</div>
             </th>
           </tr>
         </thead>
@@ -302,16 +236,16 @@ export default function PerformanceMetricsTable() {
                 absorbedTaken: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalAbsorbedTaken) || 0), 0),
                 hps: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.hps) || 0), 0),
                 totalHealingDone: players.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalHealingDone) || 0), 0),
-
                 },
                 utility: {},
                 meta: {},
               };
             
               return (
-                <tr key={999} className="fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
+                
+                <tr key={999} className="overall-row fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
                   <td className="metricTable-cell-name fadein">
-                    <p className={session.outcome === "Wipe" ? "deadText" : ""}>{raidData.identity}</p>
+                    <p className={session.outcome === "Wipe" ? "deadText metricTable-cell-overall" : "metricTable-cell-overall"}>{raidData.identity}</p>
                   </td>
                   <td className="metricTable-cell-overall">
                     {raidData.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
@@ -340,9 +274,6 @@ export default function PerformanceMetricsTable() {
                 </tr>
               );
             })()}
-            <tr>
-              <td colSpan={11}><ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} /></td>
-            </tr>
           {players.length === 0 ? (
             <tr className="fadein">
               <td colSpan={11} className="metrics-table-nodata fadein">No player data available</td>
@@ -478,49 +409,13 @@ export default function PerformanceMetricsTable() {
 
 
 
-
+    
       <table className="metrics-table metrics-table-modern fadein">
-        <thead className="fadein">
-          <tr className="fadein">
-            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
-              <div className="metricTable-header-inner">Pets</div>
-            </th>
-            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dps" title="Damage Per Second">
-              <div className="metricTable-header-inner">DPS</div>
-            </th>
-            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damage" title="Total Damage Done">
-              <div className="metricTable-header-inner">Damage Done</div>
-            </th>
-            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-damagetaken" title="Total Damage Taken">
-              <div className="metricTable-header-inner">Damage Taken</div>
-            </th>
-            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingtaken" title="Total Healing Taken">
-              <div className="metricTable-header-inner">Healing Taken</div>
-            </th>
-            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-absorbed" title="Total Absorbed">
-              <div className="metricTable-header-inner">Absorb Taken</div>
-            </th>
-            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-hps" title="Healing Per Second">
-              <div className="metricTable-header-inner">HPS</div>
-            </th>
-            <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-healingdone" title="Total Healing Done">
-              <div className="metricTable-header-inner">HealingDone</div>
-            </th>
-            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-interrupts" title="Interrupts">
-              <div className="metricTable-header-inner">Interrupts</div>
-            </th>
-            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-dispels" title="Dispels">
-              <div className="metricTable-header-inner">Raid Dispels</div>
-            </th>
-            <th className="metricTable-header-text metricTable-small-cell fadein metricTable-header-purges" title="Purges">
-              <div className="metricTable-header-inner">Enemy Dispels</div>
-            </th>
-          </tr>
-        </thead>
+        
         <tbody className="fadein">
             {(() => {
               const raidData = {
-                identity: pets.length > 5 ? "Raid" : "Party",
+                identity: "Pets",
                 combatStats: {
                   dps: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.dps) || 0), 0),
                 totalDamage: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalDamage) || 0), 0),
@@ -536,34 +431,34 @@ export default function PerformanceMetricsTable() {
               };
             
               return (
-                <tr key={999} className="fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
+                <tr key={999} className="overall-row fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
                   <td className="metricTable-cell-name fadein">
-                    {raidData.identity}
+                    <p class="metricTable-cell-overall">{raidData.identity}</p>
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.absorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>
+                  <td className="metricTable-cell-overall">
                     {raidData.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
                   </td>
-                  <td>-</td>
-                  <td>-</td>
-                  <td>-</td>
+                  <td className="metricTable-cell-overall">-</td>
+                  <td className="metricTable-cell-overall">-</td>
+                  <td className="metricTable-cell-overall">-</td>
                 </tr>
               );
             })()}
@@ -681,24 +576,7 @@ export default function PerformanceMetricsTable() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      <table className="metrics-table metrics-table-modern fadein">
+    <table className="metrics-table metrics-table-modern fadein">
         <thead className="fadein">
           <tr className="fadein">
             <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
@@ -848,6 +726,34 @@ export default function PerformanceMetricsTable() {
           )}
         </tbody>
       </table>
+
+
+
+
+
+
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      
     </div>
   );
 }
