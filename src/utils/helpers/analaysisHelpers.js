@@ -167,7 +167,7 @@ function getDamageGraphPoints() {
 
 }
 
-export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 100) {
+export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 50) {
   if (sessionMetaData.encounterLengthMs <= 1000) {return [[], []];}
   if (!sessionMetaData?.entitiesData?.players || !sessionMetaData?.entitiesData?.pets) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
@@ -248,11 +248,18 @@ export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInte
 }
 
 
-export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 100) {
+export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData) {
   if (!sessionMetaData?.entitiesData?.players) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
     return [];
   }
+
+  const encounterLengthMs = sessionMetaData.encounterLengthMs || 0;
+
+  // 🧮 Compute number of bins and bin size (equal length)
+  const binsIfOneSecond = encounterLengthMs / 1000;
+  const numBins = Math.min(Math.ceil(binsIfOneSecond), 50);
+  const inputInterval = encounterLengthMs / numBins; // ms per bin
 
   // --- Build datasets ---
   const entityHealingTakenData = sessionData
@@ -288,21 +295,21 @@ export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, inpu
     }));
 
   // --- Time binning ---
-  const start = 0;
-  const end = (sessionMetaData.endTime - sessionMetaData.startTime) / 1000;
-
-  const graphHealingFallPoints = [{ time: 0, amount: 0 }];
+  const graphDamageTakenHealedPoints = [{ time: 0, amount: 0 }];
   const graphAbsorbTakenPoints = [{ time: 0, amount: 0 }];
-  const graphDamageTakenPoints = [{ time: 0, amount: 0 }];
+  const graphSumDamageNotHealedPoints = [{ time: 0, amount: 0 }];
 
   let healIndex = 0;
   let absorbIndex = 0;
   let dmgIndex = 0;
   let healthNotHealedSum = 0;
 
-  for (let binStart = start; binStart < end; binStart += inputInterval / 1000) {
-    const binEnd = Math.min(binStart + inputInterval / 1000, end);
-    const duration = binEnd - binStart;
+  const totalDurationSec = (sessionMetaData.endTime - sessionMetaData.startTime) / 1000;
+  const binDurationSec = inputInterval / 1000; // constant for every bin
+
+  for (let i = 0; i < numBins; i++) {
+    const binStart = i * binDurationSec;
+    const binEnd = (i + 1) * binDurationSec;
 
     let healingSum = 0;
     let absorbSum = 0;
@@ -322,27 +329,28 @@ export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, inpu
       damageSum += entityDamageTakenData[dmgIndex].amount;
       dmgIndex++;
     }
-
+    if (healthNotHealedSum < 0) healthNotHealedSum = 0;
     healthNotHealedSum += damageSum - healingSum;
 
-    graphHealingFallPoints.push({
+    graphDamageTakenHealedPoints.push({
       time: binEnd,
-      amount: (healingSum) / duration,
+      amount: healingSum / binDurationSec,
     });
 
     graphAbsorbTakenPoints.push({
       time: binEnd,
-      amount: absorbSum / duration,
+      amount: absorbSum / binDurationSec,
     });
 
-    graphDamageTakenPoints.push({
+    graphSumDamageNotHealedPoints.push({
       time: binEnd,
-      amount: healthNotHealedSum < 0 ? 0 : healthNotHealedSum / duration,
+      amount: healthNotHealedSum < 0 ? 0 : healthNotHealedSum / binDurationSec,
     });
   }
 
-  return [graphDamageTakenPoints, graphHealingFallPoints, graphAbsorbTakenPoints];
+  return [graphSumDamageNotHealedPoints, graphDamageTakenHealedPoints, graphAbsorbTakenPoints];
 }
+
 
 /*
   // Parse metrics

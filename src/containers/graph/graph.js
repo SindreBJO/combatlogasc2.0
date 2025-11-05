@@ -2,7 +2,7 @@ import React from 'react';
 import { Chart } from 'react-charts';
 import './graph.css';
 
-export default function ColoredAreaChart({ dataPoints = [[],[]], name = "", color }) {
+export default function ColoredAreaChart({ dataPoints = [[0],[0]], name = "", color }) {
 const [dataA = [], dataB = []] = Array.isArray(dataPoints) ? dataPoints : [[], []];
 
 const clean = arr =>
@@ -27,7 +27,7 @@ const safeBossData = clean(dataB);
 
     if (safeBossData.length) {
     series.push({
-      label: `${name} (on Boss)`,
+      label: `${name} (Boss)`,
       data: safeBossData.map(d => ({
         primary: Number(d.time),
         secondary: Number(d.amount),
@@ -38,12 +38,12 @@ const safeBossData = clean(dataB);
 
   if (safeAllData.length) {
     series.push({
-      label: `${name} (All)`,
+      label: `${name} (Adds)`,
       data: safeAllData.map(d => ({
         primary: Number(d.time),
         secondary: Number(d.amount),
       })),
-      color: '#ff9100ff', // optional custom color
+      color: '#8f0037ff', // optional custom color
     });
   }
 
@@ -59,28 +59,28 @@ const safeBossData = clean(dataB);
       label: 'Time (sec)',
       formatters: {
         scale: v => `${v} s`,
-        tooltip: v => `${v} sec`,
+        tooltip: v => `${(Number(v) || 0).toFixed(1)} sec`,
       },
     }),
     []
   );
 
-  const secondaryAxes = React.useMemo(
-    () => [
-      {
-        getValue: d => d.secondary,
-        elementType: 'area',
-        label: name,
-        stacked: true,              // ✅ This line adds stacking
-        showDatumElements: false,
-        formatters: {
-        scale: v => `${(v/1000).toFixed(0)}k`,
-        tooltip: v => `${(v/1000).toFixed(1)}k ${name}`,
+const secondaryAxes = React.useMemo(
+  () => [
+    {
+      getValue: d => d.secondary,
+      elementType: 'area',
+      label: name,
+      stacked: true,
+      showDatumElements: false,
+      formatters: {
+        scale: v => `${((v ?? 0) / 1000).toFixed(0)}k`,
+        tooltip: v => `${((v ?? 0) / 1000).toFixed(1)}k ${name}`,
       },
-      },
-    ],
-    []
-  );
+    },
+  ],
+  [name]
+);
 
   
 
@@ -91,9 +91,14 @@ const options = React.useMemo(
     secondaryAxes,
     dark: true,
     domain: [0, 100],
-    padding: { left: 10, right: 10, top: 10, bottom: 10 },
+    padding: {
+          left: 10,
+          right: 10,
+          top: 15,
+          bottom: 5,
+        },
 
-    interactionMode: 'closest',
+    interactionMode: 'primary',
 
     tooltip: {
       show: true,
@@ -101,7 +106,7 @@ const options = React.useMemo(
       anchor: 'closest',
       align: 'auto',
     },
-
+    
     getSeriesStyle: series => {
       const explicitColor = series.originalSeries?.color || color;
       return {

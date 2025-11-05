@@ -32,7 +32,7 @@ export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []],
       series.push({
         label: 'Damage not healed',
         data: safeAllDamageTaken.map(d => ({ primary: +d.time, secondary: +d.amount })),
-        color: '#ff0000ff', 
+        color: '#0051ff', 
       });
     }
 
@@ -57,7 +57,7 @@ export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []],
       label: 'Time (sec)',
       formatters: {
         scale: v => `${v} s`,
-        tooltip: v => `${v} sec`,
+        tooltip: v => `${(Number(v) || 0).toFixed(1)} sec`,
       },
     }),
     []
@@ -109,8 +109,8 @@ export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []],
       padding: {
           left: 10,
           right: 10,
-          top: 10,
-          bottom: 10,
+          top: 15,
+          bottom: 5,
         },
   
       tooltip: {

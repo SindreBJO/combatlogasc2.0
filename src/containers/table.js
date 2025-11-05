@@ -34,6 +34,10 @@ export default function PerformanceMetricsTable() {
   const [pets, setPets] = useState([]);
   const [enemies, setEnemies] = useState([]);
 
+  const handleSortPlayers = () => {
+    
+  };
+
   useEffect(() => {
     console.log("%c-- INITIATING VERIFYING --", "color: green");
     if (!data.sessions || !data.sessions[selectedSessionIdx]) return;
@@ -168,15 +172,14 @@ export default function PerformanceMetricsTable() {
       <div className="table-section-title-wrapper fadein">
       <h2 className="table-section-title fadein">Preformance Metrics</h2>
       </div>
+      
+
       <div className="metricTable-wrapper">
-              <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
-              <ColoredAreaChartDamageTaken shadows={false} dataPoints={sessionRaidGraphPointsDamageTaken} color="#00ff00" />
-      <table className="metrics-table metrics-table-modern fadein">
-        <thead className="fadein">    
-          <tr class="metricTable-header-text ">
-            <td colSpan={2} className="metricTable-graph-header">{ selectedSessionIdx + 1 + ". " +session.bossName || 'Trash'}</td>
-            <td colSpan={1} className="metricTable-graph-header">{session.outcome}</td>
-            <td colSpan={1} className="metricTable-graph-header">{session.encounterLengthSec
+        <div className="metricTable-selectedSessionData fadein">
+            <p>Session{" "}{selectedSessionIdx + 1}</p>
+            <p>{session.bossName || 'Trash'}</p>
+            <p>{session.outcome}</p>
+            <p>{session.encounterLengthSec
               ? (() => {
                   const totalMs = session.encounterLengthSec * 1000;
                   const minutes = Math.floor(totalMs / 60000);
@@ -184,11 +187,14 @@ export default function PerformanceMetricsTable() {
                   const milliseconds = ((totalMs % 1000) / 1000).toFixed(1).slice(2);
                   return `${minutes}:${seconds.toString().padStart(2, '0')},${milliseconds} min`;
                 })()
-              : ''}</td>
-            <td colSpan={1} className="metricTable-graph-header">{session.dayNumber}/{session.monthNumber}/{session.year}</td>
-            <td colSpan={1} className="metricTable-graph-header">{session.entitiesData.players.length} man</td>
-            <td colSpan={5} className="metricTable-graph-header"></td>
-          </tr>
+              : ''}</p>
+            <p>{session.dayNumber}/{session.monthNumber}/{session.year}</p>
+            <p>{session.entitiesData.players.length} man</p>
+      </div>
+              <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
+              <ColoredAreaChartDamageTaken shadows={false} dataPoints={sessionRaidGraphPointsDamageTaken} color="#00ff00" />
+      <table className="metrics-table metrics-table-modern fadein">
+        <thead className="fadein">    
           <tr className="fadein">
             <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
               <div className="metricTable-header-inner">Entity</div>
