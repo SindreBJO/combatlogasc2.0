@@ -167,8 +167,13 @@ function getDamageGraphPoints() {
 
 }
 
-export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 100) {
-  if (sessionMetaData.encounterLengthMs <= 1000) {return [[], []];}
+export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval) {
+  if (inputInterval){}
+  else if (sessionMetaData.encounterLengthMs <= 1000) {return [[], []];}
+  else if (sessionMetaData.encounterLengthMs <= 10000) {inputInterval = sessionMetaData.encounterLengthMs / 30;}
+  else if (sessionMetaData.encounterLengthMs <= 60000) {inputInterval = sessionMetaData.encounterLengthMs / 50;}
+  else if (sessionMetaData.encounterLengthMs <= 100000) {inputInterval = sessionMetaData.encounterLengthMs / 75;}
+  else {inputInterval = sessionMetaData.encounterLengthMs / 100;}
   if (!sessionMetaData?.entitiesData?.players || !sessionMetaData?.entitiesData?.pets) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
     return [[], []];
@@ -248,17 +253,19 @@ export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInte
 }
 
 
-export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData) {
+export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, binGoal) {
+  if (binGoal){}
+  else { binGoal = Math.min(sessionMetaData.encounterLengthMs / 100, 100); }
   if (!sessionMetaData?.entitiesData?.players) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
     return [];
   }
 
-  const encounterLengthMs = sessionMetaData.encounterLengthMs || 0;
+  const encounterLengthMs = sessionMetaData.endTime - sessionMetaData.startTime || 0;
 
   // 🧮 Compute number of bins and bin size (equal length)
   const binsIfOneSecond = encounterLengthMs / 1000;
-  const numBins = Math.min(Math.ceil(binsIfOneSecond), 50);
+  const numBins = Math.min(Math.ceil(binsIfOneSecond), binGoal);
   const inputInterval = encounterLengthMs / numBins; // ms per bin
 
   // --- Build datasets ---

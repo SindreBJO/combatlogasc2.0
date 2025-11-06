@@ -6,6 +6,7 @@ import skillIcon from "../assets/tableicons/skullIcon.png";
 import rebirthIcon from "../assets/tableicons/rebirth.png";
 import ColoredAreaChart from "./graph/graph";
 import ColoredAreaChartDamageTaken from "./graphOverallTakenAndHealed/graph";
+import SessionSlideBar from "../components/slideSessionTimeBar/slideSessionTimeBar";
 
 
 export default function PerformanceMetricsTable() {
@@ -22,10 +23,11 @@ export default function PerformanceMetricsTable() {
   const [start , setStart ] = useState(session.startTime ? new Date(session.startTime) : null);
   const [end , setEnd ] = useState(session.endTime ? new Date(session.endTime) : null);
   const [durationSec , setDurationSec ] = useState(session.encounterLengthSec ? session.encounterLengthSec : 'N/A');
+  const [sessionTime, setSessionTime] = useState([data.sessions[selectedSessionIdx].startTime, data.sessions[selectedSessionIdx].endTime]);
+  const [slideTime, setSlideTime] = useState([data.sessions[selectedSessionIdx].startTime, data.sessions[selectedSessionIdx].endTime]);
 
 
   // UI state
-  const [showMeta, setShowMeta] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
   const [expandedNames, setExpandedNames] = useState({});
   // Toggle expand/collapse for grouped enemies
@@ -36,13 +38,13 @@ export default function PerformanceMetricsTable() {
   const [pets, setPets] = useState([]);
   const [enemies, setEnemies] = useState([]);
 
-  const handleSortPlayers = () => {
-    
-  };
+  const [selectedScene, setSelectedScene] = useState("table");
+  
 
   useEffect(() => {
-    console.log("%c-- INITIATING VERIFYING --", "color: green");
     if (!data.sessions || !data.sessions[selectedSessionIdx]) return;
+    const modifiedSessionData = { ...data.sessions[selectedSessionIdx], startTime: slideTime[0], endTime: slideTime[1], encounterLengthMs: slideTime[1] - slideTime[0], encounterLengthSec: (slideTime[1] - slideTime[0]) / 1000 };
+    console.log("modifiedSessionData:", modifiedSessionData);
     console.log("%c-- INITIATING TABLE DATA --", "color: green");
     const session = data.sessions[selectedSessionIdx];
     setSession(session);
@@ -50,28 +52,28 @@ export default function PerformanceMetricsTable() {
     setSessionPrint(filteredSession);
     const sessionData = data.data.filter(
       (line, index) =>
-        index >= session.dataIndexStart && index <= session.dataIndexEnd
+        index >= session.dataIndexStart && index <= session.dataIndexEnd && line.timeStamp >= slideTime[0] && line.timeStamp <= slideTime[1]
     );
   
     if (!session.entitiesData.players) return;
   
     const playerRows = session.entitiesData.players
       .map((playerObj) => {
-        const tableData = getEntityTableData(playerObj, sessionData, session);
+        const tableData = getEntityTableData(playerObj, sessionData, modifiedSessionData);
         return tableData;
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
 
     const petRows = session.entitiesData.pets
       .map((petObj) => {
-        const tableData = getEntityTableData(petObj, sessionData, session);
+        const tableData = getEntityTableData(petObj, sessionData, modifiedSessionData);
         return tableData;
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
 
 const enemyRows = Object.values(
   session.entitiesData.enemyNPCs
-    .map((enemyObj) => getEntityTableData(enemyObj, sessionData, session))
+    .map((enemyObj) => getEntityTableData(enemyObj, sessionData, modifiedSessionData))
     .filter(Boolean)
     .reduce((acc, enemy) => {
       const name = enemy.identity.name;
@@ -129,9 +131,9 @@ const enemyRows = Object.values(
   console.log("Enemy Rows:", enemyRows);
 
 
-    const sessionDamageDonePoints = getRaidDamageGraphPoints(sessionData, session);
+    const sessionDamageDonePoints = getRaidDamageGraphPoints(sessionData, modifiedSessionData);
     setSessionRaidGraphPoints(sessionDamageDonePoints);
-    const sessionDamageTakenPoints = getRaidDamageTakenGraphPoints(sessionData, session);
+    const sessionDamageTakenPoints = getRaidDamageTakenGraphPoints(sessionData, modifiedSessionData);
     setSessionRaidGraphPointsDamageTaken(sessionDamageTakenPoints);
     
     console.log("Player rows:", playerRows);
@@ -142,7 +144,7 @@ const enemyRows = Object.values(
     setEnd(session.endTime ? new Date(session.endTime) : null);
     setDurationSec(session.encounterLengthSec ? session.encounterLengthSec : 'N/A');
 
-  }, [data, selectedSessionIdx]);
+  }, [data, selectedSessionIdx, slideTime]);
 
   const toggleCurrentNewSession = () => {
     setFinishedParsing(false);
@@ -173,7 +175,11 @@ const enemyRows = Object.values(
                 <button
                   key={idx}
                   className={`${btnClass} ${outcomeClass} fadein`}
-                  onClick={() => setSelectedSessionIdx(idx)}
+                  onClick={() => {
+                    setSelectedSessionIdx(idx);
+                    setSlideTime([session.startTime, session.endTime]);
+                    setSessionTime([session.startTime, session.endTime]);
+                  }}
                 >
                   <span className="session-btn-label fadein">{session.bossName || session.name || `Session ${idx + 1}`}</span>
                   <span className={`session-btn-index${selectedSessionIdx === idx ? ' active' : ''} fadein`}>{idx + 1}</span>
@@ -246,8 +252,13 @@ const enemyRows = Object.values(
             <p>{session.dayNumber}/{session.monthNumber}/{session.year}</p>
 
       </div>
-              <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
-              <ColoredAreaChartDamageTaken shadows={false} dataPoints={sessionRaidGraphPointsDamageTaken} color="#00ff00" />
+        <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
+        <ColoredAreaChartDamageTaken shadows={false} dataPoints={sessionRaidGraphPointsDamageTaken} color="#00ff00" />
+        <SessionSlideBar
+        sessionDuration={sessionTime}
+        slideTime={slideTime}
+        setSlideTime={setSlideTime}
+      />
       <table className="metrics-table metrics-table-modern fadein">
         <thead className="fadein">    
           <tr className="fadein">

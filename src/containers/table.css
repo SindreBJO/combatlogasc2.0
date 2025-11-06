@@ -16,9 +16,9 @@
   flex-direction: column;
   border: 2px solid #a88b4a;
   border-radius: 14px;
-  overflow: hidden;
   gap: 2px;
   animation: fadeinslow 1s ease-in;
+  overflow: hidden;
 }
 
 .metricTable-container {
@@ -284,11 +284,13 @@
   width: 15px;
   height: 15px;
   padding-right: 5px;
+  padding-bottom: 3px;
 }
 .ressed-icon-img {
   width: 15px;
   height: 15px;
   padding-right: 5px;
+  padding-bottom: 1px;
 }
 
 .metricTable-cell-name{

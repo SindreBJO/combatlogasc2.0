@@ -50,26 +50,37 @@ export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []],
       : [{ label: 'Empty', data: [{ primary: 0, secondary: 0 }] }];
   }, [safeAllDamageTaken, safeAllHealingTaken, safeAbsorbTaken]);
 
-  const primaryAxis = React.useMemo(
-    () => ({
-      getValue: d => d.primary,
-      scaleType: 'linear',
-      label: 'Time (sec)',
-      formatters: {
-        scale: v => `${v} s`,
-        tooltip: v => `${(Number(v) || 0).toFixed(1)} sec`,
-      },
-    }),
-    []
-  );
+const primaryAxis = React.useMemo(
+  () => ({
+    getValue: d => d.primary,
+    scaleType: 'linear',
+    label: 'Time (sec)',
+    min: 0,
+    max: Math.max(
+      ...safeAllDamageTaken.map(d => +d.time),
+      ...safeAllHealingTaken.map(d => +d.time),
+      ...safeAbsorbTaken.map(d => +d.time)
+    ),
+    formatters: {
+      scale: v => `${v}s`,
+      tooltip: v => `${Number(v).toFixed(1)} sec`,
+    },
+  }),
+  [safeAllDamageTaken, safeAllHealingTaken, safeAbsorbTaken]
+);
 
   const secondaryAxes = React.useMemo(
     () => [
       {
         getValue: d => d.secondary,
-        elementType: 'area',
+        elementType: "area",
+        label: "Amount",
         stacked: true,
-        label: 'Amount',
+        showDatumElements: false,
+        formatters: {
+          scale: (v) => `${((v ?? 0) / 1000).toFixed(0)}k`,
+          tooltip: (v) => `${((v ?? 0) / 1000).toFixed(1)}k`,
+        },
       },
     ],
     []
@@ -107,7 +118,7 @@ export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []],
         };
       },
       padding: {
-          left: 10,
+          left: 15,
           right: 10,
           top: 15,
           bottom: 5,
