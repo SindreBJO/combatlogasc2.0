@@ -167,7 +167,7 @@ function getDamageGraphPoints() {
 
 }
 
-export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 50) {
+export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval = sessionMetaData.encounterLengthMs / 100) {
   if (sessionMetaData.encounterLengthMs <= 1000) {return [[], []];}
   if (!sessionMetaData?.entitiesData?.players || !sessionMetaData?.entitiesData?.pets) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");

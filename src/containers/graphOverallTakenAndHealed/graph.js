@@ -21,28 +21,28 @@ export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []],
 
     if (safeAllHealingTaken.length) {
       series.push({
-        label: 'Damage Healed',
+        label: 'Healing Done',
         data: safeAllHealingTaken.map(d => ({ primary: +d.time, secondary: +d.amount })),
         color: '#00ff00ff',
       });
     }
-    
+    if (safeAbsorbTaken.length) {
+      series.push({
+        label: 'Damage Absorbed',
+        data: safeAbsorbTaken.map(d => ({ primary: +d.time, secondary: +d.amount })),
+        color: '#ffffffff',
+      });
+    }
 
     if (safeAllDamageTaken.length) {
       series.push({
-        label: 'Damage not healed',
+        label: 'Total Unhealed Damage',
         data: safeAllDamageTaken.map(d => ({ primary: +d.time, secondary: +d.amount })),
         color: '#0051ff', 
       });
     }
 
-        if (safeAbsorbTaken.length) {
-      series.push({
-        label: 'Absorbed Damage',
-        data: safeAbsorbTaken.map(d => ({ primary: +d.time, secondary: +d.amount })),
-        color: '#ffffffff',
-      });
-    }
+
 
 
     return series.length

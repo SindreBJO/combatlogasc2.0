@@ -28,6 +28,8 @@ export default function PerformanceMetricsTable() {
   const [showMeta, setShowMeta] = useState(false);
   const [showDevInfo, setShowDevInfo] = useState(false);
   const [expandedNames, setExpandedNames] = useState({});
+  // Toggle expand/collapse for grouped enemies
+  const toggleGroup = (name) => setExpandedNames(prev => ({ ...prev, [name]: !prev[name] }));
 
 
   const [players, setPlayers] = useState([]);
@@ -67,12 +69,65 @@ export default function PerformanceMetricsTable() {
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
 
-    const enemyRows = session.entitiesData.enemyNPCs
-      .map((enemyObj) => {
-        const tableData = getEntityTableData(enemyObj, sessionData, session);
-        return tableData;
-      })
-      .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
+const enemyRows = Object.values(
+  session.entitiesData.enemyNPCs
+    .map((enemyObj) => getEntityTableData(enemyObj, sessionData, session))
+    .filter(Boolean)
+    .reduce((acc, enemy) => {
+      const name = enemy.identity.name;
+      const id = enemy.identity.id;
+      const n = (v) => parseFloat(v) || 0;
+
+      const clone = JSON.parse(JSON.stringify(enemy));
+
+      if (!acc[name]) {
+        acc[name] = {
+          identity: {
+            name,
+            ids: [id], // start with one id
+          },
+          combatStats: {
+            dps: n(enemy.combatStats.dps),
+            totalDamage: n(enemy.combatStats.totalDamage),
+            damageTaken: n(enemy.combatStats.damageTaken),
+            totalHealingDone: n(enemy.combatStats.totalHealingDone),
+            healingTaken: n(enemy.combatStats.healingTaken),
+            hps: n(enemy.combatStats.hps),
+          },
+          units: [clone],
+        };
+      } else {
+        const existing = acc[name].combatStats;
+        const current = enemy.combatStats;
+
+        // combine numeric stats
+        existing.totalDamage += n(current.totalDamage);
+        existing.dps += n(current.dps);
+        existing.damageTaken += n(current.damageTaken);
+        existing.totalHealingDone += n(current.totalHealingDone);
+        existing.healingTaken += n(current.healingTaken);
+        existing.hps += n(current.hps);
+
+        // push unique IDs
+        const ids = acc[name].identity.ids;
+        if (!ids.includes(id)) ids.push(id);
+
+        acc[name].units.push(clone);
+      }
+
+      return acc;
+    }, {})
+)
+.sort(
+  (a, b) =>
+    (parseFloat(b.combatStats.totalDamage) || 0) -
+    (parseFloat(a.combatStats.totalDamage) || 0)
+);
+
+
+
+  console.log("Enemy Rows:", enemyRows);
+
 
     const sessionDamageDonePoints = getRaidDamageGraphPoints(sessionData, session);
     setSessionRaidGraphPoints(sessionDamageDonePoints);
@@ -189,7 +244,7 @@ export default function PerformanceMetricsTable() {
                 })()
               : ''}</p>
             <p>{session.dayNumber}/{session.monthNumber}/{session.year}</p>
-            <p>{session.entitiesData.players.length} man</p>
+
       </div>
               <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
               <ColoredAreaChartDamageTaken shadows={false} dataPoints={sessionRaidGraphPointsDamageTaken} color="#00ff00" />
@@ -439,7 +494,7 @@ export default function PerformanceMetricsTable() {
               return (
                 <tr key={999} className="overall-row fadein" style={{ color: "#FFFAFA", backgroundColor: "rgba(0, 0, 0, 0.4)"}}>
                   <td className="metricTable-cell-name fadein">
-                    <p class="metricTable-cell-overall">{raidData.identity}</p>
+                    <p className="metricTable-cell-overall">{raidData.identity}</p>
                   </td>
                   <td className="metricTable-cell-overall">
                     {raidData.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")}
@@ -629,104 +684,128 @@ export default function PerformanceMetricsTable() {
             (() => {
               // Find min and max totalDamage for bar scaling
               if (enemies.length === 0) return null;
-              const maxDamageDone = Math.max(...enemies.map(p => p.combatStats.totalDamage));
+              const maxDamageDone = Math.max(...enemies.map(p => Number(p.combatStats.totalDamage) || 0));
               const minDamageDone = 0;
-              const maxDamageTaken = Math.max(...enemies.map(p => p.combatStats.damageTaken));
+              const maxDamageTaken = Math.max(...enemies.map(p => Number(p.combatStats.damageTaken) || 0));
               const minDamageTaken = 0;
-              const maxAbsorbDone = Math.max(...enemies.map(p => p.combatStats.totalAbsorbedTaken));
+              const maxAbsorbDone = Math.max(...enemies.map(p => Number(p.combatStats.totalAbsorbedTaken) || 0));
               const minAbsorbDone = 0;
               const minHealingTaken = 0;
-              const maxHealingTaken = Math.max(...enemies.map(p => p.combatStats.healingTaken));
-              const minHealingDone = Math.min(...enemies.map(p => p.combatStats.totalHealingDone));
-              const maxHealingDone = Math.max(...enemies.map(p => p.combatStats.totalHealingDone));
+              const maxHealingTaken = Math.max(...enemies.map(p => Number(p.combatStats.healingTaken) || 0));
+              const minHealingDone = Math.min(...enemies.map(p => Number(p.combatStats.totalHealingDone) || 0));
+              const maxHealingDone = Math.max(...enemies.map(p => Number(p.combatStats.totalHealingDone) || 0));
 
-              return enemies.map((enemy, idx) => {
-                // Calculate fill percent (0-1)
-                const DmgDonepercent = maxDamageDone === minDamageDone ? 1 : (enemy.combatStats.totalDamage - minDamageDone) / (maxDamageDone - minDamageDone);
-                const DmgTakenpercent = maxDamageTaken === minDamageTaken ? 1 : (enemy.combatStats.damageTaken - minDamageTaken) / (maxDamageTaken - minDamageTaken);
-                const AbsorbDonepercent = maxAbsorbDone === minAbsorbDone ? 1 : (enemy.combatStats.totalAbsorbedTaken - minAbsorbDone) / (maxAbsorbDone - minAbsorbDone);
-                const HealingTakenpercent = minHealingTaken === maxHealingTaken ? 1 : (enemy.combatStats.healingTaken - minHealingTaken) / (maxHealingTaken - minHealingTaken);
-                const HealingDonepercent = minHealingDone === maxHealingDone ? 1 : (enemy.combatStats.totalHealingDone - minHealingDone) / (maxHealingDone - minHealingDone);
-                
+              const renderRow = (item, key, opts = {}) => {
+                const dmg = Number(item.combatStats?.totalDamage) || 0;
+                const dmgTaken = Number(item.combatStats?.damageTaken) || 0;
+                const dps = item.combatStats?.dps || "0";
+                const AbsorbDonepercent = maxAbsorbDone === minAbsorbDone ? 1 : ((Number(item.combatStats?.totalAbsorbedTaken) || 0) - minAbsorbDone) / (maxAbsorbDone - minAbsorbDone || 1);
+                const DmgDonepercent = maxDamageDone === minDamageDone ? 1 : (dmg - minDamageDone) / (maxDamageDone - minDamageDone || 1);
+                const DmgTakenpercent = maxDamageTaken === minDamageTaken ? 1 : (dmgTaken - minDamageTaken) / (maxDamageTaken - minDamageTaken || 1);
+                const HealingTakenpercent = minHealingTaken === maxHealingTaken ? 1 : ((Number(item.combatStats?.healingTaken) || 0) - minHealingTaken) / (maxHealingTaken - minHealingTaken || 1);
+                const HealingDonepercent = minHealingDone === maxHealingDone ? 1 : ((Number(item.combatStats?.totalHealingDone) || 0) - minHealingDone) / (maxHealingDone - minHealingDone || 1);
+
                 return (
-                  <tr key={idx} className="fadein">
-                    <td className="metricTable-cell-name fadein" 
-                      name={enemy.identity.name}
-                      id={enemy.identity.id}
-                      processtype={enemy.identity.processType}
-                      entitytype={enemy.identity.entityType}
+                  <tr key={key} className="fadein">
+                    <td
+                      className="metricTable-cell-name metricTable-enemy-name-cell fadein" 
+                      name={item.identity?.name}
+                      id={item.identity?.id}
+                      processtype={item.identity?.processType}
+                      entitytype={item.identity?.entityType}
                     >
-                      {enemy.identity.name ? enemy.identity.name : "-"}
+                        {opts.showCollapse && <button className="small-inline-btn" onClick={() => toggleGroup(opts.groupName)}>-</button>}
+                        {opts.showExpand && <button className="small-inline-btn" onClick={() => toggleGroup(opts.groupName)}>{`+ (${opts.count})`}</button>}
+                        <span>{item.identity?.name || "-"}</span>
                     </td>
+
                     <td className="metricTable-header-text fadein">
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-damageDone-color fadein"  
                         style={
-                          enemy.combatStats.dps !== "0"
+                          dps !== "0"
                             ? { width: `${Math.max(DmgDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{enemy.combatStats.dps && enemy.combatStats.dps !== "0"  ? enemy.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{dps && dps !== "0"  ? dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
+
                     <td className="metricTable-header-text metricTable-damage-cell fadein">
-                    
-                        
-                        <span className="metricTable-cell-text">{enemy.combatStats.totalDamage && enemy.combatStats.totalDamage !== "0" ? enemy.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
-                     
+                      <span className="metricTable-cell-text">{dmg ? dmg.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                     </td>
+
                     <td className="metricTable-header-text metricTable-damage-cell fadein">
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-damageTaken-color fadein"   
                         style={
-                          enemy.combatStats.damageTaken !== 0
+                          dmgTaken !== 0
                             ? { width: `${Math.max(DmgTakenpercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-cell-text fadein">{enemy.combatStats.damageTaken ? enemy.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein">{dmgTaken ? dmgTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
+
                     <td className="metricTable-header-text fadein">
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-healingTaken-color fadein"  
                         style={
-                          enemy.combatStats.healingTaken !== 0
+                          (Number(item.combatStats?.healingTaken) || 0) !== 0
                             ? { width: `${Math.max(HealingTakenpercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-cell-text fadein">{enemy.combatStats.healingTaken ? enemy.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein">{item.combatStats?.healingTaken ? (Number(item.combatStats.healingTaken).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")) : "-"}</span>
                       </div>
                     </td>
+
                     <td className="metricTable-header-text fadein">
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-absorbTaken-color fadein"    
                         style={
-                          enemy.combatStats.totalAbsorbedTaken !== 0
+                          (Number(item.combatStats?.totalAbsorbedTaken) || 0) !== 0
                             ? { width: `${Math.max(AbsorbDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span  className="metricTable-cell-text fadein">{enemy.combatStats.totalAbsorbedTaken ? enemy.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span  className="metricTable-cell-text fadein">{item.combatStats?.totalAbsorbedTaken ? (Number(item.combatStats.totalAbsorbedTaken).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")) : "-"}</span>
                       </div>
                     </td>
+
                     <td className="metricTable-header-text fadein">
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-hps-color fadein"  
                         style={
-                          enemy.combatStats.hps !== "0"
+                          item.combatStats?.hps !== "0"
                             ? { width: `${Math.max(HealingDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{enemy.combatStats.hps && enemy.combatStats.hps !== "0" ? enemy.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{item.combatStats?.hps && item.combatStats.hps !== "0" ? item.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
+
                     <td className="metricTable-header-text fadein">
-                        <span className="metricTable-cell-text fadein">{enemy.combatStats.totalHealingDone ? enemy.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein">{item.combatStats?.totalHealingDone ? (Number(item.combatStats.totalHealingDone).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")) : "-"}</span>
                     </td>
-                    <td className="metricTable-header-text fadein">{enemy.interrupts ? enemy.interrupts : "-"}</td>
-                    <td className="metricTable-header-text fadein">{enemy.dispels ? enemy.dispels : "-"}</td>
-                    <td className="metricTable-header-text fadein">{enemy.purges ? enemy.purges : "-"}</td>
+                    <td className="metricTable-header-text fadein">{item.interrupts ? item.interrupts : "-"}</td>
+                    <td className="metricTable-header-text fadein">{item.dispels ? item.dispels : "-"}</td>
+                    <td className="metricTable-header-text fadein">{item.purges ? item.purges : "-"}</td>
                   </tr>
                 );
+              };
+
+              // Build rows: grouped summary or expanded unit rows
+              return enemies.flatMap((enemy, idx) => {
+                const name = enemy.identity?.name || `Enemy ${idx}`;
+                const isGroup = Array.isArray(enemy.units) && enemy.units.length > 1;
+                const isExpanded = !!expandedNames[name];
+
+                if (isGroup && isExpanded) {
+                  // show each unit individually; first unit gets a Collapse button
+                  return enemy.units.map((unit, uidx) => renderRow(unit, `enemy-${idx}-unit-${uidx}`, { showCollapse: uidx === 0, groupName: name }));
+                }
+
+                // show single summary row (for non-group or collapsed group)
+                return renderRow(enemy, `enemy-summary-${idx}`, { showExpand: isGroup, count: isGroup ? enemy.units.length : 0, groupName: name });
               });
             })()
           )}

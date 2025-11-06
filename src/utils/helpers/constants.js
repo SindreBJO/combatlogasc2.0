@@ -200,7 +200,8 @@ export function getSchooltype(value) {
 
 
 export const BOSSNAMES = [
-  //Zul'Gurub
+  // ===== Classic =====
+  // Zul'Gurub
   "High Priest Venoxis",
   "High Priestess Jeklik",
   "High Priestess Mar'li",
@@ -215,18 +216,20 @@ export const BOSSNAMES = [
   "Gahz'ranka",
   "Hakkar the Soulflayer",
 
-  //Onyxia's Lair
+  // Onyxia's Lair
   "Onyxia",
 
-  //Blackwing Lair
+  // Blackwing Lair
   "Razorgore the Untamed",
   "Vaelastrasz the Corrupt",
   "Broodlord Lashlayer",
   "Firemaw",
+  "Ebonroc",
+  "Flamegor",
   "Chromaggus",
   "Nefarian",
 
-  //Molten Core
+  // Molten Core
   "Lucifron",
   "Magmadar",
   "Gehennas",
@@ -238,30 +241,31 @@ export const BOSSNAMES = [
   "Majordomo Executus",
   "Ragnaros",
 
-
-  //Karazhan
+  // ===== The Burning Crusade =====
+  // Karazhan
   "Attumen the Huntsman",
   "Moroes",
   "Maiden of Virtue",
+  "Opera Event",
   "The Crone",
   "The Big Bad Wolf",
   "Romulo",
+  "Julianne",
   "Nightbane",
   "The Curator",
   "Terestian Illhoof",
   "Shade of Aran",
   "Netherspite",
-  "King",
   "Prince Malchezaar",
 
-  //Gruul's Lair
+  // Gruul's Lair
   "High King Maulgar",
   "Gruul the Dragonkiller",
 
-  //Magtheridon's Lair
+  // Magtheridon's Lair
   "Magtheridon",
 
-  //Serpentshrine Cavern
+  // Serpentshrine Cavern
   "Hydross the Unstable",
   "The Lurker Below",
   "Leotheras the Blind",
@@ -269,13 +273,13 @@ export const BOSSNAMES = [
   "Morogrim Tidewalker",
   "Lady Vashj",
 
-  //Tempest Keep
+  // Tempest Keep
   "Al'ar",
   "Void Reaver",
   "High Astromancer Solarian",
   "Kael'thas Sunstrider",
 
-  //Zul'Aman
+  // Zul'Aman
   "Nalorakk",
   "Akil'zon",
   "Jan'alai",
@@ -283,15 +287,14 @@ export const BOSSNAMES = [
   "Hex Lord Malacrass",
   "Zul'jin",
 
-  //Mount Hyjal
+  // Mount Hyjal
   "Rage Winterchill",
   "Anetheron",
   "Kaz'rogal",
   "Azgalor",
   "Archimonde",
-  "Chromius",
 
-  //Black Temple
+  // Black Temple
   "High Warlord Naj'entus",
   "Supremus",
   "Shade of Akama",
@@ -299,28 +302,102 @@ export const BOSSNAMES = [
   "Gurtogg Bloodboil",
   "Reliquary of Souls",
   "Mother Shahraz",
-  "Gathios the Shatterer",
+  "The Illidari Council",
   "Illidan Stormrage",
 
-  //Sunwell Plateau
+  // Sunwell Plateau
   "Kalecgos",
   "Brutallus",
   "Felmyst",
-  "Alythess",
-  "High Commander Arynyes",
+  "Eredar Twins",
   "M'uru",
   "Entropius",
   "Kil'jaeden",
-]
+
+  // ===== Wrath of the Lich King =====
+  // Naxxramas
+  "Anub'Rekhan",
+  "Grand Widow Faerlina",
+  "Maexxna",
+  "Noth the Plaguebringer",
+  "Heigan the Unclean",
+  "Loatheb",
+  "Instructor Razuvious",
+  "Gothik the Harvester",
+  "The Four Horsemen",
+  "Patchwerk",
+  "Grobbulus",
+  "Gluth",
+  "Thaddius",
+  "Sapphiron",
+  "Kel'Thuzad",
+
+  // Eye of Eternity
+  "Malygos",
+
+  // The Obsidian Sanctum
+  "Sartharion",
+  "Tenebron",
+  "Shadron",
+  "Vesperon",
+
+  // Ulduar
+  "Flame Leviathan",
+  "Ignis the Furnace Master",
+  "Razorscale",
+  "XT-002 Deconstructor",
+  "Assembly of Iron",
+  "Kologarn",
+  "Auriaya",
+  "Hodir",
+  "Thorim",
+  "Freya",
+  "Mimiron",
+  "General Vezax",
+  "Yogg-Saron",
+  "Algalon the Observer",
+
+  // Trial of the Crusader
+  "Northrend Beasts",
+  "Gormok the Impaler",
+  "Acidmaw",
+  "Dreadscale",
+  "Icehowl",
+  "Lord Jaraxxus",
+  "Faction Champions",
+  "Twin Val'kyr",
+  "Anub'arak",
+
+  // Icecrown Citadel
+  "Lord Marrowgar",
+  "Lady Deathwhisper",
+  "Gunship Battle",
+  "Deathbringer Saurfang",
+  "Festergut",
+  "Rotface",
+  "Professor Putricide",
+  "Blood Prince Council",
+  "Blood-Queen Lana'thel",
+  "Valithria Dreamwalker",
+  "Sindragosa",
+  "The Lich King",
+
+  // The Ruby Sanctum
+  "Baltharus the Warborn",
+  "Saviana Ragefire",
+  "General Zarithrian",
+  "Halion",
+];
+
 
 //
 export const MultipleIdEnemyNPCs = [
   "Kil'jaeden",
+  "Sathrovarr the Corruptor",
 ]
 
 export const MultipleNameEnemyNPCs = [
   ["M'uru", "Entropius"],
-
 ]
 
 export const bypassEndByDIEDSessionCheckNames = [

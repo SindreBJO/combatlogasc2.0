@@ -29,6 +29,39 @@ export const DataContextProvider = ({ children }) => {
     // Parsed data state
     const [data, setData] = useState([]);
 
+
+    // Current year or input year for correct date parsing
+    useEffect(() => {
+        setGlobalYear(inputYear || new Date().getFullYear())
+    }, [inputYear]);
+
+    // Default damage timeout for sessions, with a range check (20-120s)
+    useEffect(() => {
+        if (inputDamageTimeout > 120 || inputDamageTimeout < 20 || inputDamageTimeout === undefined) {
+            setInputDamageTimeout(50);
+        }
+    }, [inputDamageTimeout]);
+
+    //Initialize reader and related variables
+
+
+
+ 
+
+    // MAIN FILE for reading and storing parsed data, executed when a new file is provided/dropped
+    function readNewFile(file) {
+    const reader = new FileReader();
+    let offset = 0;
+    let carryOver = '';
+              // Reset all variables
+        setData([]);
+        setValidLinesCount(0);
+        setInvalidLinesCount(0);
+        setProgress('Loadingstate');
+        setProgressPercentage(0);
+        setSessionCount(0);
+        setStartNewSession(false);
+        // Reset session context state
     // Initial session data template
     const initialSessionData = {
       // Variables declared on start or end of session
@@ -82,42 +115,13 @@ export const DataContextProvider = ({ children }) => {
         knownErrorsLogged: []
     };
 
-    // Current year or input year for correct date parsing
-    useEffect(() => {
-        setGlobalYear(inputYear || new Date().getFullYear())
-    }, [inputYear]);
-
-    // Default damage timeout for sessions, with a range check (20-120s)
-    useEffect(() => {
-        if (inputDamageTimeout > 120 || inputDamageTimeout < 20 || inputDamageTimeout === undefined) {
-            setInputDamageTimeout(50);
-        }
-    }, [inputDamageTimeout]);
-
-    //Initialize reader and related variables
-    const reader = new FileReader();
-    let offset = 0;
-    let carryOver = '';
-
-    // Line index and current parsed object
+       // Line index and current parsed object
     let indexLine = 0;
     let currentParsedObject = null;
 
     // Local session state for parsing
     let currentSession = {...initialSessionData}
     let sessionActive = false;
-
-    // MAIN FILE for reading and storing parsed data, executed when a new file is provided/dropped
-    function readNewFile(file) {
-        // Reset all variables
-        setData([]);
-        setValidLinesCount(0);
-        setInvalidLinesCount(0);
-        setProgress('Loadingstate');
-        setProgressPercentage(0);
-        setSessionCount(0);
-        setStartNewSession(false);
-        // Reset session context state
 
         // Reset local session state
         sessionActive = false;
@@ -138,63 +142,70 @@ export const DataContextProvider = ({ children }) => {
         offset = 0;
         carryOver = '';
 
-        let fullTimer = 0;
-        let parseTimer = 0;
-        let fullSessionTimer = 0;
-        let uniqueEntityTimer = 0;
-        let uniqueActionTimer = 0;
+        const totalSize = Number(file?.size) || 0;
+        if (totalSize === 0) {
+            setProgress('File is empty');
+            setProgressPercentage(100);
+            setFinishedParsing(true);
+            return;
+        }
 
-        const fullTimerStart = performance.now();
+        const decoder = new TextDecoder('utf-8'); // change to e.g. 'windows-1252' if needed
 
         reader.onload = (event) => {
-            const text = carryOver + event.target.result;
-            const newLines = text.split('\n');
-            carryOver = newLines.pop();
-            newLines.forEach(line => { 
-                processParse(line);
-            });
-            offset += CHUNK_SIZE;
-            setProgress(`Progress: ${(Math.min(offset, file.size) * 100 / file.size).toFixed(2)} %`);
-            setProgressPercentage(((offset / file.size) * 100));
-            if (offset < file.size) {
-                readNextChunk();
-            } else {
-                metaData.dataIndexEnd = indexLine;
-                metaData.dataTimeStampEnd = currentParsedObject?.timeStamp;
-                processParse(carryOver);
+            const buffer = event.target.result;
+            const bytes = new Uint8Array(buffer);
+            const bytesRead = bytes.length;
+            if (bytesRead === 0) {
+                // nothing read — finish gracefully
                 setProgress('File reading completed.');
                 setProgressPercentage(100);
-                const fullTimerEnd = performance.now();
-                fullTimer += fullTimerEnd - fullTimerStart
-                console.log("Full Rundown Time:", fullTimer, "ms", metaData.data.length + metaData.invalidData.length, "lines");
-                console.log("Parsing Time:", parseTimer, "ms ", ((parseTimer / fullTimer) * 100).toFixed(2), "% of total");
-                console.log("Full Session Handling Time:", fullSessionTimer, "ms ", ((fullSessionTimer / fullTimer) * 100).toFixed(2), "% of total");
-                console.log("Unique Entity Handling Time:", uniqueEntityTimer, "ms ", ((uniqueEntityTimer / fullTimer) * 100).toFixed(2), "% of total");
-                console.log("Unique Action Handling Time:", uniqueActionTimer, "ms ", ((uniqueActionTimer / fullTimer) * 100).toFixed(2), "% of total");
+                setFinishedParsing(true);
+                return;
+            }
+
+            const chunkText = decoder.decode(buffer, { stream: true });
+            const text = carryOver + chunkText;
+            const newLines = text.split('\n');
+            carryOver = newLines.pop() || '';
+            newLines.forEach(line => processParse(line.replace(/\r$/, '')));
+
+            // advance by actual bytes read, not CHUNK_SIZE
+            offset += bytesRead;
+
+            const pct = totalSize > 0 ? (Math.min(offset, totalSize) * 100 / totalSize) : 100;
+            setProgress(`Progress: ${pct.toFixed(2)} %`);
+            setProgressPercentage(totalSize > 0 ? ((offset / totalSize) * 100) : 100);
+
+            if (offset < totalSize) {
+                readNextChunk();
+            } else {
+                // flush decoder and remaining carryOver
+                const finalText = decoder.decode(); // flush internal buffer
+                const remaining = ((carryOver || '') + (finalText || ''));
+                if (remaining) {
+                    remaining.split('\n').forEach(line => processParse(line.replace(/\r$/, '')));
+                }
+                metaData.dataIndexEnd = indexLine;
+                metaData.dataTimeStampEnd = currentParsedObject?.timeStamp;
+                setProgress('File reading completed.');
+                setProgressPercentage(100);
                 metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
-                setData(metaData);
+                setData({ ...metaData });
                 console.log("Finished parsing file. MetaData:", metaData);
                 setFinishedParsing(true);
-                // After parsing, update session context if needed
-                if (currentSession) {
-
-                }
-                // Optionally, add parsed sessions to context here
-                // metaData.sessions.forEach(sess => startSession(sess));
             }
         }
 
         const readNextChunk = () => {
-            const blob = file.slice(offset, offset + CHUNK_SIZE);
-            reader.readAsText(blob);
+            const end = Math.min(offset + CHUNK_SIZE, totalSize);
+            const blob = file.slice(offset, end);
+            reader.readAsArrayBuffer(blob);
         };
 
         // Function for parsing each line and handling sessions depending on the parsed line.
         function processParse(currentUnparsedLine){
-          const parseTimerStart = performance.now();
             currentParsedObject = parseString(currentUnparsedLine);
-            const parseTimerEnd = performance.now();
-                parseTimer += parseTimerEnd - parseTimerStart
             if (bannedNames.includes(currentParsedObject.sourceName) || bannedNames.includes(currentParsedObject.destName)) { return; }
             if (currentParsedObject) {
                 if (metaData.dataIndexStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
@@ -222,19 +233,12 @@ export const DataContextProvider = ({ children }) => {
         
 
         function processSession() {
-          const fullSessionTimerStart = performance.now();
             if (checkSessionStartCondition()) { startSession() }
             if (sessionActive) {
-              const uniqueEntityTimerStart = performance.now();
                 tryAddUniqueEntity(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID);
                 tryAddUniqueEntity(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID);
-              const uniqueEntityTimerEnd = performance.now();
-              uniqueEntityTimer += uniqueEntityTimerEnd - uniqueEntityTimerStart
-              const uniqueActionTimerStart = performance.now();
                 tryAddEntityUniqueAction(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, true, /*is SourceEntity*/);
                 tryAddEntityUniqueAction(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, false /*is not SourceEntity*/);
-              const uniqueActionTimerEnd = performance.now();
-              uniqueActionTimer += uniqueActionTimerEnd - uniqueActionTimerStart
                 checkPlayerResurrected();
                 checkEntityAliveStatus();
                 checkBossName(currentParsedObject.sourceFlag, currentParsedObject.sourceName);
@@ -244,8 +248,6 @@ export const DataContextProvider = ({ children }) => {
                     endSession() 
                 }
             }
-          const fullSessionTimerEnd = performance.now();
-          fullSessionTimer += fullSessionTimerEnd - fullSessionTimerStart
         }
         function checkDamageAction() {
             return ["DAMAGE", "MISSED"].includes(currentParsedObject.event[1]);
