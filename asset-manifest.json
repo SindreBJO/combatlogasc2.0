@@ -1,17 +1,17 @@
 {
   "files": {
     "main.css": "/combatlogasc2.0/static/css/main.e9d54539.css",
-    "main.js": "/combatlogasc2.0/static/js/main.f31e265f.js",
+    "main.js": "/combatlogasc2.0/static/js/main.33a91990.js",
     "static/js/453.bc992338.chunk.js": "/combatlogasc2.0/static/js/453.bc992338.chunk.js",
     "static/media/image2.png": "/combatlogasc2.0/static/media/image2.834b56e35b02d8f90af1.png",
     "static/media/image11.png": "/combatlogasc2.0/static/media/image11.6a06bfc03022cf2ad032.png",
     "index.html": "/combatlogasc2.0/index.html",
     "main.e9d54539.css.map": "/combatlogasc2.0/static/css/main.e9d54539.css.map",
-    "main.f31e265f.js.map": "/combatlogasc2.0/static/js/main.f31e265f.js.map",
+    "main.33a91990.js.map": "/combatlogasc2.0/static/js/main.33a91990.js.map",
     "453.bc992338.chunk.js.map": "/combatlogasc2.0/static/js/453.bc992338.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e9d54539.css",
-    "static/js/main.f31e265f.js"
+    "static/js/main.33a91990.js"
   ]
 }
