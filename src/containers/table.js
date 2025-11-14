@@ -1,13 +1,13 @@
 import React, { useContext, useEffect, useState } from "react";
 import "./table.css";
+import {SPELL_SCHOOL_COLORS} from "../utils/helpers/constants";
 import { DataContext } from "../utils/contexts/dataContext";
-import { getEntityTableData, getRaidDamageGraphPoints, getRaidDamageTakenGraphPoints} from "../utils/helpers/analaysisHelpers";
+import { getEntityTableData, getRaidDamageGraphPoints, getRaidDamageTakenGraphPoints, getDamageDoneUIBreakDown} from "../utils/helpers/analaysisHelpers";
 import skillIcon from "../assets/tableicons/skullIcon.png";
 import rebirthIcon from "../assets/tableicons/rebirth.png";
 import ColoredAreaChart from "./graph/graph";
 import ColoredAreaChartDamageTaken from "./graphOverallTakenAndHealed/graph";
 import SessionSlideBar from "../components/slideSessionTimeBar/slideSessionTimeBar";
-
 
 export default function PerformanceMetricsTable() {
 
@@ -17,15 +17,18 @@ export default function PerformanceMetricsTable() {
   const [session, setSession] = useState(data.sessions[selectedSessionIdx] || {});
   const [sessionRaidGraphPoints, setSessionRaidGraphPoints] = useState();
   const [sessionRaidGraphPointsDamageTaken, setSessionRaidGraphPointsDamageTaken] = useState();
+  const [loading, setLoading] = useState(true);
+
+  // Selected UI/Entity Data
+  const [selectedScene, setSelectedScene] = useState(null);
+  const [selectedEntity, setSelectedEntity] = useState({});
+  const [previous, setPrevious] = useState(null);
+  const [selectedEntityData, setSelectedEntityData] = useState({ spells: [], totals: {} })
 
   // Session info
   const [sessionPrint, setSessionPrint ] = useState({});
-  const [start , setStart ] = useState(session.startTime ? new Date(session.startTime) : null);
-  const [end , setEnd ] = useState(session.endTime ? new Date(session.endTime) : null);
-  const [durationSec , setDurationSec ] = useState(session.encounterLengthSec ? session.encounterLengthSec : 'N/A');
   const [sessionTime, setSessionTime] = useState([data.sessions[selectedSessionIdx].startTime, data.sessions[selectedSessionIdx].endTime]);
   const [slideTime, setSlideTime] = useState([data.sessions[selectedSessionIdx].startTime, data.sessions[selectedSessionIdx].endTime]);
-
 
   // UI state
   const [showDevInfo, setShowDevInfo] = useState(false);
@@ -37,14 +40,20 @@ export default function PerformanceMetricsTable() {
   const [players, setPlayers] = useState([]);
   const [pets, setPets] = useState([]);
   const [enemies, setEnemies] = useState([]);
-
-  const [selectedScene, setSelectedScene] = useState("table");
   
 
   useEffect(() => {
+    setTimeout(() => {
     if (!data.sessions || !data.sessions[selectedSessionIdx]) return;
-    const modifiedSessionData = { ...data.sessions[selectedSessionIdx], startTime: slideTime[0], endTime: slideTime[1], encounterLengthMs: slideTime[1] - slideTime[0], encounterLengthSec: (slideTime[1] - slideTime[0]) / 1000 };
-    console.log("modifiedSessionData:", modifiedSessionData);
+    const modifiedSessionData = { 
+      ...data.sessions[selectedSessionIdx], 
+      startTime: slideTime[0], 
+      endTime: slideTime[1], 
+      encounterLengthMs: slideTime[1] - slideTime[0], 
+      encounterLengthSec: (slideTime[1] - slideTime[0]) / 1000,
+      realEncounterStartTime: data.sessions[selectedSessionIdx].startTime,
+      realEncounterEndTime: data.sessions[selectedSessionIdx].endTime,
+    };
     console.log("%c-- INITIATING TABLE DATA --", "color: green");
     const session = data.sessions[selectedSessionIdx];
     setSession(session);
@@ -56,14 +65,13 @@ export default function PerformanceMetricsTable() {
     );
   
     if (!session.entitiesData.players) return;
-  
     const playerRows = session.entitiesData.players
       .map((playerObj) => {
         const tableData = getEntityTableData(playerObj, sessionData, modifiedSessionData);
         return tableData;
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
-
+      
     const petRows = session.entitiesData.pets
       .map((petObj) => {
         const tableData = getEntityTableData(petObj, sessionData, modifiedSessionData);
@@ -71,22 +79,28 @@ export default function PerformanceMetricsTable() {
       })
       .sort((a, b) => (b.combatStats.totalDamage || 0) - (a.combatStats.totalDamage || 0));
 
-const enemyRows = Object.values(
-  session.entitiesData.enemyNPCs
-    .map((enemyObj) => getEntityTableData(enemyObj, sessionData, modifiedSessionData))
-    .filter(Boolean)
-    .reduce((acc, enemy) => {
+    const enemyRows = Object.values(
+      session.entitiesData.enemyNPCs
+        .map((enemyObj) => getEntityTableData(enemyObj, sessionData, modifiedSessionData))
+        .filter(Boolean)
+        .reduce((acc, enemy) => {
       const name = enemy.identity.name;
-      const id = enemy.identity.id;
       const n = (v) => parseFloat(v) || 0;
-
       const clone = JSON.parse(JSON.stringify(enemy));
+      // ensure we always have an array of ids on the incoming enemy
+      const incomingIds = Array.isArray(enemy.identity?.ids)
+        ? enemy.identity.ids
+        : enemy.identity?.id
+        ? [enemy.identity.id]
+        : [];
 
       if (!acc[name]) {
         acc[name] = {
           identity: {
             name,
-            ids: [id], // start with one id
+            ids: incomingIds.slice(), // copy
+            entityType: enemy.identity.entityType,
+            processType: enemy.identity.processType,
           },
           combatStats: {
             dps: n(enemy.combatStats.dps),
@@ -110,9 +124,11 @@ const enemyRows = Object.values(
         existing.healingTaken += n(current.healingTaken);
         existing.hps += n(current.hps);
 
-        // push unique IDs
-        const ids = acc[name].identity.ids;
-        if (!ids.includes(id)) ids.push(id);
+        // add any new ids, deduped
+        const targetIds = acc[name].identity.ids;
+        incomingIds.forEach((iid) => {
+          if (!targetIds.includes(iid)) targetIds.push(iid);
+        });
 
         acc[name].units.push(clone);
       }
@@ -140,19 +156,183 @@ const enemyRows = Object.values(
     setPlayers(playerRows);
     setPets(petRows);
     setEnemies(enemyRows);
-    setStart(session.startTime ? new Date(session.startTime) : null);
-    setEnd(session.endTime ? new Date(session.endTime) : null);
-    setDurationSec(session.encounterLengthSec ? session.encounterLengthSec : 'N/A');
-
+    setLoading(false);
+}, 300);
   }, [data, selectedSessionIdx, slideTime]);
+
+  useEffect(() => {
+    setTimeout(() => {
+    console.log("start")
+    if (selectedScene === null || selectedEntity === null || selectedEntity.identity === undefined) return;
+    console.log("continuing")
+    const modifiedSessionData = { 
+      ...data.sessions[selectedSessionIdx], 
+      startTime: slideTime[0], 
+      endTime: slideTime[1], 
+      encounterLengthMs: slideTime[1] - slideTime[0], 
+      encounterLengthSec: (slideTime[1] - slideTime[0]) / 1000,
+      realEncounterStartTime: data.sessions[selectedSessionIdx].startTime,
+      realEncounterEndTime: data.sessions[selectedSessionIdx].endTime,
+    };
+    const sessionData = data.data.filter(
+      (line, index) =>
+        index >= modifiedSessionData.dataIndexStart && index <= modifiedSessionData.dataIndexEnd && line.timeStamp >= slideTime[0] && line.timeStamp <= slideTime[1]
+    );
+    const idSet = new Set(selectedEntity.identity.ids);
+    const dealtData = sessionData.filter((line) => idSet.has(line.sourceGUID) && line.spellName !== "Stagger");
+    const takenData = sessionData.filter((line) => idSet.has(line.destGUID));
+     if (selectedScene === "DamageDoneUI") {
+       const raw = getDamageDoneUIBreakDown(dealtData) || {};
+       const normalized = {
+         totals: (raw.totals && typeof raw.totals === "object") ? raw.totals : {},
+         spells: Array.isArray(raw.spells) ? raw.spells : (raw.spells ? Object.values(raw.spells) : []),
+       };
+       setSelectedEntityData(normalized);
+       console.log("DamageDoneUI Data:", normalized);
+     }
+    console.log("finished")
+    setLoading(false);
+}, 300);
+  }, [selectedScene, selectedEntity]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  const handleSelect = (scene, entity) => {
+    // store current selection before switching
+    setLoading(true);
+    setPrevious([selectedScene, selectedEntity]);
+    setSelectedScene(scene);
+    setSelectedEntity(entity);
+    console.log("Selected:", scene, entity);
+  };
+
+  const handleUndo = (e) => {
+    e.preventDefault(); // stop right-click menu
+    console.log("Undoing to previous selection:", previous);
+    if (previous) {
+      setSelectedScene(previous[0]);
+      setSelectedEntity(previous[1]);
+      setPrevious(null); // clear after undo if you want single-step undo
+    }
+    console.log("Current selection after undo:", selectedScene, selectedEntity);
+    return;
+  };
 
   const toggleCurrentNewSession = () => {
     setFinishedParsing(false);
     setStartNewSession(true);
   }
 
+ const [tooltip, setTooltip] = useState({
+  visible: false,
+  x: 0,
+  y: 0,
+  content: null
+});
+
+useEffect(() => {
+  const handleMouseMove = (e) => {
+    // update position only when tooltip is visible to avoid excessive state updates
+    setTooltip(prev => prev.visible ? ({
+      ...prev,
+      x: e.clientX + 6,
+      y: e.clientY + 6,
+    }) : prev);
+  };
+
+  window.addEventListener("mousemove", handleMouseMove);
+  return () => window.removeEventListener("mousemove", handleMouseMove);
+}, []); // run once
+
+function showTooltip(content, e) {
+  const x = e?.clientX ?? 0;
+  const y = e?.clientY ?? 0;
+  setTooltip({ visible: true, x: x + 12, y: y + 12, content });
+}
+
+function hideTooltip() {
+  setTooltip(prev => ({ ...prev, visible: false }));
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   return (
-    <div className="metricTable-container fadein">
+    <div className="metricTable-container" onContextMenu={handleUndo}>
+    
       {/*Return Button */}
     <button className="nav-button" onClick={toggleCurrentNewSession}><span>New session</span></button>
       {/*Session selection */}
@@ -162,9 +342,9 @@ const enemyRows = Object.values(
       {/*Session selection - button */}
       <div className="session-buttons-bar fadein">
         {!data || !data.sessions || data.sessions.length === 0
-          ? <div><p className="session-btns-none fadein">No sessions found!</p></div>
+          ? <div><p className='session-btns-none fadein '>No sessions found!</p></div>
           : data.sessions.map((session, idx) => {
-              let btnClass = `session-btn${selectedSessionIdx === idx ? ' active' : ''}`;
+              let btnClass = `session-btn${selectedSessionIdx === idx ? ' session-btn-active' : ''}`;
               let outcomeClass = '';
               if (session.outcome === 'VictoryBoss') outcomeClass = 'session-btn-victoryboss';
               else if (session.outcome === 'VictoryTrash') outcomeClass = 'session-btn-victorytrash';
@@ -176,9 +356,12 @@ const enemyRows = Object.values(
                   key={idx}
                   className={`${btnClass} ${outcomeClass} fadein`}
                   onClick={() => {
+                    setLoading(true);
                     setSelectedSessionIdx(idx);
                     setSlideTime([session.startTime, session.endTime]);
                     setSessionTime([session.startTime, session.endTime]);
+                    setSelectedScene(null);
+                    setPrevious(null);
                   }}
                 >
                   <span className="session-btn-label fadein">{session.bossName || session.name || `Session ${idx + 1}`}</span>
@@ -234,22 +417,24 @@ const enemyRows = Object.values(
       <h2 className="table-section-title fadein">Preformance Metrics</h2>
       </div>
       
-
-      <div className="metricTable-wrapper">
+{selectedScene === null &&
+      <div className="metricTable-wrapper"  style={{ display: loading ? "none" : "" }}>
         <div className="metricTable-selectedSessionData fadein">
-            <p>Session{" "}{selectedSessionIdx + 1}</p>
-            <p>{session.bossName || 'Trash'}</p>
-            <p>{session.outcome}</p>
+                      <p>{session.bossName || 'Trash'}</p>
+            <p>Encounter{" "}{selectedSessionIdx + 1}</p>
+
+            <p>Outcome:{" " + session.outcome}</p>
             <p>{session.encounterLengthSec
               ? (() => {
                   const totalMs = session.encounterLengthSec * 1000;
                   const minutes = Math.floor(totalMs / 60000);
                   const seconds = Math.floor((totalMs % 60000) / 1000);
                   const milliseconds = ((totalMs % 1000) / 1000).toFixed(1).slice(2);
-                  return `${minutes}:${seconds.toString().padStart(2, '0')},${milliseconds} min`;
+                  return `Duration: ${minutes}:${seconds.toString().padStart(2, '0')},${milliseconds} min`;
                 })()
               : ''}</p>
-            <p>{session.dayNumber}/{session.monthNumber}/{session.year}</p>
+            <p>Date:{" " + session.dayNumber}/{session.monthNumber}/{session.year}</p>
+            <p>{players.length + " "}man</p>
 
       </div>
         <ColoredAreaChart shadows={false} dataPoints={sessionRaidGraphPoints} name={"dps"} color="#ff0000" />
@@ -259,7 +444,7 @@ const enemyRows = Object.values(
         slideTime={slideTime}
         setSlideTime={setSlideTime}
       />
-      <table className="metrics-table metrics-table-modern fadein">
+      <table className="metrics-table metrics-table-modern  fadein">
         <thead className="fadein">    
           <tr className="fadein">
             <th className="metricTable-header-text metricTable-big-cell fadein metricTable-header-name" title="Player Name">
@@ -382,25 +567,36 @@ const enemyRows = Object.values(
                       processtype={player.identity.processType}
                       entitytype={player.identity.entityType}
                     >
-                      <div className="metricTable-cell-name-inner">
+                      <div className="metricTable-cell-name-inner"
+                      onClick={
+                        () => handleSelect("UniqueBreakdownUI", player)}
+                        onContextMenu={handleUndo}
+                      >
                         {player.meta.ressurectedStatus && <img src={rebirthIcon} className="ressed-icon-img"/>}{!player.meta.aliveStatus && <img src={skillIcon} className="death-icon-img"/>}<p  className={player.meta.aliveStatus ? "" : "deadText"}>{player.identity.name ? player.identity.name : "-"}</p>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
-                      <div className="metricTable-percent-bar-wrap fadein">
+                      <div className="metricTable-percent-bar-wrap fadein"
+                        onClick={() => handleSelect("DamageDoneUI", player)}
+                        onContextMenu={handleUndo}>
                         <div className="metricTable-percent-bar metricTable-percent-damageDone-color fadein"  
                         style={
                           player.combatStats.dps !== "0"
                             ? { width: `${Math.max(DmgDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{player.combatStats.dps && player.combatStats.dps !== "0"  ? player.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">
+                        {player.combatStats.dps && player.combatStats.dps !== "0"  ? player.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
-                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                    <td className="metricTable-header-text metricTable-damage-cell fadein"
+                      onClick={() => handleSelect("DamageDoneUI", player)}
+                      onContextMenu={handleUndo}
+                    >
                     
                         
-                        <span className="metricTable-cell-text">{player.combatStats.totalDamage && player.combatStats.totalDamage !== "0" ? player.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text">
+                        {player.combatStats.totalDamage && player.combatStats.totalDamage !== "0" ? player.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                      
                     </td>
                     <td className="metricTable-header-text metricTable-damage-cell fadein">
@@ -411,7 +607,12 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(DmgTakenpercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-cell-text fadein">{player.combatStats.damageTaken ? player.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("DamageTakenUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                        {player.combatStats.damageTaken ? player.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
@@ -422,7 +623,12 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(HealingTakenpercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-cell-text fadein">{player.combatStats.healingTaken ? player.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingTakenUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                        {player.combatStats.healingTaken ? player.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
@@ -433,7 +639,12 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(AbsorbDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span  className="metricTable-cell-text fadein">{player.combatStats.totalAbsorbedTaken ? player.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span  className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("AbosrbsTakenUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                        {player.combatStats.totalAbsorbedTaken ? player.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
@@ -444,15 +655,40 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(HealingDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{player.combatStats.hps && player.combatStats.hps !== "0" ? player.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingDoneUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                        {player.combatStats.hps && player.combatStats.hps !== "0" ? player.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
-                        <span className="metricTable-cell-text fadein">{player.combatStats.totalHealingDone ? player.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingDoneUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                        {player.combatStats.totalHealingDone ? player.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                     </td>
-                    <td className="metricTable-header-text fadein">{player.interrupts ? player.interrupts : "-"}</td>
-                    <td className="metricTable-header-text fadein">{player.dispels ? player.dispels : "-"}</td>
-                    <td className="metricTable-header-text fadein">{player.purges ? player.purges : "-"}</td>
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("InterruptsUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                      {player.interrupts ? player.interrupts : "-"}
+                    </td>
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("FDispelsUI", player)}
+                      onContextMenu={handleUndo}
+                      >{player.dispels ? player.dispels : "-"}</td>
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("PurgesUI", player)}
+                      onContextMenu={handleUndo}
+                      >
+                      {player.purges ? player.purges : "-"}</td>
                   </tr>
                 );
               });
@@ -579,13 +815,23 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(DmgDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{pet.combatStats.dps && pet.combatStats.dps !== "0"  ? pet.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("DamageDoneUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.combatStats.dps && pet.combatStats.dps !== "0"  ? pet.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text metricTable-damage-cell fadein">
                     
                         
-                        <span className="metricTable-cell-text">{pet.combatStats.totalDamage && pet.combatStats.totalDamage !== "0" ? pet.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text" 
+                    onClick={
+                      () => handleSelect("DamageDoneUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.combatStats.totalDamage && pet.combatStats.totalDamage !== "0" ? pet.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                      
                     </td>
                     <td className="metricTable-header-text metricTable-damage-cell fadein">
@@ -596,7 +842,11 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(DmgTakenpercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-cell-text fadein">{pet.combatStats.damageTaken ? pet.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("DamageTakenUI", pet)}
+                      onContextMenu={handleUndo}
+                      >{pet.combatStats.damageTaken ? pet.combatStats.damageTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
@@ -607,7 +857,12 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(HealingTakenpercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-cell-text fadein">{pet.combatStats.healingTaken ? pet.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingTakenUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.combatStats.healingTaken ? pet.combatStats.healingTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
@@ -618,7 +873,12 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(AbsorbDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span  className="metricTable-cell-text fadein">{pet.combatStats.totalAbsorbedTaken ? pet.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span  className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingTakenUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.combatStats.totalAbsorbedTaken ? pet.combatStats.totalAbsorbedTaken.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
@@ -629,15 +889,40 @@ const enemyRows = Object.values(
                             ? { width: `${Math.max(HealingDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">{pet.combatStats.hps && pet.combatStats.hps !== "0" ? pet.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingDoneUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.combatStats.hps && pet.combatStats.hps !== "0" ? pet.combatStats.hps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
                     <td className="metricTable-header-text fadein">
-                        <span className="metricTable-cell-text fadein">{pet.combatStats.totalHealingDone ? pet.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
+                        <span className="metricTable-cell-text fadein" 
+                    onClick={
+                      () => handleSelect("HealingDoneUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.combatStats.totalHealingDone ? pet.combatStats.totalHealingDone.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                     </td>
-                    <td className="metricTable-header-text fadein">{pet.interrupts ? pet.interrupts : "-"}</td>
-                    <td className="metricTable-header-text fadein">{pet.dispels ? pet.dispels : "-"}</td>
-                    <td className="metricTable-header-text fadein">{pet.purges ? pet.purges : "-"}</td>
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("InterruptsUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.interrupts ? pet.interrupts : "-"}</td>
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("FDispelsUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.dispels ? pet.dispels : "-"}</td>
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("PurgesUI", pet)}
+                      onContextMenu={handleUndo}
+                      >
+                      {pet.purges ? pet.purges : "-"}</td>
                   </tr>
                 );
               });
@@ -723,10 +1008,25 @@ const enemyRows = Object.values(
                       name={item.identity?.name}
                       id={item.identity?.id}
                       processtype={item.identity?.processType}
-                      entitytype={item.identity?.entityType}
+                      entitytype={item.identity?.entityType} 
+                    onClick={
+                      () => handleSelect("PurgesUI", item)}
+                      onContextMenu={handleUndo}
+                      
                     >
-                        {opts.showCollapse && <button className="small-inline-btn" onClick={() => toggleGroup(opts.groupName)}>-</button>}
-                        {opts.showExpand && <button className="small-inline-btn" onClick={() => toggleGroup(opts.groupName)}>{`+ (${opts.count})`}</button>}
+                        {opts.showCollapse && <button className="small-inline-btn" onClick={
+                          (e) => {
+                            e.stopPropagation();
+                            toggleGroup(opts.groupName);
+                          }}>
+                            -
+                            </button>}
+                        {opts.showExpand && <button className="small-inline-btn" onClick={(e) => {
+                            e.stopPropagation();
+                            toggleGroup(opts.groupName);
+                          }}>
+                            {`+ (${opts.count})`}
+                            </button>}
                         <span>{item.identity?.name || "-"}</span>
                     </td>
 
@@ -786,7 +1086,7 @@ const enemyRows = Object.values(
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-hps-color fadein"  
                         style={
-                          item.combatStats?.hps !== "0"
+                          item.combatStats?.hps !== 0
                             ? { width: `${Math.max(HealingDonepercent * 95, 7)}%` }
                             : {}
                         }></div>
@@ -803,7 +1103,6 @@ const enemyRows = Object.values(
                   </tr>
                 );
               };
-
               // Build rows: grouped summary or expanded unit rows
               return enemies.flatMap((enemy, idx) => {
                 const name = enemy.identity?.name || `Enemy ${idx}`;
@@ -823,6 +1122,389 @@ const enemyRows = Object.values(
         </tbody>
       </table>
 
+</div>
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{selectedScene === "DamageDoneUI" && loading !== true && selectedEntityData &&
+<div className="core-ui-content" onContextMenu={(e) => {handleUndo(e); hideTooltip()}}>
+
+
+<table className="damage-table modern">
+  <thead>
+    <tr>
+      <th style={{ width: "6px" }}></th>
+      <th>Spell</th>
+      <th style={{ textAlign: "center" }}>Total</th>
+      <th style={{ textAlign: "center" }}>%</th>
+      <th style={{ textAlign: "center" }}>Normal</th>
+      <th style={{ textAlign: "center" }}>Critical</th>
+      <th style={{ textAlign: "center" }}>Avoided</th>
+      <th style={{ textAlign: "center" }}>Lowered</th>
+    </tr>
+  </thead>
+
+  <tbody>
+
+    {/* ===================== SUMMARY ROW ===================== */}
+    {selectedEntityData.totals && (
+      <tr className="modern-row summary-row">
+        {/* Empty color bar */}
+        <td></td>
+
+        {/* Title */}
+        <td className="cell"
+        ><strong>Total</strong></td>
+
+        {/* Total Damage */}
+        <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Total Damage</strong>
+                <div className="tip-sub">Physical: {`${selectedEntityData.totals.totalPhysicalDamage || 0} (${Number(
+                  (selectedEntityData.totals.totalPhysicalDamage * 100 /
+                   selectedEntityData.totals.totalDamage)
+                ).toFixed(
+                  ((selectedEntityData.totals.totalPhysicalDamage * 100 /
+                     selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 2
+                )}%)`} </div>
+                <div className="tip-sub">Magical: {`${selectedEntityData.totals.totalMagicalDamage || 0} (${Number(
+                  (selectedEntityData.totals.totalMagicalDamage * 100 /
+                   selectedEntityData.totals.totalDamage)
+                ).toFixed(
+                  ((selectedEntityData.totals.totalMagicalDamage * 100 /
+                     selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 2
+                )}%)`} </div>
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+              >{selectedEntityData.totals.totalDamage}</td>
+      
+        {/*Percentage of Damage*/}
+        <td className="cell">{(selectedEntityData.totals.totalDamage * 100/selectedEntityData.totals.totalDamage)
+                .toFixed((selectedEntityData.totals.totalDamage % 1 === 0) ? 0 : 2)}%</td>
+        {/* Normal Hits */}
+        <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Normal</strong>
+                <div className="tip-sub">Hits: {`${selectedEntityData.totals.normalCount || 0}/${selectedEntityData.totals.hitTable.realHitCount} (${Number(
+                  (selectedEntityData.totals.normalCount * 100 /
+                   selectedEntityData.totals.hitTable.realHitCount)
+                ).toFixed(
+                  ((selectedEntityData.totals.normalCount * 100 /
+                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
+                )}%)`} </div>
+                <div className="tip-sub">Min: {selectedEntityData.totals.minNormal || 0}</div>
+                <div className="tip-sub">Avg: {selectedEntityData.totals.avgNormal || 0}</div>
+                <div className="tip-sub">Max: {selectedEntityData.totals.maxNormal || 0}</div>
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+              >{Number(
+                  (selectedEntityData.totals.normalCount * 100 /
+                   selectedEntityData.totals.hitTable.realHitCount)
+                ).toFixed(
+                  ((selectedEntityData.totals.normalCount * 100 /
+                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
+                )}%</td>
+
+        {/* Crit Hits */}
+        <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Hits</strong>
+                <div className="tip-sub">Crit: {`${selectedEntityData.totals.critCount || 0}/${selectedEntityData.totals.hitTable.realHitCount} (${Number(
+                  (selectedEntityData.totals.critCount * 100 /
+                   selectedEntityData.totals.hitTable.realHitCount)
+                ).toFixed(
+                  ((selectedEntityData.totals.critCount * 100 /
+                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
+                )}%)`} </div>
+                <div className="tip-sub">Min: {selectedEntityData.totals.minCrit || 0}</div>
+                <div className="tip-sub">Avg: {selectedEntityData.totals.avgCrit || 0}</div>
+                <div className="tip-sub">Max: {selectedEntityData.totals.maxCrit || 0}</div>
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+              >{Number(
+                  (selectedEntityData.totals.critCount * 100 /
+                   selectedEntityData.totals.hitTable.realHitCount)
+                ).toFixed(
+                  ((selectedEntityData.totals.critCount * 100 /
+                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
+                )}%</td>
+
+        {/* Avoided */}
+        <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Crit</strong>
+                <div className="tip-sub">Miss: {(() => {
+                  const tot = selectedEntityData.totals;
+                                
+                  const totalRolls =
+                    tot.missCount +
+                    tot.dodgeCount +
+                    tot.parryCount +
+                    tot.resistCount +
+                    tot.blockCount +
+                    tot.deflectCount +
+                    tot.immuneCount +
+                    tot.hitCount;
+                                
+                  const misses = tot.missCount;
+                  const missPct = totalRolls > 0 ? (misses / totalRolls) * 100 : 0;
+                                
+                  return `${misses}/${totalRolls} (${missPct.toFixed(missPct % 1 === 0 ? 0 : 2)}%)`;
+                })()} </div>
+                <div className="tip-sub">Min: {selectedEntityData.totals.minCrit || 0}</div>
+                <div className="tip-sub">Avg: {selectedEntityData.totals.avgCrit || 0}</div>
+                <div className="tip-sub">Max: {selectedEntityData.totals.maxCrit || 0}</div>
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+        >
+          {selectedEntityData.totals.missCount +
+           selectedEntityData.totals.dodgeCount +
+           selectedEntityData.totals.parryCount +
+           selectedEntityData.totals.resistCount +
+           selectedEntityData.totals.blockCount +
+           selectedEntityData.totals.deflectCount +
+           selectedEntityData.totals.immuneCount}
+        </td>
+
+        {/* Lowered */}
+        <td className="cell">
+          {selectedEntityData.totals.absorbed +
+           selectedEntityData.totals.blockedAmount +
+           selectedEntityData.totals.resistedAmount}
+        </td>
+      </tr>
+    )}
+
+    {/* ===================== SPELL ROWS ===================== */}
+    {(() => {
+      const spellsArray = Array.isArray(selectedEntityData.spells)
+        ? selectedEntityData.spells.slice()
+        : (selectedEntityData.spells ? Object.values(selectedEntityData.spells) : []);
+      // sort descending by totalDamage
+      spellsArray.sort((a, b) => (Number(b.totalDamage) || 0) - (Number(a.totalDamage) || 0));
+      return spellsArray.map((sp) => {
+        const schoolColor =
+          SPELL_SCHOOL_COLORS[sp.school] || SPELL_SCHOOL_COLORS.Unknown;
+
+        const avoidedTotal =
+          sp.missCount + sp.dodgeCount + sp.parryCount +
+          sp.resistCount + sp.blockCount + sp.deflectCount + sp.immuneCount;
+
+        const loweredTotal =
+          sp.absorbAmount + sp.blockedTotal + sp.resistedTotal;
+
+        return (
+          <tr key={sp.id} className="modern-row">
+
+            {/* Left color bar */}
+            <td className="color-bar" style={{ backgroundColor: schoolColor.bg }} />
+
+            {/* SPELL NAME */}
+            <td
+              className="cell tooltip-target"
+              onMouseEnter={() =>
+                showTooltip(
+                  <>
+                    <strong>{sp.name}</strong>
+                    <div className="tip-sub">SpellID: {sp.id}</div>
+                    <div className="tip-sub">School: {sp.school}</div>
+                  </>
+                )
+              }
+              onMouseLeave={hideTooltip}
+            >
+              {sp.name}
+            </td>
+
+            {/* TOTAL DAMAGE */}
+            <td
+              className="cell tooltip-target"
+              onMouseEnter={() =>
+                showTooltip(
+                  <>
+                    <strong>Total Damage</strong>
+                    <div className="tip-sub">Physical: {sp.physicalDamage || 0}</div>
+                    <div className="tip-sub">Magical: {sp.magicalDamage || 0}</div>
+                  </>
+                )
+              }
+              onMouseLeave={hideTooltip}
+            >
+              {sp.totalDamage}
+            </td>
+            {/* PERCENTAGE OF TOTAL DAMAGE */}
+            <td className="cell">
+              {(sp.totalDamage * 100 / selectedEntityData.totals.totalDamage)
+                .toFixed(((sp.totalDamage * 100 / selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 1)}%
+            </td>
+            {/* NORMAL HITS */}
+            <td
+              className="cell tooltip-target"
+              onMouseEnter={() =>
+                showTooltip(
+                  <>
+                    <strong>Normal Hits: {sp.normalCount}</strong>
+                    <div className="tip-sub">Min: {sp.minNormal}</div>
+                    <div className="tip-sub">Avg: {sp.avgNormal}</div>
+                    <div className="tip-sub">Max: {sp.maxNormal}</div>
+                  </>
+                )
+              }
+              onMouseLeave={hideTooltip}
+            >
+              {sp.normalCount}
+            </td>
+
+            {/* CRITICAL */}
+            <td
+              className="cell tooltip-target"
+              onMouseEnter={() =>
+                showTooltip(
+                  <>
+                    <strong>Critical Hits: {sp.critCount}</strong>
+                    <div className="tip-sub">Min: {sp.minCrit}</div>
+                    <div className="tip-sub">Avg: {sp.avgCrit}</div>
+                    <div className="tip-sub">Max: {sp.maxCrit}</div>
+                  </>
+                )
+              }
+              onMouseLeave={hideTooltip}
+            >
+              {sp.critCount}
+            </td>
+
+            {/* AVOIDED */}
+            <td
+              className="cell tooltip-target"
+              onMouseEnter={() =>
+                showTooltip(
+                  <>
+                    <strong>Avoided: {avoidedTotal}</strong>
+                    <div className="tip-sub">Miss: {sp.missCount}</div>
+                    <div className="tip-sub">Dodge: {sp.dodgeCount}</div>
+                    <div className="tip-sub">Parry: {sp.parryCount}</div>
+                    <div className="tip-sub">Resist: {sp.resistCount}</div>
+                    <div className="tip-sub">Block: {sp.blockCount}</div>
+                    <div className="tip-sub">Deflect: {sp.deflectCount}</div>
+                    <div className="tip-sub">Immune: {sp.immuneCount}</div>
+                  </>
+                )
+              }
+              onMouseLeave={hideTooltip}
+            >
+              {avoidedTotal}
+            </td>
+
+            {/* LOWERED */}
+            <td
+              className="cell tooltip-target"
+              onMouseEnter={() =>
+                showTooltip(
+                  <>
+                    <strong>Lowered: {loweredTotal}</strong>
+                    <div className="tip-sub">Absorbed: {sp.absorbAmount}</div>
+                    <div className="tip-sub">Blocked: {sp.blockedTotal}</div>
+                    <div className="tip-sub">Resisted: {sp.resistedTotal} {`(${(sp.resistedTotal/(sp.totalDamage + sp.resistedTotal) * 100).toFixed(2)}%)`}</div>
+                  </>
+                )
+              }
+              onMouseLeave={hideTooltip}
+            >
+              {loweredTotal}
+            </td>
+
+          </tr>
+        );
+      });
+    })()}
+
+  </tbody>
+</table>
+
+
+      {/* === GLOBAL CURSOR TOOLTIP === */}
+      
 
 
 
@@ -830,6 +1512,7 @@ const enemyRows = Object.values(
 
 
 </div>
+}
 
 
 
@@ -849,7 +1532,99 @@ const enemyRows = Object.values(
 
 
 
-      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      {tooltip.visible && (
+        <div className="cursor-tooltip" style={{ top: tooltip.y, left: tooltip.x }}>
+          {tooltip.content}
+        </div>
+      )}
+
+      {loading && (
+        <div className="loader-wrapper">
+          <div className="loader"></div>
+          <p className="loader-text">Loading...</p>
+        </div>
+      )}
+    
     </div>
   );
 }

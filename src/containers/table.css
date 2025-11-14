@@ -15,9 +15,9 @@
   justify-content: center;
   flex-direction: column;
   border: 2px solid #a88b4a;
-  border-radius: 14px;
+  border-radius: 15px;
   gap: 2px;
-  animation: fadeinslow 1s ease-in;
+  animation: fadeinslow 0.7s ease-in;
   overflow: hidden;
 }
 
@@ -28,11 +28,13 @@
   align-items: center;
   justify-content: flex-start;
   max-width: 2500px;
-  min-height: 40vh;
+  width: 90vw;
+  min-height: 100vh;
   padding: 40px 60px;
   color: var(--text-main);
   border: none;
-  gap: 25px;
+  gap: 20px;
+  user-select: none;
 }
 
 .metricTable-container::after {
@@ -50,13 +52,12 @@
 .metricTable-selectedSessionData{
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 20px;
+  justify-content: space-around;
+  font-size: 25px;
   font-weight: 600;
   text-shadow: 0 2px 6px #0000003d;
-  gap: 10vw;
   width: 100%;
-  padding: 5px 0;
+  padding: 10px 0;
   background-color: #1C1C1C;
   color: #D4AF37;
   cursor: default;
@@ -84,7 +85,7 @@
 .session-info-panel-section {
   min-width: 200px;
   background: rgb(233, 221, 221);
-  border-radius: 10px;
+  border-radius: 15px;
   padding: 18px;
   box-shadow: 0 1px 8px #0008;
   border: 1.5px solid var(--primary);
@@ -230,6 +231,7 @@
   padding: 10px 3px !important;
   font-size: 1rem !important;
   cursor: default !important;
+  font-weight: bold;
   user-select: none;
 }
 .overall-row{
@@ -264,7 +266,7 @@
   border-bottom: none;
 }
 .metricTable-header-inner{
-  font-size: 0.9rem;
+    font-size: 18px !important;
 }
 .metricTable-header-text {
   color: var(--primary-light);
@@ -317,7 +319,7 @@
 /* Session button bar styling */
 .session-buttons-bar {
   display: flex;
-  gap: 12px;
+  gap: 20px;
   padding-left: 1px;
   justify-content: flex-start;
   align-items: flex-start;
@@ -325,7 +327,8 @@
   width: 90vw;
   min-height: 36px;
   box-sizing: border-box;
-  border-radius: 12px;
+  border-radius: 15px;
+  transition: all 0.3s ease-out;
 }
 
 .session-buttons-bar::-webkit-scrollbar {
@@ -345,11 +348,12 @@
 
 /* WoW-inspired Session Button Design */
 .session-btn {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.562) inset, 0px 0px 30px #ffffff15;
   background: linear-gradient(135deg, #23272f 85%, #2d313a 100%);
   color: #ffe082;
   border: 2px solid #a88b4a;
-  border-radius: 12px;
-  padding: 12px 25px 12px 12px;
+  border-radius: 15px;
+  padding: 12px 25px 12px 17px;
   font-size: 1rem;
   font-family: 'Lora', 'Merriweather', 'Georgia', serif;
   font-weight: 700;
@@ -358,7 +362,7 @@
   white-space: nowrap;
   flex: 0 0 auto;
   max-width: 100%;
-  opacity: 0.97;
+  opacity: 0.6;
   outline: none;
   position: relative;
   margin: 1px 0;
@@ -368,23 +372,33 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  transition: all 0.3s ease;
 }
-.session-btn:hover, .session-btn:focus {
-  transform: scale(1.05) !important;
-  box-shadow: 0 0 4px rgb(0, 0, 0) inset, 1px 1px 4px #00000088;
-    z-index: 2;
-
-}
-.session-btn.active {
-  box-shadow: 0 0 8px rgb(0, 0, 0) inset, 1px 1px 4px #00000088;
+.session-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.562) inset, 0px 0px 30px #ffffff15;
+    z-index: 3;
+  transition: all 0.3s ease;
   opacity: 1;
-  transform: scale(1.10) !important;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, color 0.3s ease;
 }
-.session-btn.active .session-btn-index {
+.session-btn-active  {
+  box-shadow: 0px 0px 30px #ffffff27 !important;
+  opacity: 1 !important;
+  z-index: 2 !important;
+  transform: scale(1.15) !important;
+  font-weight: bold !important;
+  transition: all 0.3s ease !important;
+}
+.session-btn-active .session-btn-index {
   background: none;
   border-top: 2px solid #00000063;
   border-left: 2px solid #00000063;
   z-index: 2;
+  font-size: 0.8rem;
+    font-weight: bold;
+    opacity: 1;
+  transition: all 0.3s ease;
 }
 
 
@@ -433,7 +447,7 @@
   font-size: 0.8rem;
   color: #23272f;
   padding: 2px;
-  border-radius: 4px;
+  border-radius: 15px;
   width: 20px;
   font-weight: bold;
   height: 12px;
@@ -447,6 +461,7 @@
   border-top: 2px solid #a88b4a;
   border-left: 2px solid #a88b4a;
   z-index: 4;
+  transition: all 0.3s ease;
 }
 
 @media (max-width: 700px) {
@@ -602,7 +617,7 @@ box-shadow: 0 0 3px #0000007c inset;
 }
 @keyframes fadeinslow {
   from { opacity: 0; }
-  50% { opacity: 0; }
+  15% { opacity: 0; }
   to   { opacity: 1; }
 }
 @keyframes fadeout {
@@ -621,11 +636,11 @@ box-shadow: 0 0 3px #0000007c inset;
 .session-info-panel-player-row,
 .metrics-table th,
 .metrics-table td {
-  animation: fadein 0.7s ease-in;
+  animation: fadein 0.2s ease-in;
 }
 
 .fadeout {
-  animation: fadeout 0.5s ease-in forwards;
+  animation: fadeout 0.1s ease-in forwards;
 }
 
 .session-info-panel-player-alive-status{
@@ -650,3 +665,196 @@ box-shadow: 0 0 3px #0000007c inset;
   padding: 0;
   margin: 0;
 }
+
+
+
+
+
+
+
+
+
+
+.loader {
+  width: 500px;
+  height: 1500px;
+  border: 5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 40px auto;
+  transition: all 0.3s ease-in-out;
+  position: relative;
+}
+
+.loader-wrapper {
+  position: fixed; /* covers screen */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 130%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.loader {
+  width: 64px;
+  height: 64px;
+  border: 6px solid rgba(255, 255, 255, 0.2);
+  border-top-color: #4eb5f1; /* icy blue */
+  border-radius: 50%;
+  margin-bottom: 16px;
+
+  animation: 
+    spin 0.8s linear infinite,
+}
+
+.loader-text {
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-family: var(--font-body);
+  text-align: center;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(78, 181, 241, 0.5);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeoutLoader {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* TABLE BASE */
+.damage-table.modern {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  font-family: "Inter", sans-serif;
+  color: #ececec;
+  user-select: none;
+}
+
+/* HEADER */
+.damage-table.modern thead th {
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: #9ca3af;
+  border-bottom: 2px solid rgba(255,255,255,0.05);
+}
+
+/* ROW */
+.modern-row {
+  background: rgba(25,25,28,0.65);
+  border-radius: 6px;
+  opacity: 0.6;
+  transition: all 0.3s ease;
+}
+
+.modern-row:hover {
+  transform: scale(1.01);
+  opacity: 1;
+  box-shadow: 0 0 12px rgba(0,0,0,0.4);
+  transition: all 0.3s ease;
+}
+
+/* COLOR BAR */
+.color-bar {
+  width: 6px;
+  border-radius: 6px 0 0 6px;
+}
+
+/* CELL */
+.cell {
+  padding: 10px 20px;
+  white-space: nowrap;
+  transition: all 0.3s ease;
+}
+
+.cell:hover {
+  cursor: default;
+  color: #00ffd580;
+  box-shadow: 0 0 5px #00ffff36 inset;
+  z-index: 2;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+/* SUBTEXT */
+.sub {
+  font-size: 11px;
+  opacity: 0.7;
+  padding-left: 4px;
+}
+
+/* TOOLTIP */
+.modern-tooltip {
+  position: absolute;         /* escapes table clipping */
+  pointer-events: none;    /* prevents flicker */
+  opacity: 0;
+  visibility: hidden;
+
+  background: rgba(18,18,22,0.95);
+  padding: 10px 12px;
+  min-width: 180px;
+
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.45);
+
+  font-size: 12px;
+  z-index: 999999;
+
+  transition: opacity 0.1s ease;
+}
+
+.tooltip-container:hover .modern-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+.tip-sub {
+  opacity: 0.75;
+  margin-top: 2px;
+}
+
+
+.cursor-tooltip {
+  position: fixed;           /* anchors to viewport so clientX/clientY work */
+  top: 0;
+  left: 0;
+  transform: translate(0, 0);
+  pointer-events: none;      /* avoids interfering with mouse events */
+  z-index: 99999;
+  background: rgba(18,18,22,0.95);
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.6);
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+
+
+

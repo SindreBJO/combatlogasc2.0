@@ -1,7 +1,9 @@
 .session-slider {
-  width: 95%;
-  padding: 0.5rem 0;
+  width: 100%;
   user-select: none;
+  padding: 5px 50px 20px 50px;
+  background-color: #101110;
+  box-sizing: border-box;
 }
 
 .slider-values {
@@ -9,26 +11,23 @@
   justify-content: space-between;
   align-items: center;
   font-size: 0.7rem;
-  margin-bottom: 0.4rem;
-  color: #333;
-}
-
-.difference {
   font-weight: bold;
-  color: #2e7d32;
+  margin-bottom: 0.4rem;
+  padding: 0 20%;
+  color: #b9b3b3;
 }
 
 .slider-track {
   position: relative;
-  height: 6px;
-  background: #ccc;
+  height: 3px;
+  background: #ffffff;
   border-radius: 3px;
 }
 
 .slider-range {
   position: absolute;
-  height: 6px;
-  background: #4caf50;
+  height: 3px;
+  background: linear-gradient(120deg, #0400ff7a, #ff000080);
   border-radius: 3px;
 }
 
@@ -36,12 +35,12 @@
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  height: 18px;
-  width: 18px;
-  border-radius: 50%;
-  background: #4caf50;
-  border: 2px solid #fff;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.4);
+  height: 25px;
+  width: 3px;
+  border-radius: 4px;
+  background: #ffffff;
+  border: 3px solid #000000;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.11);
   cursor: grab;
   transition: transform 0.1s;
 }

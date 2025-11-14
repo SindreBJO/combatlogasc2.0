@@ -183,6 +183,50 @@ export const SCHOOLS = new Map([
   [127, "Chaos (Holy + Fire + Nature + Frost + Shadow + Arcane)"]
 ])
 
+export const SPELL_SCHOOL_COLORS = {
+  "Unknown":        { bg: "#555555", hover: "#6a6a6a" },
+
+  // Single Schools
+  "Physical":       { bg: "#8b5a2b", hover: "#a06b35" },
+  "Holy":           { bg: "#ffe680", hover: "#ffec9c" },
+  "Fire":           { bg: "#d95723", hover: "#f0692d" },
+  "Nature":         { bg: "#4fb84f", hover: "#61d161" },
+  "Frost":          { bg: "#4aaad9", hover: "#5cc2f2" },
+  "Shadow":         { bg: "#8e45b8", hover: "#a25ad2" },
+  "Arcane":         { bg: "#6f7cff", hover: "#8a94ff" },
+
+  // Dual Schools
+  "Holystrike (Holy + Physical)":  { bg: "#d4ae61", hover: "#e6c075" },
+  "Flamestrike (Fire + Physical)": { bg: "#c06d2d", hover: "#d77c34" },
+  "Holyfire (Holy + Fire)":        { bg: "#ffb45c", hover: "#ffc476" },
+  "Stormstrike (Nature + Physical)": { bg: "#7fa743", hover: "#92c051" },
+  "Holystorm (Holy + Nature)":     { bg: "#c7d86d", hover: "#d7e683" },
+  "Firestorm (Fire + Nature)":     { bg: "#d06c29", hover: "#e87c32" },
+  "Froststrike (Frost + Physical)": { bg: "#7aa0b8", hover: "#8db7d4" },
+  "Holyfrost (Holy + Frost)":      { bg: "#b6d8ef", hover: "#c4e7ff" },
+  "Frostfire (Fire + Frost)":      { bg: "#d9676f", hover: "#e37880" },
+  "Froststorm (Nature + Frost)":   { bg: "#6bb5b5", hover: "#7ecac9" },
+  "Shadowstrike (Shadow + Physical)": { bg: "#9d61a8", hover: "#ac72b7" },
+  "ShadowLight (Holy + Shadow)":   { bg: "#af88d4", hover: "#bd9be3" },
+  "Shadowflame (Fire + Shadow)":   { bg: "#c44c7a", hover: "#d85c8c" },
+  "Shadowstorm (Nature + Shadow)": { bg: "#7c8c55", hover: "#8f9f63" },
+  "Shadowfrost (Frost + Shadow)":  { bg: "#6a7bbf", hover: "#7788d0" },
+  "Spellstrike (Arcane + Physical)": { bg: "#8f7ccb", hover: "#a08edf" },
+  "Divine (Arcane + Holy)":        { bg: "#d8c2ff", hover: "#e6d5ff" },
+  "Spellfire (Arcane + Fire)":     { bg: "#ca6288", hover: "#dc719b" },
+  "Spellstorm (Arcane + Nature)":  { bg: "#7fb88e", hover: "#92d0a5" },
+  "Spellfrost (Arcane + Frost)":   { bg: "#769de0", hover: "#89b2ef" },
+  "Spellshadow (Arcane + Shadow)": { bg: "#9a68cf", hover: "#ad7bdf" },
+
+  // Trio
+  "Elemental (Fire + Nature + Frost)": { bg: "#d88442", hover: "#e59750" },
+  "Chromatic (Fire + Nature + Frost + Arcane)": { bg: "#a686e0", hover: "#b79af0" },
+
+  // Penta
+  "Magic (Holy + Fire + Nature + Frost + Shadow)": { bg: "#c594ff", hover: "#d5a6ff" },
+  "Chaos (Holy + Fire + Nature + Frost + Shadow + Arcane)": { bg: "#ff72ef", hover: "#ff89f3" }
+};
+
 export function getSchooltype(value) {
   let parsed
   if (typeof value === "number") {
@@ -415,6 +459,11 @@ export const bannedNames = [
   "Outland AOE Training Dummy",
   "Environment",
   "Arcane Orb",
+  "Lootbot 3000", 
+  "Light's Hammer",
+  "Divine Star",
+  "Fix-o-Tron 5000", 
+  "Skull Banner",
 ]
 
 export const bannedPetNames = [

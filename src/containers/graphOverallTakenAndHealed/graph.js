@@ -1,8 +1,20 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import { Chart } from 'react-charts';
 import './graph.css';
 
 export default function ColoredAreaChartDamageTaken({ dataPoints = [[], [], []], color }) {
+
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    // Fade out immediately
+    setIsVisible(false);
+
+    // Then fade back in shortly after (forces CSS transition)
+    const timer = setTimeout(() => setIsVisible(true), 50);
+    return () => clearTimeout(timer);
+  }, [dataPoints], []); // 👈 triggers on updates
+
   const [dataA = [], dataB = [], dataC = []] = Array.isArray(dataPoints)
     ? dataPoints
     : [[], [], []];
@@ -137,7 +149,7 @@ const primaryAxis = React.useMemo(
   );
 
   return (
-    <div className="graph-container">
+    <div className={`graph-container ${isVisible ? "visible" : ""}`}>
       <Chart options={options} />
     </div>
   );

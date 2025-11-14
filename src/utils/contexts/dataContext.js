@@ -213,8 +213,10 @@ export const DataContextProvider = ({ children }) => {
 
                 processSession();
                 setValidLinesCount(prevCount => prevCount + 1);
-                metaData.data.push(currentParsedObject);
-                indexLine++;
+                if (sessionActive){
+                  metaData.data.push(currentParsedObject);
+                  indexLine++;
+                }
             }
             if (currentUnparsedLine === "" || currentUnparsedLine === "\r") { return } // Skips all empty lines
             if (currentParsedObject === false) {
@@ -237,8 +239,8 @@ export const DataContextProvider = ({ children }) => {
             if (sessionActive) {
                 tryAddUniqueEntity(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID);
                 tryAddUniqueEntity(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID);
-                tryAddEntityUniqueAction(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, true, /*is SourceEntity*/);
-                tryAddEntityUniqueAction(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, false /*is not SourceEntity*/);
+                //tryAddEntityUniqueAction(currentParsedObject.sourceFlag, currentParsedObject.sourceName, currentParsedObject.sourceGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, true, /*is SourceEntity*/);
+                //tryAddEntityUniqueAction(currentParsedObject.destFlag, currentParsedObject.destName, currentParsedObject.destGUID, currentParsedObject.spellName, currentParsedObject.spellId, currentParsedObject.spellSchool, false /*is not SourceEntity*/);
                 checkPlayerResurrected();
                 checkEntityAliveStatus();
                 checkBossName(currentParsedObject.sourceFlag, currentParsedObject.sourceName);

@@ -78,7 +78,7 @@ html, body {
   box-shadow: 0 0 0 2px #ffe08255;
 }
 .wow-wotlk-dropzone {
-  background: linear-gradient(90deg, #23272f 60%, #a88b4a 100%);
+  background: linear-gradient(90deg, #23272f 50%, #a88a4a75 100%);
   border: 2.5px solid #a88b4a;
   border-radius: 12px;
   padding: 24px 0 18px 0;
@@ -99,7 +99,7 @@ html, body {
   content: '';
   position: absolute;
   inset: 0;
-  background: #ffe082a1;
+  background: #a88a4a75;
   opacity: 0;
   transition: opacity 1.5s;
   z-index: 1;
@@ -214,13 +214,13 @@ html, body {
   display: block;
   box-shadow: 0 1px 6px #0004;
   outline: none;
-  transition: background 0.25s, color 0.18s, border 0.18s, box-shadow 0.18s;
+  transition: all 0.4s ease-in-out;
   cursor: pointer;
 
 }
 .file-loader-fileinput:hover, .file-loader-fileinput:focus {
-  border: 2.5px solid #23272f;
-  color: #23272f;
+  border: 2.5px solid #ffffff;
+  color: #ffffff;
 }
 
 @keyframes grow {

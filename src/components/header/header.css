@@ -19,8 +19,7 @@ header {
   transition: all 0.2s ease-in-out;
 }
 .header-title *:hover{
-  transform: scale(1.02);
-  margin-left: 2px;
+  scale: 0.95;
   text-shadow: 0 2px 8px #ffe082bb, 0 1px 0 #fff;
 }
 .header-title h1{
@@ -31,12 +30,11 @@ header {
   letter-spacing: 2px;
   text-shadow: 0 2px 8px #a88b4a99, 0 1px 0 #fff;
   margin: 0 32px 0 0;
-  padding: 0;
   background: linear-gradient(90deg, #ffe082 60%, #a88b4a 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  padding-left: 20px;
+  padding-left: 10px;
   user-select: none;
   -webkit-user-select: none; /* Safari */
   -ms-user-select: none;     /* IE10+/Edge */
@@ -44,7 +42,28 @@ header {
   text-decoration: none;
   transition: all 0.4s ease-in-out;
 }
+.nav-element{
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
+.discord-icon{
+  width: 50px;
+  height: 50px;
+  transition: all 0.3s ease-out;
+  border-radius: 15px;
+  box-sizing: border-box;
+}
+
+.discord-icon:hover{
+  cursor: pointer;
+  padding: 0 7px;
+  box-shadow: 0 0 15px #5865f2, 0 0 10px #5865f2 inset;
+  border: 2px solid #5865f2;
+  box-sizing: border-box;
+}
 
 .nav {
   display: flex;
@@ -61,7 +80,6 @@ header {
   display: flex;
   flex-direction: row;
   width: auto;
-  padding-right: 10px;
   margin: 0;
   list-style-type: none;
   gap: 15px;

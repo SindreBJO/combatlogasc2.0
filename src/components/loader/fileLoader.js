@@ -1,11 +1,12 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import './fileLoader.wow.css';
+import { useLocation } from 'react-router-dom';
 import { DataContext } from '../../utils/contexts/dataContext';
-
 
 export default function FileLoader() {
     const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear, setInputDamageTimeout, setFinishedParsing, data, finishedParsing, setStartNewSession, startNewSession } = useContext(DataContext);
     const [ dragActive, setDragActive ] = useState(false);
+    const { pathname } = useLocation();
 
     function handleDrop(event) {
         event.preventDefault();
@@ -15,6 +16,10 @@ export default function FileLoader() {
             readNewFile(files[0]);
         }
     }
+
+    useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
     const handleDragOver = (event) => {
         event.preventDefault();
