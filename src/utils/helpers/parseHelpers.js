@@ -47,6 +47,20 @@ export function setGlobalYear(year) {
   globalYearSet = year;
 }
 
+function getActualHit(amount, overkill) {
+  // Defensive: ensure inputs are numbers
+  amount = amount || 0;
+  overkill = overkill || 0;
+
+  // If overkill is smaller than the hit, subtract it normally.
+  // If it's bigger (massive overkill case), ignore it.
+  if (overkill < amount) {
+    return amount - overkill;
+  }
+
+  return 0;
+}
+
 //Returns the length of the array after initial validation and formatting (later used for testing purposes with a parsed object)
 export function testArrayLength(string) {
   let parseArray = validateAndSplitParse(string);
@@ -110,7 +124,9 @@ export function parseString(string) {
     parseArray[1][0],
     indexCount,
   );
-  indexCount += Object.keys(prefixParameters).length;
+  if (prefixParameters !== undefined) {
+    indexCount += Object.keys(prefixParameters).length || 0;
+  }
   let suffixParameters = returnSuffixParameters(
     parseArray,
     parseArray[1][1],
@@ -312,39 +328,34 @@ export function returnPrefixParameters(array, prefix, count) {
   if (prefix === "SWING") {
     {
     }
-  }
-  if (prefix === "RANGE") {
+  } else if (prefix === "RANGE") {
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
       spellSchool: getSchooltype(array[count + 3]),
     };
-  }
-  if (prefix === "SPELL") {
+  } else if (prefix === "SPELL") {
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
       spellSchool: getSchooltype(array[count + 3]),
     };
-  }
-  if (prefix === "SPELLPERIODIC") {
+  } else if (prefix === "SPELLPERIODIC") {
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
       spellSchool: getSchooltype(array[count + 3]),
     };
-  }
-  if (prefix === "SPELLBUILDING") {
+  } else if (prefix === "SPELLBUILDING") {
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
       spellSchool: getSchooltype(array[count + 3]),
     };
-  }
-  if (prefix === "ENVIRONMENTAL") {
+  } else if (prefix === "ENVIRONMENTAL") {
     return { environmentalType: array[count + 1] };
   } else {
-    return false;
+    return {};
   }
 }
 
@@ -369,134 +380,107 @@ export function returnSuffixParameters(array, suffix, count) {
   ) {
     return {
       missType: array[count + 1],
-      amount: checkAmount(array[count + 1]),
+      amount: checkAmount(array[count + 2]),
     };
-  }
-  if (suffix === "MISSED") {
+  } else if (suffix === "MISSED") {
     return { missType: array[count + 1] };
-  }
-  if (suffix === "HEAL") {
+  } else if (suffix === "HEAL") {
     return {
       amount: checkAmount(array[count + 1]),
       overhealing: checkAmount(array[count + 2]),
       absorbed: checkAmount(array[count + 3]),
       critical: checkCritGlancingCrushing(array[count + 4]),
     };
-  }
-  if (suffix === "ENERGIZE") {
+  } else if (suffix === "ENERGIZE") {
     return {
       amount: checkAmount(array[count + 1]),
       powerType: getEnergyType(array[count + 2]),
     };
-  }
-  if (suffix === "DRAIN") {
-    return {
-      amount: checkAmount(array[count + 1]),
-      powerType: getEnergyType(array[count + 2]),
-      extraAmount: checkAmount(array[count + 3]),
-    };
-  }
-  if (suffix === "LEECH") {
+  } else if (suffix === "DRAIN") {
     return {
       amount: checkAmount(array[count + 1]),
       powerType: getEnergyType(array[count + 2]),
       extraAmount: checkAmount(array[count + 3]),
     };
-  }
-  if (suffix === "INTERRUPT") {
+  } else if (suffix === "LEECH") {
+    return {
+      amount: checkAmount(array[count + 1]),
+      powerType: getEnergyType(array[count + 2]),
+      extraAmount: checkAmount(array[count + 3]),
+    };
+  } else if (suffix === "INTERRUPT") {
     return {
       extraSpellId: array[count + 1],
       extraSpellName: array[count + 2],
       extraSchool: getSchooltype(array[count + 3]),
     };
-  }
-  if (suffix === "DISPELFAILED") {
+  } else if (suffix === "DISPELFAILED") {
     return {
       extraSpellId: array[count + 1],
       extraSpellName: array[count + 2],
       extraSchool: getSchooltype(array[count + 3]),
       auraType: checkUndefined(array[count + 4]),
     };
-  }
-  if (suffix === "DISPEL") {
+  } else if (suffix === "DISPEL") {
     return {
       extraSpellId: array[count + 1],
       extraSpellName: array[count + 2],
       extraSchool: getSchooltype(array[count + 3]),
       auraType: array[count + 4],
     };
-  }
-  if (suffix === "STOLEN") {
+  } else if (suffix === "STOLEN") {
     return {
       extraSpellId: array[count + 1],
       extraSpellName: array[count + 2],
       extraSchool: getSchooltype(array[count + 3]),
       auraType: array[count + 4],
     };
-  }
-  if (suffix === "EXTRAATTACKS") {
+  } else if (suffix === "EXTRAATTACKS") {
     return { amount: checkAmount(array[count + 1]) };
-  }
-  if (suffix === "AURAAPPLIEDDOSE") {
+  } else if (suffix === "AURAAPPLIEDDOSE") {
     return {
       auraType: array[count + 1],
       amount: checkAmount(array[count + 2]),
     };
-  }
-  if (suffix === "AURAREMOVEDDOSE") {
+  } else if (suffix === "AURAREMOVEDDOSE") {
     return {
       auraType: array[count + 1],
       amount: checkAmount(array[count + 2]),
     };
-  }
-  if (suffix === "AURAAPPLIED") {
+  } else if (suffix === "AURAAPPLIED") {
     return { auraType: array[count + 1] };
-  }
-  if (suffix === "AURAREMOVED") {
+  } else if (suffix === "AURAREMOVED") {
     return { auraType: array[count + 1] };
-  }
-  if (suffix === "AURAREFRESH") {
+  } else if (suffix === "AURAREFRESH") {
     return { auraType: array[count + 1] };
-  }
-  if (suffix === "AURABROKEN_SPELL") {
+  } else if (suffix === "AURABROKEN_SPELL") {
     return {
       extraSpellId: array[count + 1],
       extraSpellName: array[count + 2],
       extraSchool: array[count + 3],
       auraType: array[count + 4],
     };
-  }
-  if (suffix === "AURABROKEN") {
+  } else if (suffix === "AURABROKEN") {
     return { auraType: array[count + 1] };
-  }
-  if (suffix === "CASTSTART") {
+  } else if (suffix === "CASTSTART") {
     return {};
-  }
-  if (suffix === "CASTSUCCESS") {
+  } else if (suffix === "CASTSUCCESS") {
     return {};
-  }
-  if (suffix === "CASTFAILED") {
+  } else if (suffix === "CASTFAILED") {
     return { failedType: array[count + 1] };
-  }
-  if (suffix === "INSTAKILL") {
+  } else if (suffix === "INSTAKILL") {
     return {};
-  }
-  if (suffix === "DURABILITYDAMAGEALL") {
+  } else if (suffix === "DURABILITYDAMAGEALL") {
     return {};
-  }
-  if (suffix === "DURABILITYDAMAGE") {
+  } else if (suffix === "DURABILITYDAMAGE") {
     return {};
-  }
-  if (suffix === "CREATE") {
+  } else if (suffix === "CREATE") {
     return {};
-  }
-  if (suffix === "SUMMON") {
+  } else if (suffix === "SUMMON") {
     return {};
-  }
-  if (suffix === "RESURRECT") {
+  } else if (suffix === "RESURRECT") {
     return {};
-  }
-  if (
+  } else if (
     suffix === "DAMAGESHIELDMISSED" &&
     [
       "EVADE",
@@ -514,8 +498,7 @@ export function returnSuffixParameters(array, suffix, count) {
       spellSchool: array[count + 3],
       missType: array[count + 4],
     };
-  }
-  if (suffix === "DAMAGESHIELDMISSED") {
+  } else if (suffix === "DAMAGESHIELDMISSED") {
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
@@ -523,8 +506,7 @@ export function returnSuffixParameters(array, suffix, count) {
       missType: array[count + 4],
       amountMissed: checkAmount(array[count + 5]),
     };
-  }
-  if (suffix === "DAMAGESHIELD") {
+  } else if (suffix === "DAMAGESHIELD") {
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
@@ -539,8 +521,8 @@ export function returnSuffixParameters(array, suffix, count) {
       glancing: checkCritGlancingCrushing(array[count + 11]),
       crushing: checkCritGlancingCrushing(array[count + 12]),
     };
-  }
-  if (suffix === "DAMAGESPLIT") {
+  } else if (suffix === "DAMAGESPLIT") {
+    console.log(array)
     return {
       spellId: array[count + 1],
       spellName: array[count + 2],
@@ -555,28 +537,23 @@ export function returnSuffixParameters(array, suffix, count) {
       glancing: checkCritGlancingCrushing(array[count + 11]),
       crushing: checkCritGlancingCrushing(array[count + 12]),
     };
-  }
-  if (suffix === "ENCHANTAPPLIED") {
+  } else if (suffix === "ENCHANTAPPLIED") {
     return {
       spellName: array[count + 1],
       itemID: checkUndefined(array[count + 2]),
       itemName: checkUndefined(array[count + 3]),
     };
-  }
-  if (suffix === "ENCHANTREMOVED") {
+  } else if (suffix === "ENCHANTREMOVED") {
     return {
       spellName: array[count + 1],
       itemID: checkUndefined(array[count + 2]),
       itemName: checkUndefined(array[count + 3]),
     };
-  }
-  if (suffix === "PARTYKILL") {
+  } else if (suffix === "PARTYKILL") {
     return {};
-  }
-  if (suffix === "UNITDIED") {
+  } else if (suffix === "UNITDIED") {
     return {};
-  }
-  if (suffix === "UNITDESTROYED") {
+  } else if (suffix === "UNITDESTROYED") {
     return {};
   } else {
     return false;

@@ -120,12 +120,33 @@ function getDamageGraphPoints() {
   }
 
   const getDamageTaken = () => {
-    const damageData = entityReceivedData.filter((obj) => obj.event && obj.event.includes("DAMAGE") && !obj.event.includes("MISSED"));
-    const totalDamage = damageData.reduce((sum, obj) => {
-      return sum + (getActualHit(obj.amount, obj.overkill) + (obj.absorbed || 0));
-    }, 0);
-    return totalDamage;
-  }
+  // We care about DAMAGE events, and MISSED events specifically with ABSORB
+  const damageData = entityReceivedData.filter(obj =>
+    obj.event &&
+    (
+      obj.event.includes("DAMAGE") || 
+      (obj.event.includes("MISSED") && obj.missType === "ABSORB")
+    )
+  );
+
+  const totalDamage = damageData.reduce((sum, obj) => {
+    const actual = getActualHit(obj.amount, obj.overkill) || 0;
+
+    // DAMAGE events with partial/full absorb
+    const partialAbsorb = obj.absorbed || 0;
+
+    // MISSED ABSORB events (full absorb only)
+    const fullAbsorb = (obj.missType === "ABSORB" ? (obj.amount || 0) : 0);
+
+    // total absorbed from either type
+    const absorbed = partialAbsorb + fullAbsorb;
+
+    // YOU requested: absorbed counts as taken
+    return sum + actual + absorbed;
+  }, 0);
+
+  return totalDamage;
+};
 
   const getHealingTaken = () => {
     const damageData = entityReceivedData.filter((obj) => obj.event && obj.event.includes("HEAL"));
@@ -133,11 +154,43 @@ function getDamageGraphPoints() {
     return totalHealing;
   }
 
-  const getAbsorbed = () => {
-    const absorbData = entityReceivedData.filter((obj) => obj.event && obj.event.includes("DAMAGE"));
-    const totalAbsorbed = absorbData.reduce((sum, obj) => sum + (obj.absorbed || 0), 0);
-    return totalAbsorbed;
+const getAbsorbed = () => {
+  const absorbData = entityReceivedData.filter(obj =>
+    obj?.event &&
+    (obj.event.includes("DAMAGE") || obj.event.includes("MISSED"))
+  );
+
+  let totalAbsorbed = 0;
+
+  for (const obj of absorbData) {
+    const isDamageEvent = obj.event.includes("DAMAGE");
+    const isMissedEvent = obj.event.includes("MISSED");
+
+    // --- Case 1: Partial absorbs on DAMAGE events ---
+    if (isDamageEvent && typeof obj.absorbed === "number" && obj.absorbed > 0) {
+      totalAbsorbed += obj.absorbed;
+
+      if (obj.absorbed > 10000) {
+        console.log("Large absorb detected:", obj);
+      }
+
+      continue;
+    }
+
+    // --- Case 2: Full absorbs on MISSED events (SPELL_MISSED / SWING_MISSED) ---
+    if (isMissedEvent && obj.missType === "ABSORB" && typeof obj.amount === "number" && obj.amount > 0) {
+      totalAbsorbed += obj.amount;
+
+      if (obj.amount > 100000) {
+        console.log("Large full absorb detected:", obj);
+      }
+
+      continue;
+    }
   }
+
+  return totalAbsorbed;
+};
 
   const getHealingDone = () => {
     const healingData = entityDealtData.filter((obj) => obj.event && obj.event.includes("HEAL"));
@@ -310,16 +363,22 @@ export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, binG
     }));
 
   const entityAbsorbedTakenData = sessionData
-    .filter(({ destFlag, event, absorbed }) =>
-      destFlag === "player" &&
-      event.includes("DAMAGE") &&
-      !event.includes("MISSED") &&
-      absorbed > 0
+  .filter(({ destFlag, event, missType, absorbed}) =>
+    destFlag === "player" &&
+    (
+      // Case 1: DAMAGE event that had partial or full absorb
+      (event.includes("DAMAGE") && absorbed > 0)
+      ||
+      // Case 2: MISSED event with ABSORB = full absorb
+      (event.includes("MISSED") && missType === "ABSORB")
     )
-    .map(({ timeStamp, absorbed }) => ({
-      time: (timeStamp - sessionMetaData.startTime) / 1000,
-      amount: absorbed || 0,
-    }));
+  )
+  .map(({ timeStamp, absorbed, amount, missType }) => ({
+    time: (timeStamp - sessionMetaData.startTime) / 1000,
+    // For DAMAGE: absorbed field holds absorbed amount
+    // For MISSED ABSORB: amount field holds the full absorbed value
+    amount: missType === "ABSORB" ? amount : absorbed,
+  }));
 
   const entityDamageTakenData = sessionData
     .filter(({ destFlag, event }) =>
@@ -406,123 +465,74 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
   const spells = {};
 
   const totals = {
+    //Totals
     totalDamage: 0,
-    totalPhysicalDamage: 0,
-    totalMagicalDamage: 0,
 
+    //Normals
     normalAmount: 0,
     normalCount: 0,
     minNormal: null,
     maxNormal: null,
-    avgNormal: 0,
 
+    //Criticals
     critAmount: 0,
     critCount: 0,
     minCrit: null,
     maxCrit: null,
-    avgCrit: 0,
 
-    glanceAmount: 0,
-    glanceCount: 0,
-    minGlance: null,
-    maxGlance: null,
-    avgGlance: 0,
-
-    // NEW: Crushing blows
-    crushAmount: 0,
-    crushCount: 0,
-    minCrush: null,
-    maxCrush: null,
-    avgCrush: 0,
-
-    missCount: 0,
-    dodgeCount: 0,
-    parryCount: 0,
-    resistCount: 0,
-    absorbAmount: 0,
-
-    blockCount: 0,
-    blockFullCount: 0,
-    blockPartialCount: 0,
-
-    deflectCount: 0,
-    immuneCount: 0,
-
-    blockedTotal: 0,
-    resistedTotal: 0,
-
+    avoidedCount: 0,
     hitCount: 0,
-    avg: 0,
-
-    // REALISTIC HIT TABLE
-    hitTable: {
-      realHitCount: 0,
-      results: {
-        hit: 0,
-        miss: 0,
-        dodge: 0,
-        parry: 0,
-        resist: 0,
-        immune: 0,
-        blockFull: 0,
-        blockPartial: 0,
-        deflect: 0,
-        absorb: 0,
-        crush: 0,
-        glance: 0,
-        crit: 0,
-        normal: 0,
-      }
-    }
   };
 
   const actual = (amt, over) => {
     const a = Number(amt) || 0;
     const o = Number(over) || 0;
-    const result = o < a ? a - o : 0;
-    return Math.max(result, 0);
+    return Math.max(a - o, 0);
   };
 
-  filteredData.forEach(ev => {
-    if (!ev) return;
+  filteredData.forEach(parse => {
+    if (!parse) return;
 
-    const evEvent = Array.isArray(ev.event)
-      ? ev.event.map(x => x.toUpperCase())
-      : [String(ev.event).toUpperCase()];
+    //Algorithm Entry Checks
+    const damage = parse.event.some(x => x.includes("DAMAGE")) || false;
+    const missed = parse.event.some(x => x.includes("MISSED")) || false;
+    if (!damage && !missed) return;
+    const autoAttack = parse.event.some(x => x.includes("SWING")) || false;
+    const crushingAttack = parse.crushing ? true : false;
+    const glancingBlow = parse.glancing ? true : false;
+    const critical = parse.critical ? true : false;
+    const missType = parse.missType || false;
+    const fullAbsorb = parse.missType === "ABSORB" ? true : false;
+    const block = Number(parse.blocked || 0) > 0 ? true : false;
+    const fullBlock = (parse.amount === 0 && block) ? true : false;
+    const fullResist = (parse.amount === 0 && parse.resisted > 0) ? true : false;
 
-    const isDamage = evEvent.includes("DAMAGE");
-    const isMissed = evEvent.includes("MISSED");
-    const isSwing = evEvent.includes("SWING");
 
-    if (!isDamage && !isMissed) return;
+    // Track every event
+    totals.hitCount++;
 
-    // ============================
     // SPELL IDENTIFICATION
-    // ============================
-    let spellName, spellId, spellSchool;
+    let spellName = parse.spellName || "";
+    let spellId = parse.spellId || "";
+    let spellSchool = parse.spellSchool || "";
+    let category = spellSchool === "Physical" ? "Physical" : "Magical";
 
-    if (isSwing) {
+    if (crushingAttack) {
+      spellName = "Crushing Blow";
+      spellId = -2;
+      spellSchool = "Physical";
+    } else if (autoAttack) {
       spellName = "Attack";
-      spellId = 0;
+      spellId = -1;
       spellSchool = "Physical";
     } else {
       spellName =
-        ev.spellName ||
-        ev.spell ||
-        ev.ability ||
-        ev.abilityName ||
-        `unknown-${ev.spellId || ev.abilityId || "none"}`;
-
-      spellId = ev.spellId || ev.abilityId || 0;
-      spellSchool = ev.school || ev.spellSchool || "Unknown";
+        parse.spellName || "error_unknown_spellName";
+        spellId = parse.spellId || "error_unknown_spellId";
+        spellSchool = parse.spellSchool || "error_unknown_spellSchool";
     }
+    const spellKey = `${spellName}:${spellId}`;
 
-    const category = spellSchool === "Physical" ? "Physical" : "Magical";
-    const spellKey = `${spellName}::${spellId}`;
-
-    // ============================
-    // CREATE SPELL ENTRY IF NEEDED
-    // ============================
     if (!spells[spellKey]) {
       spells[spellKey] = {
         name: spellName,
@@ -530,358 +540,167 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
         school: spellSchool,
         category,
 
-        physicalDamage: 0,
-        magicalDamage: 0,
-
+            //Totals
         totalDamage: 0,
-
+          
+        //Normals
         normalAmount: 0,
         normalCount: 0,
         minNormal: null,
         maxNormal: null,
-
+          
+        //Criticals
         critAmount: 0,
         critCount: 0,
         minCrit: null,
         maxCrit: null,
-
-        glanceAmount: 0,
-        glanceCount: 0,
-        minGlance: null,
-        maxGlance: null,
-
-        crushAmount: 0,
-        crushCount: 0,
-        minCrush: null,
-        maxCrush: null,
-
-        missCount: 0,
-        dodgeCount: 0,
-        parryCount: 0,
-        resistCount: 0,
-        absorbAmount: 0,
-
-        blockCount: 0,
-        blockFullCount: 0,
-        blockPartialCount: 0,
-
-        deflectCount: 0,
-        immuneCount: 0,
-
-        blockedTotal: 0,
-        resistedTotal: 0,
-
+          
+        avoidedCount: 0,
         hitCount: 0,
-        avg: 0,
       };
     }
 
-    const s = spells[spellKey];
+    const selectedSpell = spells[spellKey];
+
+    selectedSpell.hitCount++;
 
     // ============================
-    // MISS EVENTS
+    // AVOIDED EVENTS
     // ============================
-    if (isMissed) {
-      const missType = (ev.missType || "").toUpperCase();
+    if (missed) {
+      const missType = (parse.missType || "");
 
-      s.missCount++;
-      totals.missCount++;
-
-      if (missType.includes("DODGE")) {
-        s.dodgeCount++; totals.dodgeCount++;
-        totals.hitTable.results.dodge++;
-        totals.hitTable.realHitCount++;
-      }
-      else if (missType.includes("PARRY")) {
-        s.parryCount++; totals.parryCount++;
-        totals.hitTable.results.parry++;
-        totals.hitTable.realHitCount++;
-      }
-      else if (missType.includes("RESIST")) {
-        s.resistCount++; totals.resistCount++;
-        totals.hitTable.results.resist++;
-        totals.hitTable.realHitCount++;
-      }
-      else if (missType.includes("BLOCK")) {
-        // FULL BLOCK (WotLK: full block appears ONLY here)
-        s.blockCount++;
-        s.blockFullCount++;
-        totals.blockCount++;
-        totals.blockFullCount++;
-
-        totals.hitTable.results.blockFull++;
-        totals.hitTable.realHitCount++;
-      }
-      else if (missType.includes("DEFLECT")) {
-        s.deflectCount++; totals.deflectCount++;
-        totals.hitTable.results.deflect++;
-        totals.hitTable.realHitCount++;
-      }
-      else if (missType.includes("IMMUNE")) {
-        s.immuneCount++; totals.immuneCount++;
-        totals.hitTable.results.immune++;
-        totals.hitTable.realHitCount++;
-      }
-      else {
-        totals.hitTable.results.miss++;
-        totals.hitTable.realHitCount++;
+      switch (missType) {
+        case "MISS": totals.missCount++; selectedSpell.missCount++; break;
+        case "DODGE": totals.dodgeCount++; selectedSpell.dodgeCount++; break;
+        case "PARRY": totals.parryCount++; selectedSpell.parryCount++; break;
+        case "DEFLECT": totals.deflectCount++; selectedSpell.deflectCount++; break;
+        case "IMMUNE": totals.immuneCount++; selectedSpell.immuneCount++; break;
+        case "RESIST": totals.resistCount++; selectedSpell.resistCount++; break;
+        case "EVADE": totals.evadeCount++; selectedSpell.evadeCount++; break;
+        case "ABSORB": 
+          totals.absorbCount++; 
+          selectedSpell.absorbCount++; 
+          totals.absorbAmount += parse.amount;
+          break;
+        case "BLOCK":
+          totals.blockCount++; 
+          selectedSpell.blockCount++;
+          totals.blockFullCount++; 
+          selectedSpell.blockFullCount++;
+          break;
+        default:
+          console.log("Unknown miss type encountered in damage analysis:", missType);
+          break;
       }
 
+      totals.avoidedCount++;
+      selectedSpell.avoidedCount++;
+      return;
+
+    } else if (damage){
+    // ============================
+    // DAMAGE EVENTS
+    // ============================
+
+    const dmg = actual(parse.amount, parse.overkill);
+
+    const blocked = Number(parse.blocked || 0);
+    const absorbed = Number(parse.absorbed || 0);
+    const resisted = Number(parse.resisted || 0);
+    let checkCount = 0;
+
+    // ===== FULL ZERO-DAMAGE CASES (avoided except full absorb) =====
+
+    // FULL RESIST
+    if (dmg === 0 && resisted > 0) {
+      totals.resistCount++; selectedSpell.resistCount++;
+      totals.resistedTotal += resisted; selectedSpell.resistedTotal += resisted;
+      totals.avoidedCount++;
+      checkCount++;
+      return;
+    }
+    if (blocked > 0 && dmg === 0) {
+      totals.blockCount++; selectedSpell.blockCount++;
+      totals.blockFullCount++; selectedSpell.blockFullCount++;
+      totals.blockedTotal += blocked; selectedSpell.blockedTotal += blocked;
+      totals.avoidedCount++;
+      checkCount++;
       return;
     }
 
-    // ============================
-    // DAMAGE EVENT (WotLK: partial block, absorb, immune, crush, glance here)
-    // ============================
-    const dmg = actual(ev.amount, ev.overkill);
-    const blocked = Number(ev.blocked || 0);
-    const absorbed = Number(ev.absorbed || 0);
-    const resisted = Number(ev.resisted || 0);
-
-    const isCrit =
-      ev.critical === true ||
-      ev.crit === true ||
-      evEvent.includes("CRITICAL") ||
-      evEvent.includes("_CRIT");
-
-    const isGlance = ev.glancing === true;
-    const isCrush = ev.crushing === true || ev.isCrushing === true;
-    const isImmuneDamageEvent =
-      (evEvent.includes("IMMUNE") ||
-      ev.immune === true ||
-      (dmg === 0 && absorbed === 0 && resisted === 0 && blocked === 0));
-
-    // IMMUNE inside DAMAGE event (WotLK behavior)
-    if (isImmuneDamageEvent) {
-      s.immuneCount++;
-      totals.immuneCount++;
-
-      totals.hitTable.results.immune++;
-      totals.hitTable.realHitCount++;
+    // FULL ABSORB (0 dmg) => YOUR RULE: HIT
+    if (dmg === 0 && absorbed > 0) {
+      totals.absorbAmount += absorbed; selectedSpell.absorbAmount += absorbed;
+      totals.hitCount++; selectedSpell.hitCount++;
+      checkCount++;
       return;
     }
 
-    // Damage accumulation
-    s.totalDamage += dmg;
-    totals.totalDamage += dmg;
+    // ===== PARTIAL REDUCTIONS =====
+
+    if (absorbed > 0 && dmg > 0) {
+      totals.absorbAmount += absorbed; selectedSpell.absorbAmount += absorbed;
+    }
+
+    if (blocked > 0 && dmg > 0) {
+      totals.blockCount++; selectedSpell.blockCount++;
+      totals.blockPartialCount++; selectedSpell.blockPartialCount++;
+      totals.blockedTotal += blocked; selectedSpell.blockedTotal += blocked;
+    }
+
+    if (resisted > 0 && dmg > 0) {
+      totals.resistedTotal += resisted; selectedSpell.resistedTotal += resisted;
+    }
+
+    // ===== APPLY DAMAGE HIT =====
+    totals.totalDamage += dmg; selectedSpell.totalDamage += dmg;
 
     if (category === "Physical") {
-      s.physicalDamage += dmg;
-      totals.totalPhysicalDamage += dmg;
+      totals.totalPhysicalDamage += dmg; selectedSpell.physicalDamage += dmg;
     } else {
-      s.magicalDamage += dmg;
-      totals.totalMagicalDamage += dmg;
+      totals.totalMagicalDamage += dmg; selectedSpell.magicalDamage += dmg;
     }
 
-    // Shared reductions
-    s.blockedTotal += blocked;
-    totals.blockedTotal += blocked;
+    totals.hitCount++; selectedSpell.hitCount++;
 
-    s.absorbAmount += absorbed;
-    totals.absorbAmount += absorbed;
+    // CRIT
+    if (critical) {
+      totals.critCount++; selectedSpell.critCount++;
+      totals.critAmount += dmg; selectedSpell.critAmount += dmg;
 
-    s.resistedTotal += resisted;
-    totals.resistedTotal += resisted;
-
-    // ABSORB (not a hit)
-    if (absorbed > 0 && dmg === 0) {
-      totals.hitTable.results.absorb++;
-      return;
-    }
-
-    // BLOCK LOGIC
-    if (blocked > 0) {
-      s.blockCount++;
-      totals.blockCount++;
-
-      if (dmg === 0) {
-        // FULL BLOCK — but DAMAGE events should not give full block in WotLK
-        s.blockFullCount++;
-        totals.blockFullCount++;
-
-        totals.hitTable.results.blockFull++;
-        totals.hitTable.realHitCount++;
-        return;
-      } else {
-        // PARTIAL BLOCK
-        s.blockPartialCount++;
-        totals.blockPartialCount++;
-
-        totals.hitTable.results.blockPartial++;
-      }
-    }
-
-    // ============================
-    // GLANCING BLOW
-    // ============================
-    if (isGlance) {
-      s.glanceCount++;
-      totals.glanceCount++;
-
-      s.glanceAmount += dmg;
-      totals.glanceAmount += dmg;
-
-      totals.hitTable.results.glance++;
-      totals.hitTable.results.hit++;
-      totals.hitTable.realHitCount++;
-
-      // min/max
-      s.minGlance = s.minGlance === null ? dmg : Math.min(s.minGlance, dmg);
-      s.maxGlance = s.maxGlance === null ? dmg : Math.max(s.maxGlance, dmg);
-
-      totals.minGlance = totals.minGlance === null ? dmg : Math.min(totals.minGlance, dmg);
-      totals.maxGlance = totals.maxGlance === null ? dmg : Math.max(totals.maxGlance, dmg);
-
-      s.hitCount++; totals.hitCount++;
-      return;
-    }
-
-    // ============================
-    // CRUSHING BLOW
-    // ============================
-    if (isCrush) {
-      s.crushCount++;
-      totals.crushCount++;
-
-      s.crushAmount += dmg;
-      totals.crushAmount += dmg;
-
-      totals.hitTable.results.crush++;
-      totals.hitTable.results.hit++;
-      totals.hitTable.realHitCount++;
-
-      s.minCrush = s.minCrush === null ? dmg : Math.min(s.minCrush, dmg);
-      s.maxCrush = s.maxCrush === null ? dmg : Math.max(s.maxCrush, dmg);
-
-      totals.minCrush = totals.minCrush === null ? dmg : Math.min(totals.minCrush, dmg);
-      totals.maxCrush = totals.maxCrush === null ? dmg : Math.max(totals.maxCrush, dmg);
-
-      s.hitCount++; totals.hitCount++;
-      return;
-    }
-
-    // ============================
-    // CRITICAL HIT
-    // ============================
-    if (isCrit) {
-      s.critCount++;
-      totals.critCount++;
-
-      s.critAmount += dmg;
-      totals.critAmount += dmg;
-
-      totals.hitTable.results.crit++;
-      totals.hitTable.results.hit++;
-      totals.hitTable.realHitCount++;
-
-      s.minCrit = s.minCrit === null ? dmg : Math.min(s.minCrit, dmg);
-      s.maxCrit = s.maxCrit === null ? dmg : Math.max(s.maxCrit, dmg);
+      selectedSpell.minCrit = selectedSpell.minCrit === null ? dmg : Math.min(selectedSpell.minCrit, dmg);
+      selectedSpell.maxCrit = Math.max(selectedSpell.maxCrit, dmg);
 
       totals.minCrit = totals.minCrit === null ? dmg : Math.min(totals.minCrit, dmg);
-      totals.maxCrit = totals.maxCrit === null ? dmg : Math.max(totals.maxCrit, dmg);
-
-      s.hitCount++; totals.hitCount++;
+      totals.maxCrit = Math.max(totals.maxCrit, dmg);
       return;
     }
 
-    // ============================
+    // GLANCE
+    if (glancingBlow) {
+      totals.glanceCount++; selectedSpell.glanceCount++;
+      totals.glanceAmount += dmg; selectedSpell.glanceAmount += dmg;
+      return;
+    }
+
     // NORMAL HIT
-    // ============================
-    s.normalCount++;
-    totals.normalCount++;
+    totals.normalCount++; selectedSpell.normalCount++;
+    totals.normalAmount += dmg; selectedSpell.normalAmount += dmg;
 
-    s.normalAmount += dmg;
-    totals.normalAmount += dmg;
-
-    totals.hitTable.results.normal++;
-    totals.hitTable.results.hit++;
-    totals.hitTable.realHitCount++;
-
-    s.minNormal = s.minNormal === null ? dmg : Math.min(s.minNormal, dmg);
-    s.maxNormal = s.maxNormal === null ? dmg : Math.max(s.maxNormal, dmg);
+    selectedSpell.minNormal = selectedSpell.minNormal === null ? dmg : Math.min(selectedSpell.minNormal, dmg);
+    selectedSpell.maxNormal = Math.max(selectedSpell.maxNormal, dmg);
 
     totals.minNormal = totals.minNormal === null ? dmg : Math.min(totals.minNormal, dmg);
-    totals.maxNormal = totals.maxNormal === null ? dmg : Math.max(totals.maxNormal, dmg);
+    totals.maxNormal = Math.max(totals.maxNormal, dmg);
 
-    s.hitCount++;
-    totals.hitCount++;
+    if (checkCount > 1){ console.warn("Multiple return conditions met in damage analysis for parse:", parse)};
+  } else {
+    console.log("Unknown event type encountered in damage analysis:", parse);
+  }
+
+
   });
 
-  // ============================
-  // AVERAGES
-  // ============================
-  Object.values(spells).forEach(sp => {
-    const totalHits = sp.normalCount + sp.critCount + sp.glanceCount + sp.crushCount;
-
-    sp.avg = totalHits > 0 ? +(sp.totalDamage / totalHits).toFixed(2) : 0;
-    sp.avgNormal = sp.normalCount > 0 ? +(sp.normalAmount / sp.normalCount).toFixed(2) : 0;
-    sp.avgCrit = sp.critCount > 0 ? +(sp.critAmount / sp.critCount).toFixed(2) : 0;
-    sp.avgGlance = sp.glanceCount > 0 ? +(sp.glanceAmount / sp.glanceCount).toFixed(2) : 0;
-    sp.avgCrush = sp.crushCount > 0 ? +(sp.crushAmount / sp.crushCount).toFixed(2) : 0;
-  });
-
-  totals.avg = totals.hitCount > 0 ? +(totals.totalDamage / totals.hitCount).toFixed(2) : 0;
-
-  totals.avgNormal =
-    totals.normalCount > 0 ? +(totals.normalAmount / totals.normalCount).toFixed(2) : 0;
-
-  totals.avgCrit =
-    totals.critCount > 0 ? +(totals.critAmount / totals.critCount).toFixed(2) : 0;
-
-  totals.avgGlance =
-    totals.glanceCount > 0 ? +(totals.glanceAmount / totals.glanceCount).toFixed(2) : 0;
-
-  totals.avgCrush =
-    totals.crushCount > 0 ? +(totals.crushAmount / totals.crushCount).toFixed(2) : 0;
-
-  console.log("DamageDoneUIBreakDown:", { spells, totals });
   return { spells, totals };
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

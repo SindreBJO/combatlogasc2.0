@@ -8,6 +8,7 @@ import rebirthIcon from "../assets/tableicons/rebirth.png";
 import ColoredAreaChart from "./graph/graph";
 import ColoredAreaChartDamageTaken from "./graphOverallTakenAndHealed/graph";
 import SessionSlideBar from "../components/slideSessionTimeBar/slideSessionTimeBar";
+import CheckBox from "../components/checkbox/checkbox";
 
 export default function PerformanceMetricsTable() {
 
@@ -33,6 +34,18 @@ export default function PerformanceMetricsTable() {
   // UI state
   const [showDevInfo, setShowDevInfo] = useState(false);
   const [expandedNames, setExpandedNames] = useState({});
+
+  const [hideTrash, setHideTrash] = useState(() => localStorage.getItem("sozlog-hideTrash") === "true");
+  const [hideWipes, setHideWipes] = useState(() => localStorage.getItem("sozlog-hideWipes") === "true");
+  const [hideTimeouts, setHideTimeouts] = useState(() => localStorage.getItem("sozlog-hideTimeouts") === "true");
+  const [hideVictories, setHideVictories] = useState(() => localStorage.getItem("sozlog-hideVictories") === "true");
+  
+  // Save on change
+  useEffect(() => {localStorage.setItem("sozlog-hideTrash", hideTrash);}, [hideTrash]);
+  useEffect(() => {localStorage.setItem("sozlog-hideWipes", hideWipes);}, [hideWipes]);
+  useEffect(() => {localStorage.setItem("sozlog-hideTimeouts", hideTimeouts);}, [hideTimeouts]);
+  useEffect(() => {localStorage.setItem("sozlog-hideVictories", hideVictories);}, [hideVictories]);
+
   // Toggle expand/collapse for grouped enemies
   const toggleGroup = (name) => setExpandedNames(prev => ({ ...prev, [name]: !prev[name] }));
 
@@ -61,9 +74,8 @@ export default function PerformanceMetricsTable() {
     setSessionPrint(filteredSession);
     const sessionData = data.data.filter(
       (line, index) =>
-        index >= session.dataIndexStart && index <= session.dataIndexEnd && line.timeStamp >= slideTime[0] && line.timeStamp <= slideTime[1]
+      line.timeStamp >= slideTime[0] && line.timeStamp <= slideTime[1]
     );
-  
     if (!session.entitiesData.players) return;
     const playerRows = session.entitiesData.players
       .map((playerObj) => {
@@ -132,7 +144,6 @@ export default function PerformanceMetricsTable() {
 
         acc[name].units.push(clone);
       }
-
       return acc;
     }, {})
 )
@@ -188,7 +199,7 @@ export default function PerformanceMetricsTable() {
          spells: Array.isArray(raw.spells) ? raw.spells : (raw.spells ? Object.values(raw.spells) : []),
        };
        setSelectedEntityData(normalized);
-       console.log("DamageDoneUI Data:", normalized);
+       console.log("BREAKDOWN DATA:", normalized);
      }
     console.log("finished")
     setLoading(false);
@@ -243,7 +254,7 @@ export default function PerformanceMetricsTable() {
     setPrevious([selectedScene, selectedEntity]);
     setSelectedScene(scene);
     setSelectedEntity(entity);
-    console.log("Selected:", scene, entity);
+
   };
 
   const handleUndo = (e) => {
@@ -254,7 +265,6 @@ export default function PerformanceMetricsTable() {
       setSelectedEntity(previous[1]);
       setPrevious(null); // clear after undo if you want single-step undo
     }
-    console.log("Current selection after undo:", selectedScene, selectedEntity);
     return;
   };
 
@@ -332,45 +342,109 @@ function hideTooltip() {
 
   return (
     <div className="metricTable-container" onContextMenu={handleUndo}>
-    
       {/*Return Button */}
     <button className="nav-button" onClick={toggleCurrentNewSession}><span>New session</span></button>
       {/*Session selection */}
       <div className="table-section-title-wrapper fadein">
-      <h2 className="table-section-title fadein">Available Sessions</h2>
+        <h2 className="table-section-title fadein">Available Sessions</h2>
+      </div>
+      <div className="checkbox-bar fadein">
+        <div className="checkbox-bar-background">
+          <CheckBox
+            name="Trash"
+            state={hideTrash}
+            setState={setHideTrash}
+          />
+          <CheckBox
+            name="Wipes"
+            state={hideWipes}
+            setState={setHideWipes}
+          />
+          <CheckBox
+            name="Timeouts"
+            state={hideTimeouts}
+            setState={setHideTimeouts}
+          />
+          <CheckBox
+            name="Victories"
+            state={hideVictories}
+            setState={setHideVictories}
+          />
+        </div>
       </div>
       {/*Session selection - button */}
       <div className="session-buttons-bar fadein">
-        {!data || !data.sessions || data.sessions.length === 0
-          ? <div><p className='session-btns-none fadein '>No sessions found!</p></div>
-          : data.sessions.map((session, idx) => {
-              let btnClass = `session-btn${selectedSessionIdx === idx ? ' session-btn-active' : ''}`;
-              let outcomeClass = '';
-              if (session.outcome === 'VictoryBoss') outcomeClass = 'session-btn-victoryboss';
-              else if (session.outcome === 'VictoryTrash') outcomeClass = 'session-btn-victorytrash';
-              else if (session.outcome === 'Wipe') outcomeClass = 'session-btn-wipe';
-              else if (session.outcome === 'Timeout') outcomeClass = 'session-btn-timeout';
-              else if (session.bossName === 'Trash') outcomeClass = 'session-btn-trash';
-              return (
-                <button
-                  key={idx}
-                  className={`${btnClass} ${outcomeClass} fadein`}
-                  onClick={() => {
-                    setLoading(true);
-                    setSelectedSessionIdx(idx);
-                    setSlideTime([session.startTime, session.endTime]);
-                    setSessionTime([session.startTime, session.endTime]);
-                    setSelectedScene(null);
-                    setPrevious(null);
-                  }}
+        {!data || !data.sessions || data.sessions.length === 0 ? (
+          <div>
+            <p className="session-btns-none fadein">No sessions found!</p>
+          </div>
+        ) : (
+          data.sessions.map((session, idx) => {
+            // Button class (active when selected)
+            const btnClass = `session-btn${
+              selectedSessionIdx === idx ? " session-btn-active" : ""
+            }`;
+          
+            // Determine class based on bossName/outcome
+            let outcomeClass = "";
+          
+            // ⭐ Detect TRASH FIRST (fixes trash wipes showing)
+            if (session.outcome === "VictoryBoss") {
+              outcomeClass = "session-btn-victoryboss";
+            } else if (session.outcome === "VictoryTrash") {
+              outcomeClass = "session-btn-victorytrash";
+            } else if (session.outcome === "Wipe") {
+              outcomeClass = "session-btn-wipe";
+            } else if (session.outcome === "Timeout") {
+              outcomeClass = "session-btn-timeout";
+            }
+          
+            // ⭐ Filtering logic
+            const show =
+              (!hideTrash || session.bossName !== "Trash") &&
+              (!hideWipes || session.outcome !== "Wipe") &&
+              (!hideTimeouts || session.outcome !== "Timeout") &&
+              (!hideVictories ||
+                (session.outcome !== "VictoryBoss" &&
+                  session.outcome !== "VictoryTrash"));
+                
+            // If hidden by filters — return nothing
+            if (!show) return null;
+                
+            // Otherwise render the session button
+            return (
+              <button
+                key={idx}
+                className={`${btnClass} ${outcomeClass} fadein`}
+                onClick={() => {
+                  setLoading(true);
+                  setSelectedSessionIdx(idx);
+                
+                  const s = data.sessions[idx];
+                  setSlideTime([s.startTime, s.endTime]);
+                  setSessionTime([s.startTime, s.endTime]);
+                
+                  setSelectedScene(null);
+                  setPrevious(null);
+                }}
+              >
+                <span className="session-btn-label fadein">
+                  {session.bossName || session.name || `Session ${idx + 1}`}
+                </span>
+              
+                <span
+                  className={`session-btn-index${
+                    selectedSessionIdx === idx ? " active" : ""
+                  } fadein`}
                 >
-                  <span className="session-btn-label fadein">{session.bossName || session.name || `Session ${idx + 1}`}</span>
-                  <span className={`session-btn-index${selectedSessionIdx === idx ? ' active' : ''} fadein`}>{idx + 1}</span>
-                </button>
-              );
-            })
-        }
+                  {idx + 1}
+                </span>
+              </button>
+            );
+          })
+        )}
       </div>
+
       <div className="table-section-title-wrapper fadein">
       <h2 className="table-section-title fadein">Selected Session</h2>
       </div>
@@ -814,23 +888,21 @@ function hideTooltip() {
                           pet.combatStats.dps !== "0"
                             ? { width: `${Math.max(DmgDonepercent * 95, 7)}%` }
                             : {}
-                        }></div>
-                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein" 
+                        } 
                     onClick={
                       () => handleSelect("DamageDoneUI", pet)}
                       onContextMenu={handleUndo}
-                      >
+                      ></div>
+                        <span className="metricTable-damage-bar-label metricTable-cell-text fadein">
                       {pet.combatStats.dps && pet.combatStats.dps !== "0"  ? pet.combatStats.dps.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                       </div>
                     </td>
-                    <td className="metricTable-header-text metricTable-damage-cell fadein">
-                    
-                        
-                        <span className="metricTable-cell-text" 
+                    <td className="metricTable-header-text metricTable-damage-cell fadein" 
                     onClick={
                       () => handleSelect("DamageDoneUI", pet)}
                       onContextMenu={handleUndo}
                       >
+                        <span className="metricTable-cell-text">
                       {pet.combatStats.totalDamage && pet.combatStats.totalDamage !== "0" ? pet.combatStats.totalDamage.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                      
                     </td>
@@ -1030,7 +1102,11 @@ function hideTooltip() {
                         <span>{item.identity?.name || "-"}</span>
                     </td>
 
-                    <td className="metricTable-header-text fadein">
+                    <td className="metricTable-header-text fadein" 
+                    onClick={
+                      () => handleSelect("DamageDoneUI", item)}
+                      onContextMenu={handleUndo}
+                      >
                       <div className="metricTable-percent-bar-wrap fadein">
                         <div className="metricTable-percent-bar metricTable-percent-damageDone-color fadein"  
                         style={
@@ -1042,7 +1118,11 @@ function hideTooltip() {
                       </div>
                     </td>
 
-                    <td className="metricTable-header-text metricTable-damage-cell fadein">
+                    <td className="metricTable-header-text metricTable-damage-cell fadein" 
+                    onClick={
+                      () => handleSelect("DamageDoneUI", item)}
+                      onContextMenu={handleUndo}
+                      >
                       <span className="metricTable-cell-text">{dmg ? dmg.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "-"}</span>
                     </td>
 
@@ -1198,7 +1278,7 @@ function hideTooltip() {
 <table className="damage-table modern">
   <thead>
     <tr>
-      <th style={{ width: "6px" }}></th>
+      <th style={{ width: "15px" }}></th>
       <th>Spell</th>
       <th style={{ textAlign: "center" }}>Total</th>
       <th style={{ textAlign: "center" }}>%</th>
@@ -1251,101 +1331,113 @@ function hideTooltip() {
         <td className="cell">{(selectedEntityData.totals.totalDamage * 100/selectedEntityData.totals.totalDamage)
                 .toFixed((selectedEntityData.totals.totalDamage % 1 === 0) ? 0 : 2)}%</td>
         {/* Normal Hits */}
-        <td className="cell"
-        onMouseEnter={() =>
-            showTooltip(
-              <>
-                <strong>Normal</strong>
-                <div className="tip-sub">Hits: {`${selectedEntityData.totals.normalCount || 0}/${selectedEntityData.totals.hitTable.realHitCount} (${Number(
-                  (selectedEntityData.totals.normalCount * 100 /
-                   selectedEntityData.totals.hitTable.realHitCount)
-                ).toFixed(
-                  ((selectedEntityData.totals.normalCount * 100 /
-                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
-                )}%)`} </div>
-                <div className="tip-sub">Min: {selectedEntityData.totals.minNormal || 0}</div>
-                <div className="tip-sub">Avg: {selectedEntityData.totals.avgNormal || 0}</div>
-                <div className="tip-sub">Max: {selectedEntityData.totals.maxNormal || 0}</div>
-              </>
-            )
-          }
-        onMouseLeave={hideTooltip}
-              >{Number(
-                  (selectedEntityData.totals.normalCount * 100 /
-                   selectedEntityData.totals.hitTable.realHitCount)
-                ).toFixed(
-                  ((selectedEntityData.totals.normalCount * 100 /
-                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
-                )}%</td>
-
+          <td className="cell"
+            onMouseEnter={() =>
+              showTooltip(
+                <>
+                  <strong>Normal</strong>
+                  <div className="tip-sub">
+                    Hits: {(() => {
+                      const norm = selectedEntityData.totals.normalCount + (selectedEntityData.totals.normalZeroDamageCount || 0);
+                      const total = selectedEntityData.totals.realHitCount || 1;
+                      const pct = (norm * 100) / total;
+                      return `${norm}/${total} (${pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}%)`;
+                    })()}
+                  </div>
+                  <div style={{height: "8px"}}></div>
+                  <strong>Damage</strong>
+                  <div className="tip-sub">Min: {selectedEntityData.totals.minNormal || 0}</div>
+                  <div className="tip-sub">Avg: {selectedEntityData.totals.avgNormal || 0}</div>
+                  <div className="tip-sub">Max {selectedEntityData.totals.maxNormal || 0}</div>
+                </>
+              )
+            }
+            onMouseLeave={hideTooltip}
+          >
+            {(() => {
+              const norm = selectedEntityData.totals.normalCount;
+              const total = selectedEntityData.totals.realHitCount || 1;
+              const pct = (norm * 100) / total;
+              return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+            })()}%
+          </td>
         {/* Crit Hits */}
         <td className="cell"
         onMouseEnter={() =>
             showTooltip(
               <>
-                <strong>Hits</strong>
-                <div className="tip-sub">Crit: {`${selectedEntityData.totals.critCount || 0}/${selectedEntityData.totals.hitTable.realHitCount} (${Number(
+                <strong>Crit</strong>
+                <div className="tip-sub">Hits: {`${selectedEntityData.totals.critCount || 0}/${selectedEntityData.totals.realHitCount} (${Number(
                   (selectedEntityData.totals.critCount * 100 /
-                   selectedEntityData.totals.hitTable.realHitCount)
+                   selectedEntityData.totals.realHitCount)
                 ).toFixed(
                   ((selectedEntityData.totals.critCount * 100 /
-                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
+                     selectedEntityData.totals.realHitCount) % 1 === 0) ? 0 : 2
                 )}%)`} </div>
+                <div style={{height: "8px"}}></div>
+                <strong>Damage</strong>
                 <div className="tip-sub">Min: {selectedEntityData.totals.minCrit || 0}</div>
                 <div className="tip-sub">Avg: {selectedEntityData.totals.avgCrit || 0}</div>
-                <div className="tip-sub">Max: {selectedEntityData.totals.maxCrit || 0}</div>
+                <div className="tip-sub">Max {selectedEntityData.totals.maxCrit || 0}</div>
               </>
             )
           }
         onMouseLeave={hideTooltip}
               >{Number(
                   (selectedEntityData.totals.critCount * 100 /
-                   selectedEntityData.totals.hitTable.realHitCount)
+                   selectedEntityData.totals.realHitCount)
                 ).toFixed(
                   ((selectedEntityData.totals.critCount * 100 /
-                     selectedEntityData.totals.hitTable.realHitCount) % 1 === 0) ? 0 : 2
+                     selectedEntityData.totals.realHitCount) % 1 === 0) ? 0 : 2
                 )}%</td>
 
         {/* Avoided */}
         <td className="cell"
-        onMouseEnter={() =>
-            showTooltip(
-              <>
-                <strong>Crit</strong>
-                <div className="tip-sub">Miss: {(() => {
-                  const tot = selectedEntityData.totals;
-                                
-                  const totalRolls =
-                    tot.missCount +
-                    tot.dodgeCount +
-                    tot.parryCount +
-                    tot.resistCount +
-                    tot.blockCount +
-                    tot.deflectCount +
-                    tot.immuneCount +
-                    tot.hitCount;
-                                
-                  const misses = tot.missCount;
-                  const missPct = totalRolls > 0 ? (misses / totalRolls) * 100 : 0;
-                                
-                  return `${misses}/${totalRolls} (${missPct.toFixed(missPct % 1 === 0 ? 0 : 2)}%)`;
-                })()} </div>
-                <div className="tip-sub">Min: {selectedEntityData.totals.minCrit || 0}</div>
-                <div className="tip-sub">Avg: {selectedEntityData.totals.avgCrit || 0}</div>
-                <div className="tip-sub">Max: {selectedEntityData.totals.maxCrit || 0}</div>
-              </>
-            )
-          }
-        onMouseLeave={hideTooltip}
-        >
-          {selectedEntityData.totals.missCount +
-           selectedEntityData.totals.dodgeCount +
-           selectedEntityData.totals.parryCount +
-           selectedEntityData.totals.resistCount +
-           selectedEntityData.totals.blockCount +
-           selectedEntityData.totals.deflectCount +
-           selectedEntityData.totals.immuneCount}
-        </td>
+            onMouseEnter={() =>
+              showTooltip(
+                <>
+                  <strong>Avoided</strong>
+                  <div className="tip-sub">
+                    Hits: {
+                      (() => {
+                        const avoided = selectedEntityData.totals.avoidedCount;
+                        const total = selectedEntityData.totals.realHitCount || 1;
+                        const pct = (avoided / total) * 100;
+                      
+                        return (
+                          <>
+                            {avoided}/{total}
+                            {" ("}
+                            {pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}
+                            {"%)"}
+                          </>
+                        );
+                      })()
+                    }
+                  </div>
+                  
+                  <div style={{height: "8px"}}></div>
+                  <strong>Type</strong>
+                  <div className="tip-sub">Miss: {selectedEntityData.totals.missCount || 0}</div>
+                  <div className="tip-sub">Dodge: {selectedEntityData.totals.dodgeCount || 0}</div>
+                  <div className="tip-sub">Parry: {selectedEntityData.totals.parryCount || 0}</div>
+                  <div className="tip-sub">Resist: {selectedEntityData.totals.resistCount || 0}</div>
+                  <div className="tip-sub">Deflect: {selectedEntityData.totals.deflectCount || 0}</div>
+                  <div className="tip-sub">Immune: {selectedEntityData.totals.immuneCount || 0}</div>
+                  <div className="tip-sub">Full Block: {selectedEntityData.totals.blockFullCount || 0}</div>
+
+                </>
+              )
+            }
+            onMouseLeave={hideTooltip}
+          >
+            {(() => {
+              const avoided = selectedEntityData.totals.avoidedCount;
+              const total = selectedEntityData.totals.realHitCount || 1;
+              const pct = (avoided / total) * 100;
+              return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+            })()}%
+          </td>
 
         {/* Lowered */}
         <td className="cell">

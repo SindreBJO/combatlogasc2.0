@@ -44,7 +44,7 @@ export const DataContextProvider = ({ children }) => {
 
     //Initialize reader and related variables
 
-
+    
 
  
 
@@ -142,6 +142,15 @@ export const DataContextProvider = ({ children }) => {
         offset = 0;
         carryOver = '';
 
+        const UNIQUE_EVENT_DATA = new Map();
+
+        function addUniqueEvent(key, value) {
+          if (!UNIQUE_EVENT_DATA.has(key)) {
+            UNIQUE_EVENT_DATA.set(key, value);
+          }
+        }
+
+
         const totalSize = Number(file?.size) || 0;
         if (totalSize === 0) {
             setProgress('File is empty');
@@ -194,6 +203,7 @@ export const DataContextProvider = ({ children }) => {
                 setData({ ...metaData });
                 console.log("Finished parsing file. MetaData:", metaData);
                 setFinishedParsing(true);
+                console.log("Unique Event Data:", Array.from(UNIQUE_EVENT_DATA.entries()));
             }
         }
 
@@ -210,7 +220,7 @@ export const DataContextProvider = ({ children }) => {
             if (currentParsedObject) {
                 if (metaData.dataIndexStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
                 if (metaData.dataTimeStampStart === null) { metaData.dataTimeStampStart = currentParsedObject.timeStamp }
-
+                addUniqueEvent(currentParsedObject.event.join('--'), currentParsedObject);
                 processSession();
                 setValidLinesCount(prevCount => prevCount + 1);
                 if (sessionActive){

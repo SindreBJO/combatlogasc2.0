@@ -1,0 +1,114 @@
+/* CHECKBOX WRAPPER */
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14px;
+  color: #ddd;
+  padding: 6px 12px;
+  transition: color 0.2s ease;
+  position: relative;
+}
+
+/* HIDE NATIVE CHECKBOX */
+.checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ANIMATED ELEMENTS */
+.checkbox .checkmark,
+.checkbox .checkmark::after,
+.checkbox .label-text,
+.checkbox .label-text::after {
+  transition: all 0.22s ease-in-out;
+}
+
+/* BOX SHAPE */
+.checkbox .checkmark {
+  width: 18px;
+  height: 18px;
+  border-radius: 20px;
+  border: 2px solid #3aa648;         /* green default */
+  background: #3aa64833;             /* green tint */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 6px #3aa64855;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* GREEN FILL (ACTIVE) */
+.checkbox .checkmark::after {
+  content: "";
+  width: 100%;
+  height: 100%;
+  background: #3aa648;               /* green fill */
+  border-radius: 4px;
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* ---------------------------------------- */
+/* CHECKED STATE = RED (disabled)          */
+/* ---------------------------------------- */
+.checkbox input[type="checkbox"]:checked + .checkmark {
+  border-color: #c23a3a;
+  background: #1a1a1a;               /* empty box */
+  box-shadow: inset 0 0 6px #c23a3a55;
+}
+
+.checkbox input[type="checkbox"]:checked + .checkmark::after {
+  transform: scale(0);
+  opacity: 0;
+}
+
+/* ---------------------------------------- */
+/* HOVER BEHAVIOR                          */
+/* ---------------------------------------- */
+.checkbox:hover .checkmark {
+  border-color: #55d06b;
+  box-shadow: inset 0 0 10px rgba(255,255,255,0.35);
+}
+
+/* Hover on RED (checked) */
+.checkbox:hover input[type="checkbox"]:checked + .checkmark {
+  border-color: #e04646;
+  box-shadow: inset 0 0 10px rgba(226, 50, 50, 0.45);
+}
+
+/* ---------------------------------------- */
+/* LABEL & UNDERLINE                       */
+/* ---------------------------------------- */
+.checkbox .label-text {
+  position: relative;
+  color: #ddd;
+}
+
+/* Green underline when active */
+.checkbox .label-text::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: #3aa648;
+  border-radius: 2px;
+  opacity: 1;
+}
+
+/* Remove underline when checked (red state) */
+.checkbox input[type="checkbox"]:checked ~ .label-text::after {
+  opacity: 0;
+  width: 0%;
+}
+
+/* Hover label */
+.checkbox:hover .label-text {
+  color: #fff;
+}
