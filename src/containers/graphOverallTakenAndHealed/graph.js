@@ -90,7 +90,7 @@ const primaryAxis = React.useMemo(
         stacked: true,
         showDatumElements: false,
         formatters: {
-          scale: (v) => `${((v ?? 0) / 1000).toFixed(0)}k`,
+          scale: (v) => `${((v ?? 0) / 1000).toFixed(1)}k`,
           tooltip: (v) => `${((v ?? 0) / 1000).toFixed(1)}k`,
         },
       },

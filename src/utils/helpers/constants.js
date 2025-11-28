@@ -472,10 +472,9 @@ export const bannedPetNames = [
   "angelic feather",
   "healing rain", 
   "eliza narsingway",
+  "Book of Ascension",
+  "Karmat",
 ]
 
 export const clutterMobsOrMultipleBossNames = [
-  ["Felmyst", 1],
-  ["Unyielding Dead", 2],
-  ["Sinister Reflection", 3]
 ]

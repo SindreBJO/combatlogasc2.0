@@ -13,7 +13,7 @@
   letter-spacing: 1px;
   text-decoration: none;
   box-shadow: 0 2px 8px #000a;
-  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  transition: all 0.4s ease;
   transform-origin: center; /* ✅ ensures scaling happens from the center */
   z-index: 0;
 }
@@ -33,12 +33,14 @@
 .nav-button::before {
   background: linear-gradient(90deg, #a88b4a 0%, #ffe082 100%);
   opacity: 1;
+  transition: color 0.2s ease;
 }
 
 /* Hover gradient */
 .nav-button::after {
   background: linear-gradient(90deg, #6ee7b7 0%, #5ad1e6 100%);
   opacity: 0;
+  transition: color 0.2s ease;
 }
 
 /* Fade between gradients */
@@ -49,11 +51,34 @@
 /* ✅ Hover scaling + shadow */
 .nav-button:hover {
   transform: scale(1.03);
-  box-shadow: 0 2px 16px #a88b4a55;
+  box-shadow: 0 2px 16px #a88a4a23;
 }
 
 /* Keep text above gradients */
 .nav-button span {
   position: relative;
   z-index: 1;
+}
+
+
+@media (max-width: 1250px) {
+  .nav-button {
+  position: relative;
+  display: inline-block; /* ✅ ensures scaling affects the element box properly */
+  overflow: hidden;
+  padding: 9px 9px;
+  font-size: 0.9rem;
+  color: #23272f;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Lora', 'Merriweather', 'Georgia', serif;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px #000a;
+  transition: all 0.4s ease;
+  transform-origin: center; /* ✅ ensures scaling happens from the center */
+  z-index: 0;
+}
 }

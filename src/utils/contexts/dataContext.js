@@ -115,7 +115,7 @@ export const DataContextProvider = ({ children }) => {
         knownErrorsLogged: []
     };
 
-       // Line index and current parsed object
+    // Line index and current parsed object
     let indexLine = 0;
     let currentParsedObject = null;
 
@@ -123,7 +123,7 @@ export const DataContextProvider = ({ children }) => {
     let currentSession = {...initialSessionData}
     let sessionActive = false;
 
-        // Reset local session state
+    // Reset local session state
         sessionActive = false;
         currentSession = null;
         metaData = {
@@ -351,8 +351,8 @@ export const DataContextProvider = ({ children }) => {
 
 
 
-          const byNameAffiliations = ['player', 'pet', 'enemyPlayer', 'friendlyPlayer'];
-          const byIdAffiliations = ['friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
+          const byNameAffiliations = ['player', 'enemyPlayer', 'friendlyPlayer'];
+          const byIdAffiliations = [ 'pet','friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
           let listName = affiliationToList[affiliation] || 'unknowns';
 
           if (byNameAffiliations.includes(affiliation) || (MultipleIdEnemyNPCs.includes(name) && affiliation === 'enemyNPC')) {
@@ -415,8 +415,8 @@ export const DataContextProvider = ({ children }) => {
         }
 
         function tryAddEntityUniqueAction(affiliation, name, id, spellName, spellId, spellSchool, isSourceEntity) {
-          const byNameAffiliations = ['player', 'pet', 'enemyPlayer', 'friendlyPlayer'];
-          const byIdAffiliations = ['friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
+          const byNameAffiliations = ['player', 'enemyPlayer', 'friendlyPlayer'];
+          const byIdAffiliations = ['pet', 'friendlyNPC', 'enemyNPC', 'neutralNPC', 'unknown'];
           let listName = affiliationToList[affiliation] || 'unknowns';
 
           const entities = currentSession.entitiesData[listName].filter(e => {

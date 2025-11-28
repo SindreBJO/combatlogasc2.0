@@ -4,12 +4,12 @@ import "./header.css";
 
 export default function Header() {
     const handleJoinDiscord = () => {
-      window.open("https://discord.gg/Yum6WnhJYc", "_blank");
+      window.open("https://discord.gg/GmeSCJGdzs", "_blank");
     };
 
     return (
         <header>
-            <Link to="/" className="header-title"><h1>SozLogs Alpha v0.50</h1></Link>
+            <Link to="/" className="header-title"><h1>SozLogs Alpha v0.51</h1></Link>
             <nav className="nav">
                 <ul className="nav-list">
                     <li className="nav-element"><NavButton type={"Home"} page={""}/></li>

@@ -34,7 +34,6 @@
   color: var(--text-main);
   border: none;
   gap: 20px;
-  user-select: none;
 }
 
 .metricTable-container::after {
@@ -75,7 +74,6 @@
   padding: 8px 5px;
 
   background: rgba(0, 168, 198, 0.07);      /* subtle teal tint */
-  border: 1px solid rgba(0, 168, 198, 0.55); /* WotLK teal */
   border-radius: 12px;
 
   box-shadow:
@@ -803,6 +801,7 @@ box-shadow: 0 0 3px #0000007c inset;
   font-family: "Inter", sans-serif;
   color: #ececec;
   user-select: none;
+  margin-bottom: 100px;
 }
 
 /* HEADER */
@@ -909,3 +908,6 @@ box-shadow: 0 0 3px #0000007c inset;
 
 
 
+@media (max-width: 600px) {
+
+}

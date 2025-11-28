@@ -1,0 +1,74 @@
+/* The blurred full-screen overlay */
+.alpha-overlay {
+  position: fixed;
+  inset: 0;
+  backdrop-filter: blur(8px);
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+/* The centered modal window */
+.alpha-modal {
+  width: 90%;
+  max-width: 500px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.25s ease-out;
+}
+
+.alpha-modal h2 {
+  margin-top: 0;
+  font-size: 1.6rem;
+}
+
+.alpha-modal ul {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.alpha-modal .agreement {
+  margin-top: 20px;
+  font-size: 0.9rem;
+  color: #444;
+}
+
+/* Buttons */
+.buttons {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancel-btn {
+  background: #d0d0d0;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.agree-btn {
+  background: #0078ff;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cancel-btn:hover,
+.agree-btn:hover {
+  opacity: 0.9;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

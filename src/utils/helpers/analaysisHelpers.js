@@ -209,7 +209,7 @@ const getAbsorbed = () => {
     // Implement detailed parsing if needed later.
     return 0;
   }
-  const playerCheck = entityObj.entityType === "player" || entityObj.entityType === "pet";
+  const playerCheck = entityObj.entityType === "player";
   const graphPoints = playerCheck ? getDamageGraphPoints() : [];
 
     const tableData = {
@@ -467,18 +467,37 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
   const totals = {
     //Totals
     totalDamage: 0,
+    totalMagicDamage: 0,
+    totalPhysicalDamage: 0,
 
     //Normals
     normalAmount: 0,
     normalCount: 0,
     minNormal: null,
+    avgNormal: null,
     maxNormal: null,
 
     //Criticals
     critAmount: 0,
     critCount: 0,
     minCrit: null,
+    avgCrit: null,
     maxCrit: null,
+
+    //avoids
+    missCount: 0,
+    parryCount: 0,
+    resistCount: 0,
+    deflectCount: 0,
+    immuneCount: 0,
+    blockFullCount: 0,
+    dodgeCount: 0,
+    evadeCount: 0,
+
+    //Lovered Amounts
+    blockedTotal: 0,
+    resistedTotal: 0,
+    absorbAmount: 0,
 
     avoidedCount: 0,
     hitCount: 0,
@@ -540,20 +559,37 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
         school: spellSchool,
         category,
 
-            //Totals
+        //Total
         totalDamage: 0,
           
-        //Normals
+        //Normal
         normalAmount: 0,
         normalCount: 0,
         minNormal: null,
+        avgNormal: null,
         maxNormal: null,
-          
-        //Criticals
+
+        //Critical
         critAmount: 0,
         critCount: 0,
         minCrit: null,
+        avgCrit: null,
         maxCrit: null,
+
+        //Avoid Counts
+        missCount: 0,
+        dodgeCount: 0,
+        parryCount: 0,
+        resistCount: 0,
+        deflectCount: 0,
+        immuneCount: 0,
+        blockFullCount: 0,
+        evadeCount: 0,
+
+        //Lovered Amounts
+        blockedTotal: 0,
+        resistedTotal: 0,
+        absorbAmount: 0,
           
         avoidedCount: 0,
         hitCount: 0,
@@ -563,6 +599,7 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
     const selectedSpell = spells[spellKey];
 
     selectedSpell.hitCount++;
+    let checkCount = 0;
 
     // ============================
     // AVOIDED EVENTS
@@ -579,8 +616,8 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
         case "RESIST": totals.resistCount++; selectedSpell.resistCount++; break;
         case "EVADE": totals.evadeCount++; selectedSpell.evadeCount++; break;
         case "ABSORB": 
-          totals.absorbCount++; 
-          selectedSpell.absorbCount++; 
+          totals.absorbCount++;
+          selectedSpell.absorbCount++;
           totals.absorbAmount += parse.amount;
           break;
         case "BLOCK":
@@ -593,7 +630,7 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
           console.log("Unknown miss type encountered in damage analysis:", missType);
           break;
       }
-
+      checkCount++;
       totals.avoidedCount++;
       selectedSpell.avoidedCount++;
       return;
@@ -608,7 +645,6 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
     const blocked = Number(parse.blocked || 0);
     const absorbed = Number(parse.absorbed || 0);
     const resisted = Number(parse.resisted || 0);
-    let checkCount = 0;
 
     // ===== FULL ZERO-DAMAGE CASES (avoided except full absorb) =====
 
@@ -624,7 +660,7 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
       totals.blockCount++; selectedSpell.blockCount++;
       totals.blockFullCount++; selectedSpell.blockFullCount++;
       totals.blockedTotal += blocked; selectedSpell.blockedTotal += blocked;
-      totals.avoidedCount++;
+      totals.avoidedCount++; totals.fullBlockCount++;
       checkCount++;
       return;
     }
@@ -632,7 +668,6 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
     // FULL ABSORB (0 dmg) => YOUR RULE: HIT
     if (dmg === 0 && absorbed > 0) {
       totals.absorbAmount += absorbed; selectedSpell.absorbAmount += absorbed;
-      totals.hitCount++; selectedSpell.hitCount++;
       checkCount++;
       return;
     }
@@ -655,14 +690,11 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
 
     // ===== APPLY DAMAGE HIT =====
     totals.totalDamage += dmg; selectedSpell.totalDamage += dmg;
-
     if (category === "Physical") {
       totals.totalPhysicalDamage += dmg; selectedSpell.physicalDamage += dmg;
     } else {
-      totals.totalMagicalDamage += dmg; selectedSpell.magicalDamage += dmg;
+      totals.totalMagicDamage += dmg; selectedSpell.magicalDamage += dmg;
     }
-
-    totals.hitCount++; selectedSpell.hitCount++;
 
     // CRIT
     if (critical) {

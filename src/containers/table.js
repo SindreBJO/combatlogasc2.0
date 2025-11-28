@@ -9,6 +9,7 @@ import ColoredAreaChart from "./graph/graph";
 import ColoredAreaChartDamageTaken from "./graphOverallTakenAndHealed/graph";
 import SessionSlideBar from "../components/slideSessionTimeBar/slideSessionTimeBar";
 import CheckBox from "../components/checkbox/checkbox";
+import StackedAreaChart from "./layeredGraph/layeredGraph.js";
 
 export default function PerformanceMetricsTable() {
 
@@ -164,6 +165,7 @@ export default function PerformanceMetricsTable() {
     setSessionRaidGraphPointsDamageTaken(sessionDamageTakenPoints);
     
     console.log("Player rows:", playerRows);
+    console.log("Pet rows:", petRows);
     setPlayers(playerRows);
     setPets(petRows);
     setEnemies(enemyRows);
@@ -800,13 +802,12 @@ function hideTooltip() {
                 identity: "Pets",
                 combatStats: {
                   dps: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.dps) || 0), 0),
-                totalDamage: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalDamage) || 0), 0),
-                damageTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.damageTaken) || 0), 0),
-                healingTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.healingTaken) || 0), 0),
-                absorbedTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalAbsorbedTaken) || 0), 0),
-                hps: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.hps) || 0), 0),
-                totalHealingDone: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalHealingDone) || 0), 0),
-
+                  damageTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.damageTaken) || 0), 0),
+                  healingTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.healingTaken) || 0), 0),
+                  absorbedTaken: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalAbsorbedTaken) || 0), 0),
+                  hps: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.hps) || 0), 0),
+                  totalHealingDone: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalHealingDone) || 0), 0),
+                  totalDamage: pets.reduce((sum, obj) => sum + (Number(obj.combatStats?.totalDamage) || 0), 0),
                 },
                 utility: {},
                 meta: {},
@@ -1272,6 +1273,8 @@ function hideTooltip() {
 
 
 {selectedScene === "DamageDoneUI" && loading !== true && selectedEntityData &&
+<>
+<StackedAreaChart/>
 <div className="core-ui-content" onContextMenu={(e) => {handleUndo(e); hideTooltip()}}>
 
 
@@ -1314,11 +1317,11 @@ function hideTooltip() {
                   ((selectedEntityData.totals.totalPhysicalDamage * 100 /
                      selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 2
                 )}%)`} </div>
-                <div className="tip-sub">Magical: {`${selectedEntityData.totals.totalMagicalDamage || 0} (${Number(
-                  (selectedEntityData.totals.totalMagicalDamage * 100 /
+                <div className="tip-sub">Magical: {`${selectedEntityData.totals.totalMagicDamage || 0} (${Number(
+                  (selectedEntityData.totals.totalMagicDamage * 100 /
                    selectedEntityData.totals.totalDamage)
                 ).toFixed(
-                  ((selectedEntityData.totals.totalMagicalDamage * 100 /
+                  ((selectedEntityData.totals.totalMagicDamage * 100 /
                      selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 2
                 )}%)`} </div>
               </>
@@ -1339,7 +1342,7 @@ function hideTooltip() {
                   <div className="tip-sub">
                     Hits: {(() => {
                       const norm = selectedEntityData.totals.normalCount + (selectedEntityData.totals.normalZeroDamageCount || 0);
-                      const total = selectedEntityData.totals.realHitCount || 1;
+                      const total = selectedEntityData.totals.hitCount || 1;
                       const pct = (norm * 100) / total;
                       return `${norm}/${total} (${pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}%)`;
                     })()}
@@ -1347,7 +1350,7 @@ function hideTooltip() {
                   <div style={{height: "8px"}}></div>
                   <strong>Damage</strong>
                   <div className="tip-sub">Min: {selectedEntityData.totals.minNormal || 0}</div>
-                  <div className="tip-sub">Avg: {selectedEntityData.totals.avgNormal || 0}</div>
+                  <div className="tip-sub">Avg: {Math.floor(selectedEntityData.totals.normalAmount / selectedEntityData.totals.normalCount) || 0}</div>
                   <div className="tip-sub">Max {selectedEntityData.totals.maxNormal || 0}</div>
                 </>
               )
@@ -1356,7 +1359,7 @@ function hideTooltip() {
           >
             {(() => {
               const norm = selectedEntityData.totals.normalCount;
-              const total = selectedEntityData.totals.realHitCount || 1;
+              const total = selectedEntityData.totals.hitCount || 1;
               const pct = (norm * 100) / total;
               return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
             })()}%
@@ -1367,17 +1370,17 @@ function hideTooltip() {
             showTooltip(
               <>
                 <strong>Crit</strong>
-                <div className="tip-sub">Hits: {`${selectedEntityData.totals.critCount || 0}/${selectedEntityData.totals.realHitCount} (${Number(
+                <div className="tip-sub">Hits: {`${selectedEntityData.totals.critCount || 0}/${selectedEntityData.totals.hitCount} (${Number(
                   (selectedEntityData.totals.critCount * 100 /
-                   selectedEntityData.totals.realHitCount)
+                   selectedEntityData.totals.hitCount)
                 ).toFixed(
                   ((selectedEntityData.totals.critCount * 100 /
-                     selectedEntityData.totals.realHitCount) % 1 === 0) ? 0 : 2
+                     selectedEntityData.totals.hitCount) % 1 === 0) ? 0 : 2
                 )}%)`} </div>
                 <div style={{height: "8px"}}></div>
                 <strong>Damage</strong>
                 <div className="tip-sub">Min: {selectedEntityData.totals.minCrit || 0}</div>
-                <div className="tip-sub">Avg: {selectedEntityData.totals.avgCrit || 0}</div>
+                <div className="tip-sub">Avg: {Math.floor(selectedEntityData.totals.critAmount / selectedEntityData.totals.critCount) || 0}</div>
                 <div className="tip-sub">Max {selectedEntityData.totals.maxCrit || 0}</div>
               </>
             )
@@ -1385,10 +1388,10 @@ function hideTooltip() {
         onMouseLeave={hideTooltip}
               >{Number(
                   (selectedEntityData.totals.critCount * 100 /
-                   selectedEntityData.totals.realHitCount)
+                   selectedEntityData.totals.hitCount)
                 ).toFixed(
                   ((selectedEntityData.totals.critCount * 100 /
-                     selectedEntityData.totals.realHitCount) % 1 === 0) ? 0 : 2
+                     selectedEntityData.totals.hitCount) % 1 === 0) ? 0 : 2
                 )}%</td>
 
         {/* Avoided */}
@@ -1401,7 +1404,7 @@ function hideTooltip() {
                     Hits: {
                       (() => {
                         const avoided = selectedEntityData.totals.avoidedCount;
-                        const total = selectedEntityData.totals.realHitCount || 1;
+                        const total = selectedEntityData.totals.hitCount || 1;
                         const pct = (avoided / total) * 100;
                       
                         return (
@@ -1418,13 +1421,15 @@ function hideTooltip() {
                   
                   <div style={{height: "8px"}}></div>
                   <strong>Type</strong>
-                  <div className="tip-sub">Miss: {selectedEntityData.totals.missCount || 0}</div>
-                  <div className="tip-sub">Dodge: {selectedEntityData.totals.dodgeCount || 0}</div>
-                  <div className="tip-sub">Parry: {selectedEntityData.totals.parryCount || 0}</div>
-                  <div className="tip-sub">Resist: {selectedEntityData.totals.resistCount || 0}</div>
-                  <div className="tip-sub">Deflect: {selectedEntityData.totals.deflectCount || 0}</div>
-                  <div className="tip-sub">Immune: {selectedEntityData.totals.immuneCount || 0}</div>
-                  <div className="tip-sub">Full Block: {selectedEntityData.totals.blockFullCount || 0}</div>
+                  {selectedEntityData.totals.missCount > 0 && <div className="tip-sub">Miss: {selectedEntityData.totals.missCount || 0}</div>}
+                  {selectedEntityData.totals.dodgeCount > 0 && <div className="tip-sub">Dodge: {selectedEntityData.totals.dodgeCount || 0}</div>}
+                  {selectedEntityData.totals.parryCount > 0 && <div className="tip-sub">Parry: {selectedEntityData.totals.parryCount || 0}</div>}
+                  {selectedEntityData.totals.resistCount > 0 && <div className="tip-sub">Resist: {selectedEntityData.totals.resistCount || 0}</div>}
+                  {selectedEntityData.totals.deflectCount > 0 && <div className="tip-sub">Deflect: {selectedEntityData.totals.deflectCount || 0}</div>}
+                  {selectedEntityData.totals.immuneCount > 0 && <div className="tip-sub">Immune: {selectedEntityData.totals.immuneCount || 0}</div>}
+                  {selectedEntityData.totals.blockFullCount > 0 && <div className="tip-sub">Full Block: {selectedEntityData.totals.blockFullCount || 0}</div>}
+                  {selectedEntityData.totals.evadeCount > 0 && <div className="tip-sub">Evade: {selectedEntityData.totals.evadeCount || 0}</div>}
+
 
                 </>
               )
@@ -1433,17 +1438,55 @@ function hideTooltip() {
           >
             {(() => {
               const avoided = selectedEntityData.totals.avoidedCount;
-              const total = selectedEntityData.totals.realHitCount || 1;
+              const total = selectedEntityData.totals.hitCount || 1;
               const pct = (avoided / total) * 100;
               return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
             })()}%
           </td>
 
         {/* Lowered */}
-        <td className="cell">
-          {selectedEntityData.totals.absorbed +
-           selectedEntityData.totals.blockedAmount +
-           selectedEntityData.totals.resistedAmount}
+        <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Type</strong>
+                {selectedEntityData.totals.resistedTotal > 0 && <div className="tip-sub">Resisted: 
+                {" " + (selectedEntityData.totals.resistedTotal || 0) + " ("}
+                {(() => {
+                  const amount = selectedEntityData.totals.resistedTotal;
+                  const total = selectedEntityData.totals.totalDamage;
+                  const pct = (amount / total) * 100;
+                  return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+                })()}{"%)"}
+                </div>}
+                {selectedEntityData.totals.absorbAmount > 0 && <div className="tip-sub">Absorbed: 
+                {" " + (selectedEntityData.totals.absorbAmount || 0) + " ("}
+                {(() => {
+                  const amount = selectedEntityData.totals.absorbAmount;
+                  const total = selectedEntityData.totals.totalDamage;
+                  const pct = (amount / total) * 100;
+                  return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+                })()}{"%)"}
+                </div>}
+                {selectedEntityData.totals.blockedTotal > 0 && <div className="tip-sub">Blocked: 
+                {" " + (selectedEntityData.totals.blockedTotal || 0) + " ("}
+                {(() => {
+                  const amount = selectedEntityData.totals.blockedTotal;
+                  const total = selectedEntityData.totals.totalDamage;
+                  const pct = (amount / total) * 100;
+                  return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+                })()}{"%)"}
+                </div>}
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+              >
+            {
+              selectedEntityData.totals.absorbAmount +
+              selectedEntityData.totals.blockedTotal +
+              selectedEntityData.totals.resistedTotal
+            }
         </td>
       </tr>
     )}
@@ -1490,83 +1533,138 @@ function hideTooltip() {
             </td>
 
             {/* TOTAL DAMAGE */}
-            <td
-              className="cell tooltip-target"
-              onMouseEnter={() =>
-                showTooltip(
-                  <>
-                    <strong>Total Damage</strong>
-                    <div className="tip-sub">Physical: {sp.physicalDamage || 0}</div>
-                    <div className="tip-sub">Magical: {sp.magicalDamage || 0}</div>
-                  </>
-                )
-              }
-              onMouseLeave={hideTooltip}
-            >
-              {sp.totalDamage}
-            </td>
+            <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Total Damage</strong>
+                <div className="tip-sub">{sp.category === "Physical" ? "Physical: " : "Magical: " } {`${sp.totalDamage || 0} (${Number(
+                  (sp.totalDamage * 100 /
+                   selectedEntityData.totals.totalDamage)
+                ).toFixed(
+                  ((sp.totalDamage * 100 /
+                     selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 2
+                )}%)`} </div>
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+              >{sp.totalDamage}</td>
             {/* PERCENTAGE OF TOTAL DAMAGE */}
             <td className="cell">
               {(sp.totalDamage * 100 / selectedEntityData.totals.totalDamage)
-                .toFixed(((sp.totalDamage * 100 / selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 1)}%
+                .toFixed(((sp.totalDamage * 100 / selectedEntityData.totals.totalDamage) % 1 === 0) ? 0 : 2)}%
             </td>
             {/* NORMAL HITS */}
-            <td
-              className="cell tooltip-target"
-              onMouseEnter={() =>
-                showTooltip(
-                  <>
-                    <strong>Normal Hits: {sp.normalCount}</strong>
-                    <div className="tip-sub">Min: {sp.minNormal}</div>
-                    <div className="tip-sub">Avg: {sp.avgNormal}</div>
-                    <div className="tip-sub">Max: {sp.maxNormal}</div>
-                  </>
-                )
-              }
-              onMouseLeave={hideTooltip}
-            >
-              {sp.normalCount}
-            </td>
-
+                      <td className="cell"
+            onMouseEnter={() =>
+              showTooltip(
+                <>
+                  <strong>Normal</strong>
+                  <div className="tip-sub">
+                    Hits: {(() => {
+                      const norm = sp.normalCount + (sp.normalZeroDamageCount || 0);
+                      const total = sp.hitCount || 1;
+                      const pct = (norm * 100) / total;
+                      return `${norm}/${total} (${pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}%)`;
+                    })()}
+                  </div>
+                  <div style={{height: "8px"}}></div>
+                  <strong>Damage</strong>
+                  <div className="tip-sub">Min: {sp.minNormal || 0}</div>
+                  <div className="tip-sub">Avg: {Math.floor(sp.normalAmount / sp.normalCount) || 0}</div>
+                  <div className="tip-sub">Max {sp.maxNormal || 0}</div>
+                </>
+              )
+            }
+            onMouseLeave={hideTooltip}
+          >
+            {(() => {
+              const norm = sp.normalCount;
+              const total = sp.hitCount || 1;
+              const pct = (norm * 100) / total;
+              return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+            })()}%
+          </td>
             {/* CRITICAL */}
-            <td
-              className="cell tooltip-target"
-              onMouseEnter={() =>
-                showTooltip(
-                  <>
-                    <strong>Critical Hits: {sp.critCount}</strong>
-                    <div className="tip-sub">Min: {sp.minCrit}</div>
-                    <div className="tip-sub">Avg: {sp.avgCrit}</div>
-                    <div className="tip-sub">Max: {sp.maxCrit}</div>
-                  </>
-                )
-              }
-              onMouseLeave={hideTooltip}
-            >
-              {sp.critCount}
-            </td>
+                    <td className="cell"
+        onMouseEnter={() =>
+            showTooltip(
+              <>
+                <strong>Crit</strong>
+                <div className="tip-sub">Hits: {`${sp.critCount || 0}/${sp.hitCount} (${Number(
+                  (sp.critCount * 100 /
+                   sp.hitCount)
+                ).toFixed(
+                  ((sp.critCount * 100 /
+                     sp.hitCount) % 1 === 0) ? 0 : 2
+                )}%)`} </div>
+                <div style={{height: "8px"}}></div>
+                <strong>Damage</strong>
+                <div className="tip-sub">Min: {sp.minCrit || 0}</div>
+                <div className="tip-sub">Avg: {Math.floor(sp.critAmount / sp.critCount) || 0}</div>
+                <div className="tip-sub">Max {sp.maxCrit || 0}</div>
+              </>
+            )
+          }
+        onMouseLeave={hideTooltip}
+              >{Number(
+                  (sp.critCount * 100 /
+                   sp.hitCount)
+                ).toFixed(
+                  ((sp.critCount * 100 /
+                     sp.hitCount) % 1 === 0) ? 0 : 2
+                )}%</td>
 
             {/* AVOIDED */}
-            <td
-              className="cell tooltip-target"
-              onMouseEnter={() =>
-                showTooltip(
-                  <>
-                    <strong>Avoided: {avoidedTotal}</strong>
-                    <div className="tip-sub">Miss: {sp.missCount}</div>
-                    <div className="tip-sub">Dodge: {sp.dodgeCount}</div>
-                    <div className="tip-sub">Parry: {sp.parryCount}</div>
-                    <div className="tip-sub">Resist: {sp.resistCount}</div>
-                    <div className="tip-sub">Block: {sp.blockCount}</div>
-                    <div className="tip-sub">Deflect: {sp.deflectCount}</div>
-                    <div className="tip-sub">Immune: {sp.immuneCount}</div>
-                  </>
-                )
-              }
-              onMouseLeave={hideTooltip}
-            >
-              {avoidedTotal}
-            </td>
+            <td className="cell"
+            onMouseEnter={() =>
+              showTooltip(
+                <>
+                  <strong>Avoided</strong>
+                  <div className="tip-sub">
+                    Hits: {
+                      (() => {
+                        const avoided = sp.avoidedCount;
+                        const total = sp.hitCount || 1;
+                        const pct = (avoided / total) * 100;
+                      
+                        return (
+                          <>
+                            {avoided}/{total}
+                            {" ("}
+                            {pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2)}
+                            {"%)"}
+                          </>
+                        );
+                      })()
+                    }
+                  </div>
+                  
+                  <div style={{height: "8px"}}></div>
+                  <strong>Type</strong>
+                  {sp.missCount > 0 && <div className="tip-sub">Miss: {sp.missCount || 0}</div>}
+                  {sp.dodgeCount > 0 && <div className="tip-sub">Dodge: {sp.dodgeCount || 0}</div>}
+                  {sp.parryCount > 0 && <div className="tip-sub">Parry: {sp.parryCount || 0}</div>}
+                  {sp.resistCount > 0 && <div className="tip-sub">Resist: {sp.resistCount || 0}</div>}
+                  {sp.deflectCount > 0 && <div className="tip-sub">Deflect: {sp.deflectCount || 0}</div>}
+                  {sp.immuneCount > 0 && <div className="tip-sub">Immune: {sp.immuneCount || 0}</div>}
+                  {sp.blockFullCount > 0 && <div className="tip-sub">Full Block: {sp.blockFullCount || 0}</div>}
+                  {sp.evadeCount > 0 && <div className="tip-sub">Evade: {sp.evadeCount || 0}</div>}
+
+
+                </>
+              )
+            }
+            onMouseLeave={hideTooltip}
+          >
+            {(() => {
+              const avoided = sp.avoidedCount;
+              const total = sp.hitCount || 1;
+              const pct = (avoided / total) * 100;
+              return pct % 1 === 0 ? pct.toFixed(0) : pct.toFixed(2);
+            })()}%
+          </td>
 
             {/* LOWERED */}
             <td
@@ -1575,15 +1673,15 @@ function hideTooltip() {
                 showTooltip(
                   <>
                     <strong>Lowered: {loweredTotal}</strong>
-                    <div className="tip-sub">Absorbed: {sp.absorbAmount}</div>
-                    <div className="tip-sub">Blocked: {sp.blockedTotal}</div>
-                    <div className="tip-sub">Resisted: {sp.resistedTotal} {`(${(sp.resistedTotal/(sp.totalDamage + sp.resistedTotal) * 100).toFixed(2)}%)`}</div>
+                    {sp.absorbAmount > 0 && <div className="tip-sub">Absorbed: {sp.absorbAmount}</div>}
+                    {sp.blockedTotal > 0 && <div className="tip-sub">Blocked: {sp.blockedTotal}</div>}
+                    {sp.resistedTotal > 0 && <div className="tip-sub">Resisted: {sp.resistedTotal} {`(${(sp.resistedTotal/(sp.totalDamage + sp.resistedTotal) * 100).toFixed(2)}%)`}</div>}
                   </>
                 )
               }
               onMouseLeave={hideTooltip}
             >
-              {loweredTotal}
+              {sp.absorbAmount + sp.blockedTotal + sp.resistedTotal}
             </td>
 
           </tr>
@@ -1604,6 +1702,7 @@ function hideTooltip() {
 
 
 </div>
+</>
 }
 
 

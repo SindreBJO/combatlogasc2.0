@@ -2,11 +2,17 @@ import React, { useState, useContext, useEffect } from 'react';
 import './fileLoader.wow.css';
 import { useLocation } from 'react-router-dom';
 import { DataContext } from '../../utils/contexts/dataContext';
+import AlphaDisclaimerModal from '../alphaDisclaimer/alphaDisclaimer';
 
 export default function FileLoader() {
     const { progress, progressPercentage, validLinesCount, invalidLinesCount, sessionCount, readNewFile, inputYear, setInputYear, setInputDamageTimeout, setFinishedParsing, data, finishedParsing, setStartNewSession, startNewSession } = useContext(DataContext);
     const [ dragActive, setDragActive ] = useState(false);
     const { pathname } = useLocation();
+
+    const [hideAlpha, setHideAlpha] = useState(() => localStorage.getItem("sozlog-hideAlpha") === "true");
+      
+    // Save on change
+    useEffect(() => {localStorage.setItem("sozlog-hideAlpha", hideAlpha);}, [hideAlpha]);
 
     function handleDrop(event) {
         event.preventDefault();
@@ -44,6 +50,7 @@ export default function FileLoader() {
 
     return (
         <div className="file-loader-container wow-wotlk-bg">
+          {!hideAlpha && <AlphaDisclaimerModal onAgree={() => setHideAlpha(true)} />}
           <div className="file-loader-card wow-wotlk-card">
             <div className='file-loader-title-wrapper wow-wotlk-titlebar'>
             <h2 className="file-loader-title wow-wotlk-title">Combat Log Parser</h2>

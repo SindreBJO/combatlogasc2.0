@@ -46,7 +46,7 @@ html, body {
 }
 .wow-wotlk-title {
   color: #23272f;
-  font-size: 2.1rem;
+  font-size: 1.9rem !important;
   font-weight: 800;
   letter-spacing: 1.5px;
   text-shadow: 0 2px 8px #ffe08299, 0 1px 0 #fff;
@@ -236,7 +236,7 @@ html, body {
 
 @media (max-width: 600px) {
   .wow-wotlk-card {
-    padding: 18px 6px 16px 6px;
+    padding: 10vh 10vw;
     max-width: 98vw;
   }
   .wow-wotlk-title {

@@ -83,7 +83,6 @@ header {
   margin: 0;
   list-style-type: none;
   gap: 15px;
-
 }
 
 @keyframes fadeIn {
@@ -96,15 +95,39 @@ header {
   }
 }
 
-@media (max-width: 700px) {
-  header {
-    
-  }
+@media (max-width: 1250px) {
   .header-title {
-    font-size: 1.3rem;
+    font-size: 0.5rem !important;
     margin: 0 0 8px 0;
   }
-  .nav-list {
-    gap: 10px;
-  }
+
+  .header-title h1{
+  font-family: 'Inter', 'Merriweather', 'Georgia', serif;
+  color: #ffe082;
+  font-size: 0.5rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px #a88b4a99, 0 1px 0 #fff;
+  margin: 0 32px 0 0;
+  background: linear-gradient(90deg, #ffe082 60%, #a88b4a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  padding-left: 10px;
+  user-select: none;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none;     /* IE10+/Edge */
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.4s ease-in-out;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: row;
+  width: auto;
+  margin: 0;
+  list-style-type: none;
+  gap: 10px;
+}
 }

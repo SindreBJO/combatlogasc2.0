@@ -254,6 +254,8 @@ export function parseAffiliation(flagMask) {
     result.reaction === "FRIENDLY" &&
     ["PLAYER"].includes(result.control)
   ) {
+    if (flagMask !== "0x1114" && flagMask !== "0x1112") console.log("PET? :",  flagMask);
+
     return "pet";
   }
 
