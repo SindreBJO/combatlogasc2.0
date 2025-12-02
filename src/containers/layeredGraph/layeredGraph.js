@@ -15,6 +15,31 @@ import "./layeredGraph.css";
 ChartJS.register(LineElement, CategoryScale, LinearScale, PointElement, Filler, Tooltip, Legend);
 
 export default function StackedAreaChart({ entryObject = [] }) {
+
+/*  
+  Expected Entry:
+
+  entryObject = [
+    {
+      metaData: {
+        metricName:  *,       // string
+        spellSchool: *,       // number or string
+        color:       *,       // hex or rgb string
+        spellName:   *        // string
+      },
+      data: [
+        // time-series: [timestamp, amount]
+        [timestamp, amount],
+        [timestamp, amount],
+        [timestamp, amount],
+        // ...n
+      ]
+    },
+
+    // ...n objects of same structure
+  ];
+*/
+
   const [isVisible, setIsVisible] = useState(false);
 
   // Fade animation on dataset update

@@ -252,12 +252,9 @@ const getAbsorbed = () => {
 }
 
 export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInterval) {
-  if (inputInterval){}
-  else if (sessionMetaData.encounterLengthMs <= 1000) {return [[], []];}
-  else if (sessionMetaData.encounterLengthMs <= 10000) {inputInterval = sessionMetaData.encounterLengthMs / 30;}
-  else if (sessionMetaData.encounterLengthMs <= 60000) {inputInterval = sessionMetaData.encounterLengthMs / 50;}
-  else if (sessionMetaData.encounterLengthMs <= 100000) {inputInterval = sessionMetaData.encounterLengthMs / 75;}
-  else {inputInterval = sessionMetaData.encounterLengthMs / 100;}
+  if (!inputInterval) {
+    inputInterval = sessionMetaData.encounterLengthMs / 100;
+  }
   if (!sessionMetaData?.entitiesData?.players || !sessionMetaData?.entitiesData?.pets) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
     return [[], []];
@@ -338,8 +335,9 @@ export function getRaidDamageGraphPoints(sessionData, sessionMetaData, inputInte
 
 
 export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, binGoal) {
-  if (binGoal){}
-  else { binGoal = Math.min(sessionMetaData.encounterLengthMs / 100, 100); }
+    if (!binGoal) {
+    binGoal = sessionMetaData.encounterLengthMs / 100;
+  }
   if (!sessionMetaData?.entitiesData?.players) {
     console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
     return [];
@@ -348,7 +346,7 @@ export function getRaidDamageTakenGraphPoints(sessionData, sessionMetaData, binG
   const encounterLengthMs = sessionMetaData.endTime - sessionMetaData.startTime || 0;
 
   // 🧮 Compute number of bins and bin size (equal length)
-  const binsIfOneSecond = encounterLengthMs / 1000;
+  const binsIfOneSecond = encounterLengthMs / 2500;
   const numBins = Math.min(Math.ceil(binsIfOneSecond), binGoal);
   const inputInterval = encounterLengthMs / numBins; // ms per bin
 
@@ -736,3 +734,125 @@ export const getDamageDoneUIBreakDown = (filteredData) => {
 
   return { spells, totals };
 };
+
+
+
+export function TODO(sessionData, sessionMetaData, inputInterval, enableBossDmg) {
+  if (!inputInterval) {
+    inputInterval = sessionMetaData.encounterLengthMs / 100;
+  }
+
+  if (!sessionMetaData?.entitiesData?.players || !sessionMetaData?.entitiesData?.pets) {
+    console.warn("getRaidDamageGraphPoints: Missing or invalid player metadata");
+  }
+
+/* Expected Entry:
+
+  entryObject = [
+    {
+      metaData: {
+        metricName:  *,       // "string"
+        spellSchool: *,       // "string"
+        color:       *,       // "string"
+        spellName:   *        // "string"
+      },
+      data: [
+        [timestamp, amount]
+        [timestamp, amount],
+        [timestamp, amount],
+        [timestamp, amount],
+         ...n
+      ]
+    },
+
+    // ...n objects of same structure
+  ];
+*/
+
+  const initial = {
+    metaData: {
+      metricName: "",
+      spellSchool: "",
+      color: "",
+      spellName: "",
+    },
+    data: []
+  }
+
+  const entities = [
+    ...sessionMetaData.entitiesData.players,
+    ...sessionMetaData.entitiesData.pets,
+    ...sessionMetaData.entitiesData.enemyNPCs,
+  ];
+
+  // 🔹 Helper to check multi-name boss groups
+  const isMultiNameBossHit = (bossName, destName) => {
+    if (!bossName || !destName) return false;
+    const group = MultipleNameEnemyNPCs.find(names => names.includes(bossName));
+    if (!group) return false;
+    return group.some(name => destName.includes(name));
+  };
+
+  // Filter player damage events
+  const entityDealtData = sessionData.filter(({ sourceName, sourceFlag, event }) => {
+    if (sourceFlag !== "player") return false;
+    if (!event.includes("DAMAGE") || event.includes("MISSED")) return false;
+    return entities.some(({ name }) => name === sourceName);
+  });
+
+  // Simplify for graph use
+  const graphAllDamagePointsData = entityDealtData.map(
+    ({ timeStamp, amount, overkill = 0, destName }) => ({
+      timeStamp: timeStamp - sessionMetaData.startTime,
+      amount: getActualHit(amount, overkill),
+      destName,
+    })
+  );
+
+  const start = 0;
+  const end = sessionMetaData.endTime - sessionMetaData.startTime;
+
+  const graphAllDamagePoints = [{ time: 0, amount: 0 }];
+  const graphBossDamagePoints = [{ time: 0, amount: 0 }];
+
+  let eventIndex = 0;
+
+  for (let binStart = start; binStart < end; binStart += inputInterval) {
+    const binEnd = Math.min(binStart + inputInterval, end);
+    const actualDuration = (binEnd - binStart) / 1000;
+
+    let sumAmount = 0;
+    let bossSumAmount = 0;
+
+    while (
+      eventIndex < graphAllDamagePointsData.length &&
+      graphAllDamagePointsData[eventIndex].timeStamp < binEnd
+    ) {
+      const e = graphAllDamagePointsData[eventIndex];
+      const dmg = e.amount || 0;
+
+      // 🔹 Boss match check
+      const bossName = sessionMetaData.bossName;
+      const isBossTarget =
+        e.destName === bossName || isMultiNameBossHit(bossName, e.destName);
+
+      if (isBossTarget) bossSumAmount += dmg;
+      else sumAmount += dmg;
+
+      eventIndex++;
+    }
+
+    graphAllDamagePoints.push({
+      time: binEnd / 1000,
+      amount: sumAmount / actualDuration,
+    });
+
+    graphBossDamagePoints.push({
+      time: binEnd / 1000,
+      amount: bossSumAmount / actualDuration,
+    });
+  }
+
+  console.log("Raid Damage Graph Points:", graphAllDamagePoints, graphBossDamagePoints);
+  return [graphAllDamagePoints, graphBossDamagePoints];
+}

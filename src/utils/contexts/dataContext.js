@@ -197,7 +197,9 @@ export const DataContextProvider = ({ children }) => {
                 }
                 metaData.dataIndexEnd = indexLine;
                 metaData.dataTimeStampEnd = currentParsedObject?.timeStamp;
-                setProgress('File reading completed.');
+                if (sessionActive && (metaData?.sessions?.length ?? 0) === 0) {
+                    endSession();
+                }
                 setProgressPercentage(100);
                 metaData.dataTimeLength = metaData.dataTimeStampEnd - metaData.dataTimeStampStart;
                 setData({ ...metaData });
